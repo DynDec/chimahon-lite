@@ -2,7 +2,6 @@ package eu.kanade.tachiyomi.data.backup
 
 import android.content.Context
 import android.net.Uri
-import chimahon.novel.manager.NovelSourceManager
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import tachiyomi.domain.source.anime.service.AnimeSourceManager
 import tachiyomi.domain.source.service.SourceManager
@@ -14,7 +13,6 @@ class BackupFileValidator(
 
     private val sourceManager: SourceManager = Injekt.get(),
     private val animeSourceManager: AnimeSourceManager = Injekt.get(),
-    private val novelSourceManager: NovelSourceManager = Injekt.get(),
     private val trackerManager: TrackerManager = Injekt.get(),
 ) {
 
@@ -32,14 +30,13 @@ class BackupFileValidator(
 
         val sources = backup.backupSources.associate { it.sourceId to it.name }
         val missingSources = sources
-            .filter { sourceManager.get(it.key) == null && novelSourceManager.getNovelSource(it.key) == null }
+            .filter { sourceManager.get(it.key) == null }
             .values.map {
                 val id = it.toLongOrNull()
                 if (id == null) {
                     it
                 } else {
-                    novelSourceManager.getNovelSource(id)?.name
-                        ?: sourceManager.getOrStub(id).toString()
+                    sourceManager.getOrStub(id).toString()
                 }
             }
             .plus(

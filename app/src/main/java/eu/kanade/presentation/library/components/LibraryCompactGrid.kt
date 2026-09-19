@@ -20,7 +20,7 @@ internal fun LibraryCompactGrid(
     onLongClick: (LibraryManga) -> Unit,
     onClickContinueReading: ((LibraryManga) -> Unit)?,
     searchQuery: String?,
-    onGlobalSearchClicked: () -> Unit,
+    onGlobalSearchClicked: (() -> Unit)?,
 ) {
     LazyLibraryGrid(
         modifier = Modifier.fillMaxSize(),

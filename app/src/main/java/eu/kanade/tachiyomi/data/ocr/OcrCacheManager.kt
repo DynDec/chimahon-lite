@@ -212,9 +212,17 @@ class OcrCacheManager(
         source: Source,
     ) = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val mangaDir = downloadProvider.findMangaDir(manga.ogTitle, source)
-                ?: if (source.id == 0L) Injekt.get<tachiyomi.source.local.io.LocalSourceFileSystem>().getMangaDirectory(manga.ogTitle) else null
-            mangaDir?.listFiles()?.forEach { chapterEntry ->
+            val mangaEntry = if (source.id == 0L) {
+                Injekt.get<tachiyomi.source.local.io.LocalSourceFileSystem>().getMangaEntry(manga.url)
+            } else {
+                downloadProvider.findMangaDir(manga.ogTitle, source)
+            }
+            val chapterEntries = if (mangaEntry?.isDirectory == true) {
+                mangaEntry.listFiles().orEmpty().toList()
+            } else {
+                listOfNotNull(mangaEntry)
+            }
+            chapterEntries.forEach { chapterEntry ->
                 when {
                     chapterEntry.isDirectory -> {
                         chapterEntry.findFile(OCR_CACHE_FILE)?.delete()
@@ -274,6 +282,17 @@ class OcrCacheManager(
     }
 
     private fun findChapterLocation(manga: Manga, chapter: Chapter, source: Source): ChapterLocation? {
+        if (source.id == 0L) {
+            val chapterFile = Injekt.get<tachiyomi.source.local.io.LocalSourceFileSystem>()
+                .getChapterFile(manga.url, chapter.url)
+                ?: return null
+            return when {
+                chapterFile.isDirectory -> ChapterLocation.Directory(chapterFile)
+                chapterFile.name?.endsWith(".cbz") == true -> ChapterLocation.Cbz(chapterFile)
+                else -> null
+            }
+        }
+
         val chapterDir = downloadProvider.findChapterDir(
             chapter.name,
             chapter.scanlator,

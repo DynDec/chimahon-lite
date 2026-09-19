@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "mihon.chimahon"
-    ndkVersion = "29.0.14206865"
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         consumerProguardFiles("consumer-rules.pro")
@@ -28,6 +28,7 @@ android {
             isReturnDefaultValues = true
         }
     }
+
 }
 
 dependencies {
@@ -54,7 +55,9 @@ dependencies {
     implementation(libs.compose.webview)
     implementation(libs.jsoup)
     implementation(libs.datastore.preferences)
-    implementation(libs.bundles.media3)
+    // Media3 is only used by the legacy novel audio reader. It must not be
+    // part of the local manga APK's runtime dependency graph.
+    compileOnly(libs.bundles.media3)
 
     // Zoomable image viewer for novel illustrations
     implementation(libs.subsamplingscaleimageview) {

@@ -169,6 +169,7 @@ import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.isLocal
+import tachiyomi.source.local.io.LocalSourceFileSystem
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
@@ -711,7 +712,7 @@ class MangaScreenModel(
         val state = successState ?: return
         var manga = state.manga
         if (state.manga.isLocal()) {
-            val newTitle = if (title.isNullOrBlank()) manga.url else title.trim()
+            val newTitle = if (title.isNullOrBlank()) manga.ogTitle else title.trim()
             val newAuthor = author?.trimOrNull()
             val newArtist = artist?.trimOrNull()
             val newThumbnailUrl = thumbnailUrl?.trimOrNull()
@@ -966,7 +967,13 @@ class MangaScreenModel(
         try {
             if (currentManga == null || currentSource == null || currentSource is StubSource) return
 
-            val mangaDir = downloadProvider.findMangaDir(/* SY --> */ currentManga.ogTitle /* SY <-- */, currentSource) ?: return
+            val mangaDir = if (currentSource.isLocal()) {
+                Injekt.get<LocalSourceFileSystem>().getMangaEntry(currentManga.url)?.let {
+                    if (it.isDirectory) it else it.parentFile
+                }
+            } else {
+                downloadProvider.findMangaDir(/* SY --> */ currentManga.ogTitle /* SY <-- */, currentSource)
+            } ?: return
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(mangaDir.uri, DocumentsContract.Document.MIME_TYPE_DIR)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)

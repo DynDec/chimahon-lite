@@ -31,7 +31,6 @@ import eu.kanade.tachiyomi.ui.player.settings.AdvancedPlayerPreferences
 import eu.kanade.tachiyomi.ui.player.settings.AudioPreferences
 import eu.kanade.tachiyomi.ui.player.settings.DecoderPreferences
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
-import eu.kanade.tachiyomi.ui.player.settings.SubtitleAssOverride
 import eu.kanade.tachiyomi.ui.player.settings.SubtitlePreferences
 import `is`.xyz.mpv.BaseMPVView
 import `is`.xyz.mpv.KeyMapping
@@ -53,15 +52,11 @@ class AniyomiMPVView(context: Context, attributes: AttributeSet) : BaseMPVView(c
     var isExiting = false
     var surfaceReady = false
         private set
-    private val playbackLoadGate = SurfacePlaybackLoadGate { url, options ->
+    private val playbackLoadGate = SurfacePlaybackLoadGate { url ->
         if (isExiting) {
             false
         } else {
-            if (options.isEmpty()) {
-                MPVLib.command(arrayOf("loadfile", url, "replace"))
-            } else {
-                MPVLib.command(arrayOf("loadfile", url, "replace", "0", options))
-            }
+            MPVLib.command(arrayOf("loadfile", url, "replace"))
             true
         }
     }
@@ -78,11 +73,11 @@ class AniyomiMPVView(context: Context, attributes: AttributeSet) : BaseMPVView(c
         super.surfaceDestroyed(holder)
     }
 
-    fun loadFileWhenSurfaceReady(url: String, options: String = "") {
+    fun loadFileWhenSurfaceReady(url: String) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            playbackLoadGate.load(url, options)
+            playbackLoadGate.load(url)
         } else {
-            post { playbackLoadGate.load(url, options) }
+            post { playbackLoadGate.load(url) }
         }
     }
 
@@ -314,10 +309,11 @@ class AniyomiMPVView(context: Context, attributes: AttributeSet) : BaseMPVView(c
         )
 
         MPVLib.setOptionString("sub-font", subtitlePreferences.subtitleFont().get())
-        MPVLib.setOptionString("sub-ass-override", subtitlePreferences.overrideSubsASS().get().value)
-        if (subtitlePreferences.overrideSubsASS().get() != SubtitleAssOverride.No) {
-            MPVLib.setOptionString("sub-ass-justify", "yes")
-        }
+        // Force-apply mpv's subtitle styling options to ASS so the sub-* options take effect.
+        // Without this, libass renders ASS with the script's own colors/effects, which would
+        // double-render alongside the Compose overlay. Text is drawn by Compose below.
+        MPVLib.setOptionString("sub-ass-override", "force")
+        MPVLib.setOptionString("sub-ass-justify", "yes")
         MPVLib.setOptionString("sub-font-size", subtitlePreferences.subtitleFontSize().get().toString())
         MPVLib.setOptionString("sub-bold", if (subtitlePreferences.boldSubtitles().get()) "yes" else "no")
         MPVLib.setOptionString("sub-italic", if (subtitlePreferences.italicSubtitles().get()) "yes" else "no")

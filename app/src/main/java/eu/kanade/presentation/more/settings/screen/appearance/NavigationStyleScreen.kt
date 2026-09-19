@@ -11,14 +11,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -73,9 +70,6 @@ class NavigationStyleScreen : Screen() {
         // Resolve tab titles
         val resolvedTabTitles = mapOf(
             NavTabLayout.KEY_LIBRARY to stringResource(MR.strings.label_library),
-            NavTabLayout.KEY_NOVELS to stringResource(MR.strings.label_novels),
-            NavTabLayout.KEY_ANIME to stringResource(MR.strings.label_anime),
-            NavTabLayout.KEY_UPDATES to stringResource(MR.strings.label_recent_updates),
             NavTabLayout.KEY_HISTORY to stringResource(MR.strings.label_recent_manga),
             NavTabLayout.KEY_BROWSE to stringResource(MR.strings.browse),
             NavTabLayout.KEY_DICTIONARY to stringResource(MR.strings.label_dictionary),
@@ -90,10 +84,7 @@ class NavigationStyleScreen : Screen() {
         // Build flat list: headers + tab entries
         val flatItems = remember(navTabLayoutStr) {
             val layout = NavTabLayout.parse(navTabLayoutStr)
-            val filteredLayout = if (Injekt.get<UiPreferences>().useConsolidatedLibrary().get()) {
-                NavTabLayout(layout.entries.filter { it.key != NavTabLayout.KEY_NOVELS && it.key != NavTabLayout.KEY_ANIME })
-            } else layout
-            buildFlatList(filteredLayout, resolvedTabTitles, navbarTitle, moreTitle, disabledTitle)
+            buildFlatList(layout, resolvedTabTitles, navbarTitle, moreTitle, disabledTitle)
         }
 
         val listState = remember { flatItems.toMutableStateList() }
@@ -212,9 +203,6 @@ sealed class NavListItem {
 private fun getTabIcon(key: String): ImageVector {
     return when (key) {
         NavTabLayout.KEY_LIBRARY -> Icons.Outlined.CollectionsBookmark
-        NavTabLayout.KEY_NOVELS -> Icons.Outlined.Book
-        NavTabLayout.KEY_ANIME -> Icons.Outlined.VideoLibrary
-        NavTabLayout.KEY_UPDATES -> Icons.Outlined.NewReleases
         NavTabLayout.KEY_HISTORY -> Icons.Outlined.History
         NavTabLayout.KEY_BROWSE -> Icons.Outlined.Public
         NavTabLayout.KEY_DICTIONARY -> Icons.Outlined.Search

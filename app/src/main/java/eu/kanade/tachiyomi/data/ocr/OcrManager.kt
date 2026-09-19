@@ -12,8 +12,8 @@ import eu.kanade.tachiyomi.data.download.DownloadProvider
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.util.lang.compareToCaseInsensitiveNaturalOrder
-import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.source.local.isLocal
+import tachiyomi.source.local.io.LocalSourceFileSystem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -290,7 +290,7 @@ class OcrManager(
 
     suspend fun runPendingQueue(stopRequested: () -> Boolean) = kotlinx.coroutines.supervisorScope {
         val dictPrefs = Injekt.get<eu.kanade.tachiyomi.ui.dictionary.DictionaryPreferences>()
-        
+
         val prefJob = launch {
             dictPrefs.parallelOcrLimit().changes().collect {
                 triggerChannel.trySend(Unit)
@@ -300,7 +300,7 @@ class OcrManager(
         try {
             while (!stopRequested()) {
                 val parallelLimit = dictPrefs.parallelOcrLimit().get()
-                
+
                 val runnableTasks = ocrStore.getAll().filter { it.status.isRunnable() }
                 val nextTask = runnableTasks.firstOrNull { !runningJobs.containsKey(it.chapterId) }
 
@@ -816,13 +816,8 @@ class OcrManager(
         manga: Manga,
         chapter: Chapter,
     ): ChapterImageProvider? {
-        val splitUrl = chapter.url.split('/', limit = 2)
-        if (splitUrl.size < 2) return null
-        val (mangaDirName, chapterDirName) = splitUrl
-        val storageManager: StorageManager = Injekt.get()
-        val chapterFile = storageManager.getLocalSourceDirectory()
-            ?.findFile(mangaDirName)
-            ?.findFile(chapterDirName)
+        val fileSystem: LocalSourceFileSystem = Injekt.get()
+        val chapterFile = fileSystem.getChapterFile(manga.url, chapter.url)
             ?: return null
         return when {
             chapterFile.isDirectory -> DirectoryImageProvider(chapterFile)

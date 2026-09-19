@@ -18,7 +18,6 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.work.Configuration
 import androidx.work.WorkManager
-import chimahon.novel.source.LocalNovelFiles
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
@@ -28,7 +27,6 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.allowRgb565
 import coil3.request.crossfade
 import coil3.util.DebugLogger
-import chimahon.novel.data.BookStorage
 import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.LogLevel
 import com.elvishew.xlog.XLog
@@ -37,7 +35,6 @@ import com.elvishew.xlog.printer.Printer
 import com.elvishew.xlog.printer.file.backup.NeverBackupStrategy
 import com.elvishew.xlog.printer.file.naming.DateFileNameGenerator
 import dev.mihon.injekt.patchInjekt
-import eu.kanade.domain.AnimeDomainModule
 import eu.kanade.domain.DomainModule
 import eu.kanade.domain.KMKDomainModule
 import eu.kanade.domain.SYDomainModule
@@ -48,9 +45,6 @@ import eu.kanade.domain.ui.model.setAppCompatDelegateThemeMode
 import eu.kanade.tachiyomi.core.security.PrivacyPreferences
 import eu.kanade.tachiyomi.crash.CrashActivity
 import eu.kanade.tachiyomi.crash.GlobalExceptionHandler
-import eu.kanade.tachiyomi.data.coil.AnimeImageFetcher
-import eu.kanade.tachiyomi.data.coil.AnimeCoverKeyer
-import eu.kanade.tachiyomi.data.coil.AnimeKeyer
 import eu.kanade.tachiyomi.data.coil.BufferedSourceFetcher
 import eu.kanade.tachiyomi.data.coil.MangaCoverFetcher
 import eu.kanade.tachiyomi.data.coil.MangaCoverKeyer
@@ -67,7 +61,6 @@ import eu.kanade.tachiyomi.di.PreferenceModule
 import eu.kanade.tachiyomi.di.SYPreferenceModule
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.ui.base.delegate.SecureActivityDelegate
-import eu.kanade.tachiyomi.ui.dictionary.ScreenLookupServiceState
 import eu.kanade.tachiyomi.util.CrashLogUtil
 import eu.kanade.tachiyomi.util.system.DeviceUtil
 import eu.kanade.tachiyomi.util.system.GLUtil
@@ -141,7 +134,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         Injekt.importModule(PreferenceModule(this))
         Injekt.importModule(AppModule(this))
         Injekt.importModule(DomainModule())
-        Injekt.importModule(AnimeDomainModule())
         // KMK -->
         Injekt.importModule(KMKDomainModule())
         // KMK <--
@@ -223,11 +215,8 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         }
 
         initializeMigrator()
-        
+
         // Chimahon -->
-        chimahon.novel.data.NovelMigration.migrateOldBooks(this)
-        // Public local-novels root (manga <base>/local/ mirror); readers resolve it.
-        BookStorage.localBooksRoot = LocalNovelFiles.publicRoot(this)
         chimahon.DictionaryRepository.migrateFlatDictionaries(File(getExternalFilesDir(null), "dictionaries"))
         // Chimahon <--
     }
@@ -261,13 +250,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 add(BufferedSourceFetcher.Factory())
                 add(MangaCoverFetcher.MangaCoverFactory(callFactoryLazy))
                 add(MangaCoverFetcher.MangaFactory(callFactoryLazy))
-                add(AnimeImageFetcher.AnimeCoverFactory(callFactoryLazy))
-                add(AnimeImageFetcher.AnimeFactory(callFactoryLazy))
                 // Keyer
                 add(MangaCoverKeyer())
-                add(AnimeCoverKeyer())
                 add(MangaKeyer())
-                add(AnimeKeyer())
                 // SY -->
                 add(PagePreviewKeyer())
                 add(PagePreviewFetcher.Factory(callFactoryLazy))
@@ -303,18 +288,16 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     override fun onStart(owner: LifecycleOwner) {
         SecureActivityDelegate.onApplicationStart()
 
-        if (!ScreenLookupServiceState.isEntryInProgress) {
-            val isFirstStart = !everStarted
-            everStarted = true
+        val isFirstStart = !everStarted
+        everStarted = true
 
-            val syncPreferences: SyncPreferences = Injekt.get()
-            val syncTriggerOpt = syncPreferences.getSyncTriggerOptions()
-            if (syncPreferences.isSyncEnabled()) {
-                if (isFirstStart && syncTriggerOpt.syncOnAppStart) {
-                    SyncDataJob.startNow(this@App)
-                } else if (!isFirstStart && syncTriggerOpt.syncOnAppResume) {
-                    SyncDataJob.startNow(this@App)
-                }
+        val syncPreferences: SyncPreferences = Injekt.get()
+        val syncTriggerOpt = syncPreferences.getSyncTriggerOptions()
+        if (syncPreferences.isSyncEnabled()) {
+            if (isFirstStart && syncTriggerOpt.syncOnAppStart) {
+                SyncDataJob.startNow(this@App)
+            } else if (!isFirstStart && syncTriggerOpt.syncOnAppResume) {
+                SyncDataJob.startNow(this@App)
             }
         }
 
@@ -324,13 +307,12 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        ScreenLookupServiceState.isEntryInProgress = false
         SecureActivityDelegate.onApplicationStopped()
 
         // AM (DISCORD) -->
         DiscordRPCService.stop(applicationContext)
         // <-- AM (DISCORD)
-        
+
         eu.kanade.tachiyomi.glance.ChimahonWidgetManager.updateAllWidgets(this)
     }
 

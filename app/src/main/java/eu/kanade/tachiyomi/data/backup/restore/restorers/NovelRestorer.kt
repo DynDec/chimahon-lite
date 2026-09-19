@@ -1,238 +1,207 @@
 package eu.kanade.tachiyomi.data.backup.restore.restorers
 
 import android.content.Context
-import chimahon.novel.interactor.RegisterLocalNovelHome
-import chimahon.novel.data.BookStorage
-import chimahon.novel.data.NovelCategory
+import com.canopus.chimareader.data.BookMetadata
+import com.canopus.chimareader.data.BookStorage
+import com.canopus.chimareader.data.Bookmark
+import com.canopus.chimareader.data.NovelCategory
+import com.canopus.chimareader.data.Statistics
+import com.canopus.chimareader.data.md5Hex
 import eu.kanade.tachiyomi.data.backup.models.BackupNovel
 import eu.kanade.tachiyomi.data.backup.models.BackupNovelCategory
-import eu.kanade.tachiyomi.data.backup.models.toNovelChapter
-import logcat.LogPriority
-import tachiyomi.core.common.util.system.logcat
-import tachiyomi.domain.novel.model.Novel
-import tachiyomi.domain.novel.model.NovelUpdate
-import tachiyomi.domain.novel.repository.NovelChapterRepository
-import tachiyomi.domain.novel.repository.NovelHistoryRepository
-import tachiyomi.domain.novel.repository.NovelReadingStatsRepository
-import tachiyomi.domain.novel.repository.NovelCategoryRepository
-import tachiyomi.domain.novel.repository.NovelRepository
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
 class NovelRestorer(
     private val context: Context,
+    private val novelCategoryStorage: com.canopus.chimareader.data.NovelCategoryStorage = Injekt.get()
 ) {
 
-    suspend fun restore(
+    fun restore(
         backupNovels: List<BackupNovel>,
         categoryIdMap: Map<String, String> = emptyMap(),
     ) {
-        for (backupNovel in backupNovels) {
-            restoreNovel(backupNovel, categoryIdMap)
-        }
+        backupNovels.forEach { restoreNovel(it, categoryIdMap) }
     }
 
-    suspend fun restoreNovel(
+    fun restoreNovel(
         backupNovel: BackupNovel,
         categoryIdMap: Map<String, String> = emptyMap(),
     ) {
-        // DB category longs for the payload string ids ("default" and legacy
-        // uuids that never mapped simply drop to the default bucket).
-        val dbCategoryIds = normalizeCategoryIds(
+        val novelId = stableNovelId(backupNovel)
+        val bookDir = BookStorage.getBookDirectory(context, novelId)
+        val backupCategoryIds = normalizeCategoryIds(
             backupNovel.categoryIds.map { categoryIdMap[it] ?: it },
-        ).mapNotNull {
-            if (it == NovelCategory.UNCATEGORIZED_ID) null else it.toLongOrNull()
-        }
+        )
 
-        // Rows first, always: files present or not, the payload wins into
-        // the DB. EPUB content itself is never in backups.
-        restoreNovelRow(backupNovel, dbCategoryIds)
-
-        // Files present (Title folder — the same dir restoreNovelRow links via
-        // localFolder): register the home now so the spine syncs straight
-        // away instead of waiting for the next library scan. Readability is
-        // content-or-epub (epub-only public dirs extract on demand here).
-        // No files: rows alone are enough.
-        val folder = BookStorage.sanitizeFileName(backupNovel.title.ifBlank { "Unknown" })
-        val readableDir = chimahon.novel.source.LocalNovelFiles.ensureReadableDir(context, folder)
-        if (readableDir != null) {
-            runCatching {
-                RegisterLocalNovelHome().register(folder)
-            }.onFailure {
-                logcat(LogPriority.WARN, it) { "Novel restore home registration failed for $folder" }
-            }
-        }
-    }
-
-    private suspend fun restoreNovelRow(backupNovel: BackupNovel, dbCategoryIds: List<Long>) {
-        val novelRepository: NovelRepository = Injekt.get()
-        val novelChapterRepository: NovelChapterRepository = Injekt.get()
-        val novelHistoryRepository: NovelHistoryRepository = Injekt.get()
-        val novelReadingStatsRepository: NovelReadingStatsRepository = Injekt.get()
-
-        val folder = BookStorage.sanitizeFileName(backupNovel.title.ifBlank { "Unknown" })
-        val url = "local://$folder"
-        val now = System.currentTimeMillis()
-        val existing = novelRepository.getNovelByUrlAndSourceId(
-            url,
-            Novel.LOCAL_SOURCE_ID,
-        ) ?: novelRepository.getNovelsBySourceId(Novel.LOCAL_SOURCE_ID)
-            .firstOrNull {
-                it.title.equals(backupNovel.title, ignoreCase = true) &&
-                    it.author.orEmpty() == backupNovel.author.orEmpty()
-            }
-        val novelId = if (existing == null) {
-            novelRepository.insert(
-                Novel.create().copy(
-                    source = Novel.LOCAL_SOURCE_ID,
-                    url = url,
-                    title = backupNovel.title,
-                    author = backupNovel.author,
-                    thumbnailUrl = backupNovel.cover,
-                    favorite = true,
-                    dateAdded = now,
-                    lastUpdate = now,
-                    initialized = true,
-                    isLocal = true,
-                    localFolder = folder,
-                ),
-            )
-        } else {
-            novelRepository.update(
-                NovelUpdate(
-                    id = existing.id,
-                    title = backupNovel.title,
-                    author = backupNovel.author,
-                    thumbnailUrl = backupNovel.cover,
-                ),
-            )
-            existing.id
-        }
-        if (dbCategoryIds.isNotEmpty()) {
-            runCatching {
-                Injekt.get<chimahon.novel.interactor.SetNovelCategories>().await(novelId, dbCategoryIds)
-            }
-        }
-
-        if (backupNovel.chapters.isNotEmpty() &&
-            novelChapterRepository.getChaptersByNovelId(novelId).isEmpty()
-        ) {
-            novelChapterRepository.insertAll(
-                backupNovel.chapters.map { it.toNovelChapter(novelId) },
-            )
-            novelRepository.update(
-                NovelUpdate(
-                    id = novelId,
-                    totalChapters = backupNovel.chapters.size,
-                ),
-            )
-        }
-
-        val idByUrl = novelChapterRepository.getChaptersByNovelId(novelId)
-            .associate { it.url to it.id }
-        backupNovel.history.forEach { entry ->
-            val chapterId = idByUrl[entry.chapterUrl] ?: return@forEach
-            runCatching {
-                val current = novelHistoryRepository.getHistoryByChapterId(chapterId)
-                if (current == null || entry.lastRead > current.lastRead) {
-                    // The upsert accumulates, so restore only the delta —
-                    // re-restoring must not double-count time_read.
-                    val delta = maxOf(0L, entry.timeRead - (current?.timeRead ?: 0L))
-                    novelHistoryRepository.upsertHistory(
-                        chapterId = chapterId,
-                        lastRead = entry.lastRead,
-                        timeRead = delta,
-                    )
-                }
-            }.onFailure {
-                logcat(LogPriority.WARN, it) { "Novel restore history failed for ${backupNovel.title}" }
-            }
-        }
-
-        if (backupNovel.lastModified > 0) {
-            runCatching {
-                            // chapterNumber order: bookmark indices are written against the
-                            // number-sorted spine everywhere (open, sync, loader).
-                val ordered = novelChapterRepository.getChaptersByNovelId(novelId)
-                    .sortedBy { it.chapterNumber }
-                val target = ordered.getOrNull(backupNovel.chapterIndex) ?: return@runCatching
-                if (novelHistoryRepository.getHistoryByChapterId(target.id) == null) {
-                    novelHistoryRepository.upsertHistory(
-                        chapterId = target.id,
-                        lastRead = backupNovel.lastModified,
-                        timeRead = 0L,
-                    )
-                }
-            }.onFailure {
-                logcat(LogPriority.WARN, it) { "Novel restore bookmark failed for ${backupNovel.title}" }
-            }
-        }
-
-        // The stats upsert accumulates, so restore only the delta per dateKey.
-        // Backup entries carry full cumulatives; re-restoring must be a no-op.
-        val currentStats = runCatching {
-            novelReadingStatsRepository.getByNovelId(novelId)
-                .associate { it.dateKey to it }
-        }.getOrNull().orEmpty()
-        backupNovel.stats.forEach { stat ->
-            runCatching {
-                val current = currentStats[stat.dateKey]
-                val charDelta = maxOf(0, stat.charactersRead - (current?.charactersRead ?: 0))
-                val timeDelta = maxOf(0.0, stat.readingTime - (current?.readingTime ?: 0.0))
-                if (charDelta == 0 && timeDelta == 0.0 && current != null) return@runCatching
-                novelReadingStatsRepository.upsert(
-                    novelId = novelId,
-                    dateKey = stat.dateKey,
-                    charactersRead = charDelta,
-                    readingTime = timeDelta,
-                    minReadingSpeed = stat.minReadingSpeed,
-                    altMinReadingSpeed = stat.altMinReadingSpeed,
-                    lastReadingSpeed = stat.lastReadingSpeed,
-                    maxReadingSpeed = maxOf(stat.maxReadingSpeed, current?.maxReadingSpeed ?: 0),
-                    completedBook = current?.completedBook,
+        if (bookDir.exists()) {
+            // Merge Metadata
+            val localMetadata = BookStorage.loadMetadata(bookDir)
+            if (localMetadata != null) {
+                val hasImportedContent = BookStorage.hasImportedBookContent(bookDir)
+                val updatedMetadata = localMetadata.copy(
+                    author = backupNovel.author ?: localMetadata.author,
+                    cover = backupNovel.cover ?: localMetadata.cover,
+                    lang = backupNovel.lang ?: localMetadata.lang,
+                    isGhost = if (hasImportedContent) false else localMetadata.isGhost,
+                    categoryIds = mergeCategoryIds(localMetadata.categoryIds, backupCategoryIds)
                 )
-            }.onFailure {
-                logcat(LogPriority.WARN, it) { "Novel restore stats failed for ${backupNovel.title}" }
+                BookStorage.saveMetadata(updatedMetadata, bookDir)
+            }
+
+            // Merge Bookmark
+            val localBookmark = BookStorage.loadBookmark(bookDir)
+            if (localBookmark == null || backupNovel.lastModified > (localBookmark.lastModified ?: 0L)) {
+                val newBookmark = Bookmark(
+                    chapterIndex = backupNovel.chapterIndex,
+                    progress = backupNovel.progress,
+                    characterCount = backupNovel.characterCount,
+                    lastModified = backupNovel.lastModified
+                )
+                BookStorage.saveBookmark(newBookmark, bookDir)
+            }
+
+            // Merge Statistics
+            val localStats = BookStorage.loadStatistics(bookDir)?.toMutableList() ?: mutableListOf()
+            var statsUpdated = false
+
+            backupNovel.stats.forEach { backupStat ->
+                val existingIndex = localStats.indexOfFirst { it.dateKey == backupStat.dateKey }
+                if (existingIndex != -1) {
+                    val existingStat = localStats[existingIndex]
+                    if (backupStat.lastStatisticModified > existingStat.lastStatisticModified) {
+                        localStats[existingIndex] = Statistics(
+                            title = backupNovel.title,
+                            dateKey = backupStat.dateKey,
+                            charactersRead = backupStat.charactersRead,
+                            readingTime = backupStat.readingTime,
+                            minReadingSpeed = backupStat.minReadingSpeed,
+                            altMinReadingSpeed = backupStat.altMinReadingSpeed,
+                            lastReadingSpeed = backupStat.lastReadingSpeed,
+                            maxReadingSpeed = backupStat.maxReadingSpeed,
+                            lastStatisticModified = backupStat.lastStatisticModified
+                        )
+                        statsUpdated = true
+                    }
+                } else {
+                    localStats.add(
+                        Statistics(
+                            title = backupNovel.title,
+                            dateKey = backupStat.dateKey,
+                            charactersRead = backupStat.charactersRead,
+                            readingTime = backupStat.readingTime,
+                            minReadingSpeed = backupStat.minReadingSpeed,
+                            altMinReadingSpeed = backupStat.altMinReadingSpeed,
+                            lastReadingSpeed = backupStat.lastReadingSpeed,
+                            maxReadingSpeed = backupStat.maxReadingSpeed,
+                            lastStatisticModified = backupStat.lastStatisticModified
+                        )
+                    )
+                    statsUpdated = true
+                }
+            }
+
+            if (statsUpdated) {
+                BookStorage.saveStatistics(localStats, bookDir)
+            }
+        } else {
+            // Ghost book
+            bookDir.mkdirs()
+
+            val metadata = BookMetadata(
+                id = novelId,
+                title = backupNovel.title,
+                author = backupNovel.author,
+                cover = backupNovel.cover, // Might be broken link until EPUB import
+                folder = novelId,
+                lastAccess = backupNovel.lastModified,
+                hash = novelId,
+                isGhost = true,
+                lang = backupNovel.lang,
+                categoryIds = backupCategoryIds
+            )
+            BookStorage.saveMetadata(metadata, bookDir)
+
+            // Bookmark
+            if (backupNovel.lastModified > 0) {
+                val newBookmark = Bookmark(
+                    chapterIndex = backupNovel.chapterIndex,
+                    progress = backupNovel.progress,
+                    characterCount = backupNovel.characterCount,
+                    lastModified = backupNovel.lastModified
+                )
+                BookStorage.saveBookmark(newBookmark, bookDir)
+            }
+
+            // Statistics
+            if (backupNovel.stats.isNotEmpty()) {
+                val stats = backupNovel.stats.map {
+                    Statistics(
+                        title = backupNovel.title,
+                        dateKey = it.dateKey,
+                        charactersRead = it.charactersRead,
+                        readingTime = it.readingTime,
+                        minReadingSpeed = it.minReadingSpeed,
+                        altMinReadingSpeed = it.altMinReadingSpeed,
+                        lastReadingSpeed = it.lastReadingSpeed,
+                        maxReadingSpeed = it.maxReadingSpeed,
+                        lastStatisticModified = it.lastStatisticModified
+                    )
+                }
+                BookStorage.saveStatistics(stats, bookDir)
             }
         }
     }
 
-    suspend fun restoreCategories(backupCategories: List<BackupNovelCategory>): Map<String, String> {
-        val novelCategoryRepository: NovelCategoryRepository = Injekt.get()
+    fun restoreCategories(backupCategories: List<BackupNovelCategory>): Map<String, String> {
         val categoryIdMap = mutableMapOf(
             NovelCategory.UNCATEGORIZED_ID to NovelCategory.UNCATEGORIZED_ID,
         )
         if (backupCategories.isEmpty()) return categoryIdMap
 
-        val currentCategories = runCatching { novelCategoryRepository.getAll() }.getOrNull().orEmpty()
+        val currentCategories = novelCategoryStorage.loadAllCategories().toMutableList()
+        var changed = false
+
         backupCategories.forEach { backupCategory ->
-            val existing = currentCategories.firstOrNull {
-                it.id.toString() == backupCategory.id || categoryKey(it.name) == categoryKey(backupCategory.name)
+            val existingIndex = currentCategories.indexOfFirst {
+                it.id == backupCategory.id || categoryKey(it.name) == categoryKey(backupCategory.name)
             }
-            if (existing == null) {
-                val id = runCatching {
-                    novelCategoryRepository.create(
-                        backupCategory.name,
-                        backupCategory.order.toInt(),
-                        false,
-                    )
-                }.getOrNull() ?: return@forEach
-                categoryIdMap[backupCategory.id] = id.toString()
+
+            if (existingIndex == -1) {
+                val restoredCategory = NovelCategory(
+                    id = backupCategory.id,
+                    name = backupCategory.name,
+                    order = backupCategory.order.toInt(),
+                    flags = backupCategory.flags,
+                )
+                currentCategories.add(restoredCategory)
+                categoryIdMap[backupCategory.id] = restoredCategory.id
+                changed = true
             } else {
-                categoryIdMap[backupCategory.id] = existing.id.toString()
-                runCatching {
-                    novelCategoryRepository.update(
-                        existing.copy(
-                            name = backupCategory.name,
-                            order = backupCategory.order.toInt(),
-                            flags = backupCategory.flags,
-                        )
-                    )
+                val existing = currentCategories[existingIndex]
+                categoryIdMap[backupCategory.id] = existing.id
+
+                val updatedCategory = existing.copy(
+                    name = backupCategory.name,
+                    order = backupCategory.order.toInt(),
+                    flags = backupCategory.flags,
+                )
+                if (updatedCategory != existing) {
+                    currentCategories[existingIndex] = updatedCategory
+                    changed = true
                 }
             }
         }
 
+        if (changed) {
+            novelCategoryStorage.saveCategories(currentCategories)
+        }
+
         return categoryIdMap
+    }
+
+    private fun mergeCategoryIds(localIds: List<String>, backupIds: List<String>): List<String> {
+        return normalizeCategoryIds(localIds + backupIds)
     }
 
     private fun normalizeCategoryIds(categoryIds: List<String>): List<String> {
@@ -244,6 +213,16 @@ class NovelRestorer(
             distinctIds.filterNot { it == NovelCategory.UNCATEGORIZED_ID }
         } else {
             distinctIds
+        }
+    }
+
+    private fun stableNovelId(backupNovel: BackupNovel): String {
+        val title = backupNovel.title.trim().lowercase()
+        val author = backupNovel.author?.trim()?.lowercase().orEmpty()
+        return if (title.isNotEmpty() || author.isNotEmpty()) {
+            md5Hex("$title|$author")
+        } else {
+            backupNovel.id
         }
     }
 

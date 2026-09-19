@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.ui.browse.source
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material.icons.outlined._18UpRating
@@ -11,8 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import cafe.adriel.voyager.core.model.rememberScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -45,9 +44,6 @@ fun Screen.sourcesTab(
     val screenModel = rememberScreenModel { SourcesScreenModel(smartSearchConfig = smartSearchConfig) }
     val state by screenModel.state.collectAsState()
 
-    val importState = rememberLocalMangaImportState()
-    LocalMangaImportDialogs(state = importState, includeNovelOption = true)
-
     return TabContent(
         // SY -->
         titleRes = when (smartSearchConfig == null) {
@@ -56,17 +52,7 @@ fun Screen.sourcesTab(
         },
         // SY <--
         actions = persistentListOf<AppBar.Action>().let { actions ->
-            var updatedActions = actions
-            if (smartSearchConfig == null) {
-                updatedActions = updatedActions.add(
-                    AppBar.Action(
-                        title = stringResource(MR.strings.action_add),
-                        icon = Icons.Outlined.Add,
-                        onClick = { importState.showImportDialog = true },
-                    ),
-                )
-            }
-            updatedActions.add(
+            actions.add(
                 AppBar.Action(
                     title = stringResource(MR.strings.action_global_search),
                     icon = Icons.Outlined.TravelExplore,

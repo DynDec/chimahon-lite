@@ -37,7 +37,6 @@ fun AnimeSourceFilterDialog(
     onReset: () -> Unit,
     onFilter: () -> Unit,
     onUpdate: (AnimeFilterList) -> Unit,
-    startExpanded: Boolean = false,
 ) {
     val updateFilters = { onUpdate(filters) }
 
@@ -73,14 +72,14 @@ fun AnimeSourceFilterDialog(
             }
 
             items(filters) {
-                FilterItem(it, updateFilters, startExpanded)
+                FilterItem(it, updateFilters)
             }
         }
     }
 }
 
 @Composable
-private fun FilterItem(filter: AnimeFilter<*>, onUpdate: () -> Unit, startExpanded: Boolean) {
+private fun FilterItem(filter: AnimeFilter<*>, onUpdate: () -> Unit) {
     when (filter) {
         is AnimeFilter.Header -> HeadingItem(filter.name)
         is AnimeFilter.Separator -> HorizontalDivider()
@@ -125,7 +124,6 @@ private fun FilterItem(filter: AnimeFilter<*>, onUpdate: () -> Unit, startExpand
         is AnimeFilter.Sort -> {
             CollapsibleBox(
                 heading = filter.name,
-                startExpanded = startExpanded,
             ) {
                 Column {
                     filter.values.mapIndexed { index, item ->
@@ -152,12 +150,11 @@ private fun FilterItem(filter: AnimeFilter<*>, onUpdate: () -> Unit, startExpand
         is AnimeFilter.Group<*> -> {
             CollapsibleBox(
                 heading = filter.name,
-                startExpanded = startExpanded,
             ) {
                 Column {
                     filter.state
                         .filterIsInstance<AnimeFilter<*>>()
-                        .map { FilterItem(filter = it, onUpdate = onUpdate, startExpanded = startExpanded) }
+                        .map { FilterItem(filter = it, onUpdate = onUpdate) }
                 }
             }
         }

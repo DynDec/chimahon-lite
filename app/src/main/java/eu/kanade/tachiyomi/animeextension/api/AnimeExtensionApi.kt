@@ -34,8 +34,6 @@ internal class AnimeExtensionApi {
     private val updateAnimeExtensionRepo: UpdateAnimeExtensionRepo by injectLazy()
     private val animeExtensionManager: AnimeExtensionManager by injectLazy()
 
-    private val sourcePreferences: SourcePreferences by injectLazy()
-
     private val json: Json by injectLazy()
 
     private val lastExtCheck: Preference<Long> by lazy {
@@ -43,10 +41,8 @@ internal class AnimeExtensionApi {
     }
 
     suspend fun findExtensions(): List<AnimeExtension.Available> {
-        val disabledRepos = sourcePreferences.disabledRepos().get()
         return withIOContext {
             getAnimeExtensionRepo.getAll()
-                .filterNot { it.baseUrl in disabledRepos }
                 .map { async { getExtensions(it) } }
                 .awaitAll()
                 .flatten()
@@ -66,7 +62,6 @@ internal class AnimeExtensionApi {
                     .toExtensions(
                         repoBaseUrl,
                         signature = extRepo.signingKeyFingerprint,
-                        repoName = extRepo.shortName ?: extRepo.name,
                     )
             }
         } catch (e: Throwable) {
@@ -119,7 +114,6 @@ internal class AnimeExtensionApi {
     private fun List<AnimeExtensionJsonObject>.toExtensions(
         repoUrl: String,
         signature: String,
-        repoName: String,
     ): List<AnimeExtension.Available> {
         return this
             .filter {
@@ -128,7 +122,7 @@ internal class AnimeExtensionApi {
             }
             .map {
                 AnimeExtension.Available(
-                    name = it.name.substringAfter("Aniyomi: ").substringAfter("Tachiyomi: "),
+                    name = it.name.substringAfter("Tachiyomi: "),
                     pkgName = it.pkg,
                     versionName = it.version,
                     versionCode = it.code,
@@ -141,7 +135,6 @@ internal class AnimeExtensionApi {
                     iconUrl = "$repoUrl/icon/${it.pkg}.png",
                     repoUrl = repoUrl,
                     signatureHash = signature,
-                    repoName = repoName,
                 )
             }
     }

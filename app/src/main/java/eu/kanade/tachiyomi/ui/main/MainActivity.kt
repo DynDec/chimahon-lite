@@ -1,16 +1,12 @@
 package eu.kanade.tachiyomi.ui.main
 
 import android.animation.ValueAnimator
-import android.app.SearchManager
 import android.app.assist.AssistContent
-import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Looper
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -56,10 +52,7 @@ import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.connections.service.ConnectionsPreferences
-import chimahon.novel.plugin.NovelPluginManager
 import eu.kanade.domain.source.interactor.GetIncognitoState
-import eu.kanade.domain.source.service.SourcePreferences
-import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.sync.SyncPreferences
 import eu.kanade.presentation.components.AppStateBanners
 import eu.kanade.presentation.components.DownloadedOnlyBannerBackgroundColor
@@ -68,10 +61,8 @@ import eu.kanade.presentation.components.IndexingBannerBackgroundColor
 import eu.kanade.presentation.components.RestoringBannerBackgroundColor
 import eu.kanade.presentation.components.SyncingBannerBackgroundColor
 import eu.kanade.presentation.components.UpdatingBannerBackgroundColor
-import eu.kanade.presentation.more.settings.screen.ConfigureExhDialog
 import eu.kanade.presentation.more.settings.screen.about.AboutScreen.Companion.getReleaseNotes
 import eu.kanade.presentation.more.settings.screen.about.WhatsNewDialog
-import eu.kanade.presentation.more.settings.screen.browse.ExtensionStoresScreen
 import eu.kanade.presentation.more.settings.screen.data.RestoreBackupScreen
 import eu.kanade.presentation.util.AssistContentScreen
 import eu.kanade.presentation.util.DefaultNavigatorScreenTransition
@@ -84,24 +75,17 @@ import eu.kanade.tachiyomi.data.cache.ChapterCache
 import eu.kanade.tachiyomi.data.coil.MangaCoverMetadata
 import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.download.DownloadCache
-import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
-import eu.kanade.tachiyomi.data.library.NovelUpdateJob
-import eu.kanade.tachiyomi.data.library.anime.AnimeLibraryUpdateJob
 import eu.kanade.tachiyomi.data.notification.NotificationReceiver
 import eu.kanade.tachiyomi.data.updater.AppUpdateChecker
 import eu.kanade.tachiyomi.data.updater.AppUpdateJob
-import eu.kanade.tachiyomi.extension.api.ExtensionApi
 import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
 import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceScreen
 import eu.kanade.tachiyomi.ui.browse.source.feed.SourceFeedScreen
-import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen
-import eu.kanade.tachiyomi.ui.deeplink.DeepLinkScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.more.NewUpdateScreen
 import eu.kanade.tachiyomi.ui.more.OnboardingScreen
 import eu.kanade.tachiyomi.ui.more.WhatsNewScreen
-import eu.kanade.tachiyomi.ui.player.PlayerActivity
 import eu.kanade.tachiyomi.util.system.dpToPx
 import eu.kanade.tachiyomi.util.system.isDebugBuildType
 import eu.kanade.tachiyomi.util.system.isNavigationBarNeedsScrim
@@ -110,9 +94,7 @@ import eu.kanade.tachiyomi.util.system.isReleaseBuildType
 import eu.kanade.tachiyomi.util.system.updaterEnabled
 import eu.kanade.tachiyomi.util.view.setComposeContent
 import exh.debug.DebugToggles
-import exh.eh.EHentaiUpdateWorker
 import exh.log.DebugModeOverlay
-import exh.source.ExhPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -142,18 +124,11 @@ import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
-import java.time.Instant
-import java.util.LinkedList
-import kotlin.time.Duration.Companion.days
 
 class MainActivity : BaseActivity() {
 
     private val libraryPreferences: LibraryPreferences by injectLazy()
     private val preferences: BasePreferences by injectLazy()
-
-    // SY -->
-    private val exhPreferences: ExhPreferences by injectLazy()
-    // SY <--
 
     // KMK -->
     private val backupPreferences: BackupPreferences by injectLazy()
@@ -180,27 +155,6 @@ class MainActivity : BaseActivity() {
     init {
         registerSecureActivity(this)
     }
-
-    // SY -->
-    // Idle-until-urgent
-    private var firstPaint = false
-    private val iuuQueue = LinkedList<() -> Unit>()
-
-    private fun initWhenIdle(task: () -> Unit) {
-        // Avoid sync issues by enforcing main thread
-        if (Looper.myLooper() != Looper.getMainLooper()) {
-            throw IllegalStateException("Can only be called on main thread!")
-        }
-
-        if (firstPaint) {
-            task()
-        } else {
-            iuuQueue += task
-        }
-    }
-
-    private var runExhConfigureDialog by mutableStateOf(false)
-    // SY <--
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val isLaunch = savedInstanceState == null
@@ -284,19 +238,6 @@ class MainActivity : BaseActivity() {
                         // Reset Incognito Mode on relaunch
                         preferences.incognitoMode().set(false)
 
-                        // SY -->
-                        initWhenIdle {
-                            // Upload settings
-                            if (exhPreferences.enableExhentai().get() &&
-                                exhPreferences.exhShowSettingsUploadWarning().get()
-                            ) {
-                                runExhConfigureDialog = true
-                            }
-                            // Scheduler uploader job if required
-
-                            EHentaiUpdateWorker.scheduleBackground(this@MainActivity)
-                        }
-                        // SY <--
                     }
                 }
                 LaunchedEffect(navigator.lastItem) {
@@ -464,9 +405,6 @@ class MainActivity : BaseActivity() {
             previewLastVersion.set(previewCurrentVersion)
             // KMK <--
 
-            // SY -->
-            ConfigureExhDialog(run = runExhConfigureDialog, onRunning = { runExhConfigureDialog = false })
-            // SY <--
         }
 
         val startTime = System.currentTimeMillis()
@@ -520,26 +458,6 @@ class MainActivity : BaseActivity() {
         LaunchedEffect(Unit) {
             launchIO {
                 try {
-                    if (!LibraryUpdateJob.isPeriodicUpdateScheduled(context)) {
-                        LibraryUpdateJob.setupTask(context)
-                    }
-                    if (!AnimeLibraryUpdateJob.isPeriodicUpdateScheduled(context)) {
-                        AnimeLibraryUpdateJob.setupTask(context)
-                    }
-                    if (!NovelUpdateJob.isPeriodicUpdateScheduled(context)) {
-                        NovelUpdateJob.setupTask(context)
-                    }
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, e)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            stringResource(KMR.strings.job_failed_schedule_update_check, stringResource(MR.strings.unknown_error)),
-                            Toast.LENGTH_LONG,
-                        ).show()
-                    }
-                }
-                try {
                     if (!BackupCreateJob.isPeriodicBackupScheduled(context)) {
                         BackupCreateJob.setupTask(context)
                     }
@@ -586,31 +504,6 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        // Extensions updates
-        LaunchedEffect(Unit) {
-            try {
-                ExtensionApi().checkForUpdates(context)
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, e)
-            }
-        }
-
-        // Novel plugin updates (JS): same once-a-day throttle as manga
-        LaunchedEffect(Unit) {
-            try {
-                val preferences = Injekt.get<SourcePreferences>()
-                if (Instant.now().toEpochMilli() < preferences.lastNovelExtensionCheck().get() + 1.days.inWholeMilliseconds) {
-                    return@LaunchedEffect
-                }
-                val pluginManager = Injekt.get<NovelPluginManager>()
-                pluginManager.refresh()
-                val updates = pluginManager.catalog.value.installed.count { pluginManager.hasUpdate(it.descriptor.id) }
-                preferences.novelExtensionUpdatesCount().set(updates)
-                preferences.lastNovelExtensionCheck().set(Instant.now().toEpochMilli())
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, e)
-            }
-        }
     }
 
     @Composable
@@ -685,25 +578,20 @@ class MainActivity : BaseActivity() {
                 navigator.popUntilRoot()
                 HomeScreen.Tab.Library(idToOpen)
             }
-            Constants.SHORTCUT_UPDATES -> HomeScreen.Tab.Updates
+            Constants.SHORTCUT_UPDATES -> HomeScreen.Tab.Library()
             Constants.SHORTCUT_HISTORY -> HomeScreen.Tab.History
-            Constants.SHORTCUT_SOURCES -> HomeScreen.Tab.Browse(false)
-            Constants.SHORTCUT_EXTENSIONS -> HomeScreen.Tab.Browse(true)
+            Constants.SHORTCUT_SOURCES, Constants.SHORTCUT_EXTENSIONS -> HomeScreen.Tab.Browse
             Constants.SHORTCUT_DOWNLOADS -> {
                 navigator.popUntilRoot()
                 HomeScreen.Tab.More(toDownloads = true)
             }
             Constants.SHORTCUT_STATS -> {
                 navigator.popUntilRoot()
-                HomeScreen.Tab.More(toDownloads = false, toStats = true)
+                HomeScreen.Tab.Library()
             }
             Constants.SHORTCUT_ANIME -> {
                 navigator.popUntilRoot()
-                if (Injekt.get<UiPreferences>().useConsolidatedLibrary().get()) {
-                    HomeScreen.Tab.Library()
-                } else {
-                    HomeScreen.Tab.Anime
-                }
+                HomeScreen.Tab.Library()
             }
             Constants.SHORTCUT_DICTIONARY -> {
                 navigator.popUntilRoot()
@@ -711,53 +599,25 @@ class MainActivity : BaseActivity() {
             }
             Constants.SHORTCUT_NOVELS -> {
                 navigator.popUntilRoot()
-                HomeScreen.Tab.Novels
+                HomeScreen.Tab.Library()
             }
             // KMK -->
             Constants.SHORTCUT_LIBRARY_UPDATE_ERRORS -> {
                 navigator.popUntilRoot()
-                HomeScreen.Tab.More(toDownloads = false, toLibraryUpdateErrors = true)
+                HomeScreen.Tab.Library()
             }
             // KMK <--
             Intent.ACTION_SEARCH, Intent.ACTION_SEND, "com.google.android.gms.actions.SEARCH_ACTION" -> {
-                // If the intent match the "standard" Android search intent
-                // or the Google-specific search intent (triggered by saying or typing "search *query* on *Tachiyomi*" in Google Search/Google Assistant)
-
-                // Get the search query provided in extras, and if not null, perform a global search with it.
-                val query = intent.getStringExtra(SearchManager.QUERY) ?: intent.getStringExtra(Intent.EXTRA_TEXT)
-                if (!query.isNullOrEmpty()) {
-                    navigator.popUntilRoot()
-                    navigator.push(DeepLinkScreen(query))
-                }
-                null
+                HomeScreen.Tab.Browse
             }
             INTENT_SEARCH -> {
-                val query = intent.getStringExtra(INTENT_SEARCH_QUERY)
-                if (!query.isNullOrEmpty()) {
-                    val filter = intent.getStringExtra(INTENT_SEARCH_FILTER)
-                    navigator.popUntilRoot()
-                    navigator.push(GlobalSearchScreen(query, filter))
-                }
-                null
+                HomeScreen.Tab.Browse
             }
             Intent.ACTION_VIEW -> {
                 // Handling opening of backup files
                 if (intent.data.toString().endsWith(".tachibk")) {
                     navigator.popUntilRoot()
                     navigator.push(RestoreBackupScreen(intent.data.toString()))
-                }
-                // Deep link to add extension store
-                else if (intent.isAddExtensionStoreIntent()) {
-                    intent.data?.getQueryParameter("url")?.let { repoUrl ->
-                        navigator.popUntilRoot()
-                        navigator.push(ExtensionStoresScreen(repoUrl))
-                    }
-                }
-                // Some file managers match MainActivity's broad backup filter for videos.
-                // Forward those local video intents to the standalone anime player.
-                else if (openExternalVideoIntent(intent)) {
-                    ready = true
-                    return true
                 }
                 null
             }
@@ -772,75 +632,8 @@ class MainActivity : BaseActivity() {
         return true
     }
 
-    private fun Intent.isAddExtensionStoreIntent(): Boolean {
-        return (scheme == "tachiyomi" && data?.host == "add-repo") ||
-            (scheme == "mihon" && data?.host == "extension-store")
-    }
-
-    private fun openExternalVideoIntent(intent: Intent): Boolean {
-        val uri = intent.data ?: return false
-        val mimeType = intent.type ?: runCatching { contentResolver.getType(uri) }.getOrNull()
-        if (!uri.looksLikeStandaloneVideo(mimeType)) return false
-
-        val playerIntent = PlayerActivity.newStandaloneIntent(this, uri).apply {
-            action = Intent.ACTION_VIEW
-            clipData = intent.clipData ?: ClipData.newUri(
-                contentResolver,
-                uri.lastPathSegment ?: "video",
-                uri,
-            )
-            addFlags(intent.flags and INTENT_URI_GRANT_FLAGS)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(playerIntent)
-        return true
-    }
-
-    private fun Uri.looksLikeStandaloneVideo(mimeType: String?): Boolean {
-        val normalizedMime = mimeType?.lowercase()
-        if (normalizedMime != null) {
-            if (normalizedMime.startsWith("video/")) return true
-            if (normalizedMime in STANDALONE_VIDEO_MIME_TYPES) return true
-        }
-
-        val normalizedUri = toString().substringBefore('?').lowercase()
-        return STANDALONE_VIDEO_EXTENSIONS.any { normalizedUri.endsWith(it) }
-    }
-
     companion object {
         const val INTENT_SEARCH = "eu.kanade.tachiyomi.SEARCH"
-        const val INTENT_SEARCH_QUERY = "query"
-        const val INTENT_SEARCH_FILTER = "filter"
-
-        private val INTENT_URI_GRANT_FLAGS =
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
-                Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
-
-        private val STANDALONE_VIDEO_MIME_TYPES = setOf(
-            "application/octet-stream",
-            "application/vnd.apple.mpegurl",
-            "application/x-bittorrent",
-            "application/x-matroska",
-            "application/x-mpegurl",
-        )
-
-        private val STANDALONE_VIDEO_EXTENSIONS = setOf(
-            ".avi",
-            ".flv",
-            ".m2ts",
-            ".m4v",
-            ".mkv",
-            ".mov",
-            ".mp4",
-            ".mpeg",
-            ".mpg",
-            ".ogm",
-            ".ogv",
-            ".torrent",
-            ".ts",
-            ".webm",
-        )
     }
 }
 

@@ -60,12 +60,6 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.components.UpIcon
 import tachiyomi.presentation.core.util.collectAsState
-import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsAdvancedScreen
-import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsAudioScreen
-import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsDecoderScreen
-import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsGesturesScreen
-import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsPlayerScreen
-import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsSubtitleScreen
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.util.Screen
 import tachiyomi.i18n.MR
@@ -354,12 +348,6 @@ private val settingScreens = listOf(
     SettingsAppearanceScreen,
     SettingsLibraryScreen,
     SettingsReaderScreen,
-    PlayerSettingsPlayerScreen,
-    PlayerSettingsAudioScreen,
-    PlayerSettingsSubtitleScreen,
-    PlayerSettingsDecoderScreen,
-    PlayerSettingsGesturesScreen,
-    PlayerSettingsAdvancedScreen,
     SettingsDownloadScreen,
     SettingsTrackingScreen,
     // AM (CONNECTIONS) -->
@@ -371,9 +359,6 @@ private val settingScreens = listOf(
     SettingsAnkiScreen,
     SettingsDataScreen,
     SettingsSecurityScreen,
-    // SY -->
-    SettingsMangadexScreen,
-    // SY <--
     SettingsAdvancedScreen,
 )
 

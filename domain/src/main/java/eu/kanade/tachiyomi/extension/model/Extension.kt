@@ -2,16 +2,10 @@ package eu.kanade.tachiyomi.extension.model
 
 import android.graphics.drawable.Drawable
 import eu.kanade.tachiyomi.source.Source
-import eu.kanade.tachiyomi.sourcenovel.NovelSource
 import mihon.domain.extension.model.ExtensionStore
 import tachiyomi.domain.source.model.StubSource
 
 sealed class Extension {
-
-    enum class ContentType {
-        MANGA,
-        NOVEL,
-    }
 
     abstract val name: String
     abstract val pkgName: String
@@ -20,7 +14,6 @@ sealed class Extension {
     abstract val libVersion: Double
     abstract val lang: String?
     abstract val isNsfw: Boolean
-    abstract val contentType: ContentType
 
     // KMK -->
     abstract val signatureHash: String
@@ -50,9 +43,6 @@ sealed class Extension {
         // SY -->
         val isRedundant: Boolean = false,
         // SY <--
-        val novelSources: List<NovelSource> = emptyList(),
-        override val contentType: ContentType = ContentType.MANGA,
-        val iconUrl: String? = null,
     ) : Extension()
 
     data class Available(
@@ -70,8 +60,7 @@ sealed class Extension {
         val sources: List<Source>,
         val apkUrl: String,
         val iconUrl: String,
-        val store: ExtensionStore? = null,
-        override val contentType: ContentType = ContentType.MANGA,
+        val store: ExtensionStore,
     ) : Extension() {
 
         data class Source(
@@ -103,6 +92,5 @@ sealed class Extension {
         // KMK <--
         override val lang: String? = null,
         override val isNsfw: Boolean = false,
-        override val contentType: ContentType = ContentType.MANGA,
     ) : Extension()
 }

@@ -92,43 +92,44 @@ class LocalSource(
         // SY -->
         val allowLocalSourceHiddenFolders = allowHiddenFiles()
         // SY <--
+        val hideAppManagedDirectories = fileSystem.usesDefaultBaseDirectory()
 
-        var mangaDirs = fileSystem.getFilesInBaseDirectory()
-            // Filter out files that are hidden and is not a folder
-            .filter {
-                it.isDirectory &&
-                    // SY -->
-                    (
-                        !it.name.orEmpty().startsWith('.') ||
-                            allowLocalSourceHiddenFolders
-                        )
-                // SY <--
+        var mangaEntries = fileSystem.getFilesInBaseDirectory()
+            .filter { entry ->
+                isVisible(entry, allowLocalSourceHiddenFolders) &&
+                    (!hideAppManagedDirectories || !isReservedDefaultDirectory(entry)) &&
+                    if (entry.isDirectory) {
+                        fileSystem.getFilesInMangaDirectory(entry.uri.toString())
+                            .any { isVisible(it, allowLocalSourceHiddenFolders) && isSupportedChapter(it) }
+                    } else {
+                        isSupportedChapter(entry)
+                    }
             }
-            .distinctBy { it.name }
-            .filter {
+            .filter { entry ->
+                val title = entry.localTitle()
                 if (lastModifiedLimit == 0L && query.isBlank()) {
                     true
                 } else if (lastModifiedLimit == 0L) {
-                    it.name.orEmpty().contains(query, ignoreCase = true)
+                    title.contains(query, ignoreCase = true)
                 } else {
-                    it.lastModified() >= lastModifiedLimit
+                    entry.lastModified() >= lastModifiedLimit
                 }
             }
 
         filters.forEach { filter ->
             when (filter) {
                 is OrderBy.Popular -> {
-                    mangaDirs = if (filter.state!!.ascending) {
-                        mangaDirs.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name.orEmpty() })
+                    mangaEntries = if (filter.state!!.ascending) {
+                        mangaEntries.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.localTitle() })
                     } else {
-                        mangaDirs.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.name.orEmpty() })
+                        mangaEntries.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.localTitle() })
                     }
                 }
                 is OrderBy.Latest -> {
-                    mangaDirs = if (filter.state!!.ascending) {
-                        mangaDirs.sortedBy(UniFile::lastModified)
+                    mangaEntries = if (filter.state!!.ascending) {
+                        mangaEntries.sortedBy(UniFile::lastModified)
                     } else {
-                        mangaDirs.sortedByDescending(UniFile::lastModified)
+                        mangaEntries.sortedByDescending(UniFile::lastModified)
                     }
                 }
                 else -> {
@@ -137,15 +138,17 @@ class LocalSource(
             }
         }
 
-        val mangas = mangaDirs
-            .map { mangaDir ->
+        val mangas = mangaEntries
+            .map { mangaEntry ->
                 async {
                     SManga.create().apply {
-                        title = mangaDir.name.orEmpty()
-                        url = mangaDir.name.orEmpty()
+                        title = mangaEntry.localTitle()
+                        // Keep the media URI as the identity so a library entry remains valid
+                        // when the user changes the folder currently shown in Browse.
+                        url = mangaEntry.uri.toString()
 
                         // Try to find the cover
-                        coverManager.find(mangaDir.name.orEmpty())?.let {
+                        coverManager.find(url)?.let {
                             thumbnail_url = it.uri.toString()
                         }
                     }
@@ -215,7 +218,7 @@ class LocalSource(
 
         // Augment manga details based on metadata files
         try {
-            val mangaDir = fileSystem.getMangaDirectory(manga.url) ?: error("${manga.url} is not a valid directory")
+            val mangaDir = fileSystem.getMangaDirectory(manga.url) ?: return@withIOContext manga
             val mangaDirFiles = mangaDir.listFiles().orEmpty()
 
             val comicInfoFile = mangaDirFiles
@@ -368,7 +371,7 @@ class LocalSource(
             .filter { it.isDirectory || Archive.isSupported(it) || it.extension.equals("epub", true) }
             .map { chapterFile ->
                 SChapter.create().apply {
-                    url = "${manga.url}/${chapterFile.name}"
+                    url = chapterFile.uri.toString()
                     name = if (chapterFile.isDirectory) {
                         chapterFile.name
                     } else {
@@ -413,10 +416,7 @@ class LocalSource(
 
     fun getFormat(chapter: SChapter): Format {
         try {
-            val (mangaDirName, chapterName) = chapter.url.split('/', limit = 2)
-            return fileSystem.getBaseDirectory()
-                ?.findFile(mangaDirName)
-                ?.findFile(chapterName)
+            return fileSystem.getChapterFile(chapter.url)
                 ?.let(Format.Companion::valueOf)
                 ?: throw Exception(context.stringResource(MR.strings.chapter_not_found))
         } catch (_: Format.UnknownFormatException) {
@@ -477,6 +477,33 @@ class LocalSource(
 
         private val LATEST_THRESHOLD = 7.days.inWholeMilliseconds
     }
+}
+
+private val RESERVED_DEFAULT_DIRECTORIES = setOf(
+    "autobackup",
+    "downloads",
+    "local",
+    "localanime",
+    "logs",
+    "mpv",
+    "scripts",
+    "script-opts",
+)
+
+private fun isVisible(file: UniFile, allowHiddenFiles: Boolean): Boolean {
+    return allowHiddenFiles || !file.name.orEmpty().startsWith('.')
+}
+
+private fun isSupportedChapter(file: UniFile): Boolean {
+    return file.isDirectory || Archive.isSupported(file) || file.extension.equals("epub", ignoreCase = true)
+}
+
+private fun isReservedDefaultDirectory(file: UniFile): Boolean {
+    return file.isDirectory && file.name.orEmpty().lowercase() in RESERVED_DEFAULT_DIRECTORIES
+}
+
+private fun UniFile.localTitle(): String {
+    return if (isDirectory) name.orEmpty() else nameWithoutExtension.orEmpty()
 }
 
 fun Manga.isLocal(): Boolean = source == LocalSource.ID

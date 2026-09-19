@@ -16,7 +16,6 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.GetApp
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.OndemandVideo
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Security
@@ -45,17 +44,13 @@ import dev.icerock.moko.resources.StringResource
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.more.settings.screen.about.AboutScreen
-import eu.kanade.presentation.more.settings.screen.player.PlayerSettingsMainScreen
 import eu.kanade.presentation.more.settings.widget.PreferenceGroupHeader
 import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.util.LocalBackPress
 import eu.kanade.presentation.util.Screen
-import exh.assets.EhAssets
-import exh.assets.ehassets.MangadexLogo
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
-import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
 import cafe.adriel.voyager.core.screen.Screen as VoyagerScreen
@@ -261,14 +256,6 @@ object SettingsMainScreen : Screen() {
         ),
         MainEntry.Item(
             Item(
-                titleRes = MR.strings.pref_category_player,
-                subtitleRes = MR.strings.pref_player_summary,
-                icon = Icons.Outlined.OndemandVideo,
-                screen = PlayerSettingsMainScreen,
-            ),
-        ),
-        MainEntry.Item(
-            Item(
                 titleRes = MR.strings.pref_category_library,
                 subtitleRes = MR.strings.pref_library_summary,
                 icon = Icons.Outlined.CollectionsBookmark,
@@ -353,16 +340,6 @@ object SettingsMainScreen : Screen() {
                 screen = SettingsDataScreen,
             ),
         ),
-        // SY -->
-        MainEntry.Item(
-            Item(
-                titleRes = SYMR.strings.pref_category_mangadex,
-                subtitleRes = SYMR.strings.pref_mangadex_summary,
-                icon = EhAssets.MangadexLogo,
-                screen = SettingsMangadexScreen,
-            ),
-        ),
-        // SY <--
         MainEntry.Item(
             Item(
                 titleRes = MR.strings.pref_category_about,

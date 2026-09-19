@@ -26,7 +26,6 @@ import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
-import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
 import eu.kanade.tachiyomi.data.track.TrackStatus
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.source.Source
@@ -318,15 +317,13 @@ class LibraryScreenModel(
             libraryPreferences.categoryTabs().changes(),
             libraryPreferences.categoryNumberOfItems().changes(),
             libraryPreferences.showContinueReadingButton().changes(),
-            libraryPreferences.showFloatingAddButton().changes(),
-        ) { a, b, c, d -> arrayOf(a, b, c, d) }
-            .onEach { (showCategoryTabs, showMangaCount, showMangaContinueButton, showFloatingAddButton) ->
+        ) { a, b, c -> arrayOf(a, b, c) }
+            .onEach { (showCategoryTabs, showMangaCount, showMangaContinueButton) ->
                 mutableState.update { state ->
                     state.copy(
                         showCategoryTabs = showCategoryTabs,
                         showMangaCount = showMangaCount,
                         showMangaContinueButton = showMangaContinueButton,
-                        showFloatingAddButton = showFloatingAddButton,
                     )
                 }
             }
@@ -1074,20 +1071,6 @@ class LibraryScreenModel(
     }
     // SY <--
 
-    // KMK -->
-    /**
-     * Update Selected Mangas
-     */
-    fun updateSelectedManga(): Boolean {
-        val mangaIds = state.value.selection.toList()
-        return LibraryUpdateJob.startNow(
-            context = preferences.context,
-            mangaIds = mangaIds,
-            target = LibraryUpdateJob.Target.CHAPTERS,
-        )
-    }
-    // KMK <--
-
     /**
      * Marks mangas' chapters read status.
      */
@@ -1711,7 +1694,6 @@ class LibraryScreenModel(
         val showCategoryTabs: Boolean = false,
         val showMangaCount: Boolean = false,
         val showMangaContinueButton: Boolean = false,
-        val showFloatingAddButton: Boolean = false,
         val dialog: Dialog? = null,
         val libraryData: LibraryData = LibraryData(),
         private val activeCategoryIndex: Int = 0,

@@ -22,7 +22,7 @@ data class NavTabLayout(
         entries.find { it.key == key }?.section ?: NavSection.NAVBAR
 
     /**
-     * Serialize to preference string format: "Library:navbar,Updates:more,..."
+     * Serialize to preference string format: "Library:navbar,History:navbar,..."
      */
     fun serialize(): String =
         entries.joinToString(",") { "${it.key}:${it.section.name.lowercase()}" }
@@ -30,26 +30,19 @@ data class NavTabLayout(
     companion object {
         /** All customizable tab keys in default order. */
         const val KEY_LIBRARY = "Library"
-        const val KEY_UPDATES = "Updates"
         const val KEY_HISTORY = "History"
         const val KEY_BROWSE = "Browse"
         const val KEY_DICTIONARY = "Dictionary"
-        const val KEY_NOVELS = "Novels"
-        const val KEY_ANIME = "Anime"
 
         val ALL_KEYS = listOf(
-            KEY_LIBRARY, KEY_NOVELS, KEY_ANIME, KEY_UPDATES, KEY_HISTORY,
-            KEY_BROWSE, KEY_DICTIONARY,
+            KEY_LIBRARY, KEY_HISTORY, KEY_BROWSE, KEY_DICTIONARY,
         )
 
         /**
-         * Default layout: most tabs in navbar, Updates in more.
+         * Default layout: all supported tabs are available from the navbar.
          */
         val DEFAULT = NavTabLayout(
-            ALL_KEYS.map { key ->
-                val section = if (key == KEY_UPDATES) NavSection.MORE else NavSection.NAVBAR
-                NavTabEntry(key, section)
-            },
+            ALL_KEYS.map { key -> NavTabEntry(key, NavSection.NAVBAR) },
         )
 
         /**
@@ -92,15 +85,7 @@ data class NavTabLayout(
          * Migrate from legacy showNavUpdates/showNavHistory boolean prefs.
          */
         fun migrateFromLegacy(showNavUpdates: Boolean, showNavHistory: Boolean): NavTabLayout {
-            val entries = ALL_KEYS.map { key ->
-                val section = when (key) {
-                    KEY_UPDATES -> if (showNavUpdates) NavSection.NAVBAR else NavSection.MORE
-                    KEY_HISTORY -> if (showNavHistory) NavSection.NAVBAR else NavSection.MORE
-                    else -> NavSection.NAVBAR
-                }
-                NavTabEntry(key, section)
-            }
-            return NavTabLayout(entries)
+            return DEFAULT
         }
     }
 }

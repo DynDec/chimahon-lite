@@ -1,1 +1,0 @@
-ALTER TABLE novels ADD COLUMN lang TEXT;

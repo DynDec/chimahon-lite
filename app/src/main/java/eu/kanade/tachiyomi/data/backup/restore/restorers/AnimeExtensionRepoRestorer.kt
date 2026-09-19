@@ -20,20 +20,23 @@ class AnimeExtensionRepoRestorer(
         val urlExists = existingReposByUrl[backupRepo.baseUrl]
         val shaExists = existingReposBySha[backupRepo.signingKeyFingerprint]
 
-        if (urlExists != null && urlExists.signingKeyFingerprint != backupRepo.signingKeyFingerprint) {
-            error("Already Exists with different signing key fingerprint")
-        } else if (shaExists != null) {
-            error("${shaExists.name} has the same signing key fingerprint")
-        } else {
-            animeHandler.await {
-                extension_reposQueries.insert(
-                    backupRepo.baseUrl,
-                    backupRepo.name,
-                    backupRepo.shortName,
-                    backupRepo.website,
-                    backupRepo.signingKeyFingerprint,
-                )
+        if (urlExists != null) {
+            if (urlExists.signingKeyFingerprint != backupRepo.signingKeyFingerprint) {
+                error("Already Exists with different signing key fingerprint")
             }
+            return
+        }
+        if (shaExists != null) {
+            error("${shaExists.name} has the same signing key fingerprint")
+        }
+        animeHandler.await {
+            extension_reposQueries.insert(
+                backupRepo.baseUrl,
+                backupRepo.name,
+                backupRepo.shortName,
+                backupRepo.website,
+                backupRepo.signingKeyFingerprint,
+            )
         }
     }
 }

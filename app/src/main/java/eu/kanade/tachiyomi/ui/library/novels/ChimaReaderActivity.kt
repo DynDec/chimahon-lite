@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
-import chimahon.novel.data.BookStorage
+import com.canopus.chimareader.data.BookStorage
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
@@ -36,7 +36,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import chimahon.DictionaryRepository
 import chimahon.ocr.OcrLanguage
 import chimahon.ocr.OcrResult
-import chimahon.novel.ui.reader.NovelReaderActivity
+import com.canopus.chimareader.ui.reader.NovelReaderActivity
 import eu.kanade.tachiyomi.data.ocr.recognizePage
 import eu.kanade.tachiyomi.ui.dictionary.DictionaryPopupWebViewWarmup
 import eu.kanade.tachiyomi.ui.dictionary.DictionaryPreferences
@@ -45,7 +45,6 @@ import eu.kanade.tachiyomi.ui.reader.viewer.OcrLookupPopup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import uy.kohesive.injekt.Injekt
@@ -56,14 +55,15 @@ import uy.kohesive.injekt.api.get
  * from the EPUB reader WebView into the [OcrLookupPopup] — no screenshot needed,
  * no OCR bitmap involved: just a plain text selection → dictionary lookup.
  *
- * [NovelReaderActivity.activityClass] is pointed at this class from [AppModule]
- * so that `NovelReaderActivity.launch()` calls automatically land here.
+ * [NovelReaderActivity.activityClass] is pointed at this class from [App.onCreate]
+ * so that [BookshelfScreen]'s existing `NovelReaderActivity.launch()` call
+ * automatically lands here without any chimahon → app module import.
  */
 class ChimaReaderActivity : NovelReaderActivity() {
 
     private val readerPreferences: eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences by uy.kohesive.injekt.injectLazy()
     private var popupWebView: WebView? = null
-    private val novelReaderSettings by lazy { chimahon.novel.data.NovelReaderSettings(this, getSettingsNamespace()) }
+    private val novelReaderSettings by lazy { com.canopus.chimareader.data.NovelReaderSettings(this, getSettingsNamespace()) }
 
     private var cachedActiveProfile: chimahon.anki.AnkiProfile? = null
     private var cachedTermPaths: chimahon.DictionaryPaths? = null
@@ -71,24 +71,13 @@ class ChimaReaderActivity : NovelReaderActivity() {
     private fun getOrRefreshLookupPaths(): Pair<chimahon.anki.AnkiProfile, chimahon.DictionaryPaths> {
         val prefs = Injekt.get<DictionaryPreferences>()
         val novelId = bookMetadata?.id ?: ""
-        val novelSourceId = bookMetadata?.novelSourceId ?: 0L
-        val novelLang = bookMetadata?.lang?.takeIf { it.isNotBlank() }
-            ?: sourceLangOf(novelSourceId)
+        val novelLang = bookMetadata?.lang ?: ""
         val profile = cachedActiveProfile ?: prefs.profileResolver.resolve(
             novelId = novelId,
-            sourceId = novelSourceId,
             sourceLang = novelLang,
         ).also { cachedActiveProfile = it }
         val paths = cachedTermPaths ?: getDictionaryPaths(this, profile).also { cachedTermPaths = it }
         return profile to paths
-    }
-
-    /** Source lang fallback so empty-lang books still hit language match. */
-    private fun sourceLangOf(sourceId: Long): String {
-        if (sourceId == 0L) return ""
-        return runCatching {
-            Injekt.get<chimahon.novel.manager.NovelSourceManager>().getOrStub(sourceId).lang
-        }.getOrNull().orEmpty()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,27 +86,11 @@ class ChimaReaderActivity : NovelReaderActivity() {
         if (!path.isNullOrEmpty()) {
             val root = java.io.File(path)
             if (root.exists() && root.isDirectory) {
-                // Profile keys stay folder-based so existing overrides keep working.
-                val novelId = intent.getLongExtra("extra_novel_id", -1L).takeIf { it >= 0L }
-                val row = runBlocking(Dispatchers.IO) {
-                    runCatching {
-                        val repos = Injekt.get<tachiyomi.domain.novel.repository.NovelRepository>()
-                        if (novelId != null) {
-                            runCatching { repos.getNovelById(novelId) }.getOrNull()
-                        } else {
-                            runCatching { repos.getNovelByLocalFolder(root.name) }.getOrNull()
-                        }
-                    }.getOrNull()
-                }
-                if (row != null) {
-                    // Novel override > source default > book lang, else
-                    // source lang > global. Keys stay folder-based so
-                    // existing overrides keep working.
+                    val metadata = BookStorage.loadMetadata(root)
+                if (metadata != null) {
                     val profile = prefs.profileResolver.resolve(
-                        novelId = row.localFolder ?: row.id.toString(),
-                        sourceId = row.source,
-                        sourceLang = row.lang?.takeIf { it.isNotBlank() }
-                            ?: sourceLangOf(row.source),
+                        novelId = metadata.id ?: "",
+                        sourceLang = metadata.lang ?: "",
                     )
                     cachedActiveProfile = profile
                     cachedTermPaths = getDictionaryPaths(this, profile)
@@ -407,7 +380,7 @@ class ChimaReaderActivity : NovelReaderActivity() {
                 val charCount = firstMatched.codePointCount(0, firstMatched.length)
                 withContext(Dispatchers.Main) {
                     pendingShowByRects = true
-                    readerViewModel?.bridge?.send(chimahon.novel.ui.reader.WebViewCommand.GetSelectionRects(charCount, matchOffset))
+                    readerViewModel?.bridge?.send(com.canopus.chimareader.ui.reader.WebViewCommand.GetSelectionRects(charCount, matchOffset))
                 }
             } else {
                 withContext(Dispatchers.Main) {

@@ -21,8 +21,6 @@ import androidx.glance.layout.width
 import com.canopus.chimareader.data.AnkiStatsStorage
 import com.canopus.chimareader.data.MangaStatsStorage
 import eu.kanade.tachiyomi.R
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 import tachiyomi.core.common.Constants
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
@@ -42,12 +40,9 @@ class ReadingStatsWidget : GlanceAppWidget() {
         val today = LocalDate.now().toString()
         val mangaStats = MangaStatsStorage.loadAll(context).filter { it.dateKey == today }
         val ankiStats = AnkiStatsStorage.loadAll(context).filter { it.dateKey == today }
-        val novelToday = loadNovelStatsForDay(context, today)
-
-        val totalChars = mangaStats.sumOf { it.charactersRead } + novelToday.characters
-        // Manga stats store ms; novel Statistics.readingTime is seconds (same as StatsScreenModel).
-        val totalTimeMs = mangaStats.sumOf { it.readingTime } + novelToday.timeMs
-        val totalCards = ankiStats.sumOf { it.mangaCards + it.novelCards }
+        val totalChars = mangaStats.sumOf { it.charactersRead }
+        val totalTimeMs = mangaStats.sumOf { it.readingTime }
+        val totalCards = ankiStats.sumOf { it.mangaCards }
 
         val timeString = formatReadingTime(totalTimeMs)
         val charactersPerHour = if (totalTimeMs > 0) {
@@ -114,20 +109,6 @@ class ReadingStatsWidget : GlanceAppWidget() {
         val hours = TimeUnit.MILLISECONDS.toHours(totalTimeMs)
         val minutes = TimeUnit.MILLISECONDS.toMinutes(totalTimeMs) % 60
         return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
-    }
-
-    private data class NovelDayTotals(val characters: Int, val timeMs: Long)
-
-    private suspend fun loadNovelStatsForDay(context: Context, dateKey: String): NovelDayTotals {
-        // The reader upserts live; no file fallback.
-        return runCatching {
-            val repo = Injekt.get<tachiyomi.domain.novel.repository.NovelReadingStatsRepository>()
-            val dbStats = repo.getForDay(dateKey)
-            NovelDayTotals(
-                characters = dbStats.sumOf { it.charactersRead },
-                timeMs = (dbStats.sumOf { it.readingTime } * 1000.0).toLong(),
-            )
-        }.getOrDefault(NovelDayTotals(0, 0L))
     }
 
     companion object {

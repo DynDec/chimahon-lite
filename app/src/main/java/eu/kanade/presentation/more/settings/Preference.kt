@@ -188,7 +188,7 @@ sealed class Preference {
                 if (fileName != null) {
                     val storageManager: StorageManager = Injekt.get()
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
-                        storageManager.getMPVConfigDirectory()
+                        storageManager.getOrCreateMPVConfigDirectory()
                             ?.createFile(fileName)
                             ?.openOutputStream()
                             ?.use { it.write(value.toByteArray()) }

@@ -80,7 +80,7 @@ class BackupCreateJob(private val context: Context, workerParams: WorkerParamete
 
     private fun getAutomaticBackupLocation(): Uri? {
         val storageManager = Injekt.get<StorageManager>()
-        return storageManager.getAutomaticBackupsDirectory()?.uri
+        return storageManager.getOrCreateAutomaticBackupsDirectory()?.uri
     }
 
     companion object {

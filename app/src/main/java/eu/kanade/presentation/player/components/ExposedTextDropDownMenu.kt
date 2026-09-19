@@ -18,10 +18,6 @@
 package eu.kanade.presentation.player.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -35,9 +31,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
 
 @Composable
@@ -72,29 +65,14 @@ fun ExposedTextDropDownMenu(
         )
 
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            // Cap the menu height so long option lists (e.g. system fonts) stay usable
-            val sizeOfOneItem by remember { mutableStateOf(50.dp) }
-            val screenHeight = with(LocalDensity.current) {
-                LocalWindowInfo.current.containerSize.height.toDp()
-            }
-            val height by remember(options.size, screenHeight) {
-                val itemsSize = sizeOfOneItem * options.size
-                mutableStateOf(minOf(itemsSize, screenHeight * 3 / 4))
-            }
-            LazyColumn(
-                modifier = Modifier
-                    .widthIn(max = 500.dp)
-                    .height(height),
-            ) {
-                items(options) { option ->
-                    DropdownMenuItem(
-                        text = { Text(text = option) },
-                        onClick = {
-                            expanded = false
-                            onValueChangedEvent(option)
-                        },
-                    )
-                }
+            options.forEach { option: String ->
+                DropdownMenuItem(
+                    text = { Text(text = option) },
+                    onClick = {
+                        expanded = false
+                        onValueChangedEvent(option)
+                    },
+                )
             }
         }
     }

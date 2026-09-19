@@ -236,7 +236,7 @@ data class MigrateSourceSearchScreen(
                     onComplete = {
                         scope.launch {
                             navigator.popUntilRoot()
-                            HomeScreen.openTab(HomeScreen.Tab.Browse())
+                            HomeScreen.openTab(HomeScreen.Tab.Browse)
                             navigator.push(MangaScreen(dialog.target.id))
                         }
                     },

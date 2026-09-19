@@ -5,8 +5,6 @@ import mihon.core.migration.Migration
 val migrations: List<Migration>
     get() = listOf(
         SetupBackupCreateMigration(),
-        SetupLibraryUpdateMigration(),
-        SetupEHentaiUpdateMigration(),
         SetupSyncDataMigration(),
         // DelegateNHentaiMigration(),
         // MergedMangaRewriteMigration(),
@@ -57,7 +55,5 @@ val migrations: List<Migration>
         SyncPrefKeyMigration(),
         ChapterUrlHashMigration(),
         MoveJimakuApiKeyToPrivateMigration(),
-        MigrateNovelPluginRegistryMigration(),
-        MigrateNovelBookJsonMigration(),
         // KMK <--
     )

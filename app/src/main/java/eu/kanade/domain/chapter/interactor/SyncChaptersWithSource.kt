@@ -10,6 +10,7 @@ import eu.kanade.tachiyomi.data.download.DownloadProvider
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.online.HttpSource
+import com.hippo.unifile.UniFile
 import exh.source.isEhBasedManga
 import tachiyomi.data.chapter.ChapterSanitizer
 import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
@@ -23,6 +24,7 @@ import tachiyomi.domain.chapter.service.ChapterRecognition
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.source.local.isLocal
+import tachiyomi.source.local.io.LocalSourceFileSystem
 import java.lang.Long.max
 import java.time.ZonedDateTime
 import java.util.TreeSet
@@ -37,6 +39,7 @@ class SyncChaptersWithSource(
     private val getChaptersByMangaId: GetChaptersByMangaId,
     private val getExcludedScanlators: GetExcludedScanlators,
     private val libraryPreferences: LibraryPreferences,
+    private val localSourceFileSystem: LocalSourceFileSystem,
 ) {
 
     /**
@@ -72,13 +75,18 @@ class SyncChaptersWithSource(
 
         val dbChapters = getChaptersByMangaId.await(manga.id)
 
-        val newChapters = mutableListOf<Chapter>()
-        val updatedChapters = mutableListOf<Chapter>()
-        val removedChapters = dbChapters.filterNot { dbChapter ->
-            sourceChapters.any { sourceChapter ->
-                dbChapter.url == sourceChapter.url
+        val matchedDbChapters = mutableMapOf<String, Chapter>()
+        val unmatchedDbChapters = dbChapters.toMutableList()
+        sourceChapters.forEach { sourceChapter ->
+            findMatchingDbChapter(sourceChapter, manga, source, unmatchedDbChapters)?.let { dbChapter ->
+                matchedDbChapters[sourceChapter.url] = dbChapter
+                unmatchedDbChapters.remove(dbChapter)
             }
         }
+
+        val newChapters = mutableListOf<Chapter>()
+        val updatedChapters = mutableListOf<Chapter>()
+        val removedChapters = unmatchedDbChapters
 
         // Used to not set upload date of older chapters
         // to a higher value than newer chapters
@@ -103,7 +111,7 @@ class SyncChaptersWithSource(
             )
             chapter = chapter.copy(chapterNumber = chapterNumber)
 
-            val dbChapter = dbChapters.find { it.url == chapter.url }
+            val dbChapter = matchedDbChapters[chapter.url]
 
             if (dbChapter == null) {
                 val toAddChapter = if (chapter.dateUpload == 0L) {
@@ -115,7 +123,8 @@ class SyncChaptersWithSource(
                 }
                 newChapters.add(toAddChapter)
             } else {
-                if (shouldUpdateDbChapter.await(dbChapter, chapter)) {
+                val chapterUrlChanged = dbChapter.url != chapter.url
+                if (chapterUrlChanged || shouldUpdateDbChapter.await(dbChapter, chapter)) {
                     val shouldRenameChapter = downloadProvider.isChapterDirNameChanged(dbChapter, chapter) &&
                         downloadManager.isChapterDownloaded(
                             dbChapter.name,
@@ -133,6 +142,7 @@ class SyncChaptersWithSource(
                     }
 
                     var toChangeChapter = dbChapter.copy(
+                        url = chapter.url,
                         name = chapter.name,
                         chapterNumber = chapter.chapterNumber,
                         scanlator = chapter.scanlator,
@@ -252,5 +262,24 @@ class SyncChaptersWithSource(
         val excludedScanlators = getExcludedScanlators.await(manga.id).toHashSet()
 
         return updatedToAdd.filterNot { it.url in changedOrDuplicateReadUrls || it.scanlator in excludedScanlators }
+    }
+
+    private fun findMatchingDbChapter(
+        sourceChapter: Chapter,
+        manga: Manga,
+        source: Source,
+        candidates: List<Chapter>,
+    ): Chapter? {
+        candidates.firstOrNull { it.url == sourceChapter.url }?.let { return it }
+        if (!source.isLocal()) return null
+
+        val sourceFile = localSourceFileSystem.getChapterFile(manga.url, sourceChapter.url) ?: return null
+        return candidates.firstOrNull { dbChapter ->
+            localSourceFileSystem.getChapterFile(manga.url, dbChapter.url)?.isSameFileAs(sourceFile) == true
+        }
+    }
+
+    private fun UniFile.isSameFileAs(other: UniFile): Boolean {
+        return uri == other.uri || (filePath != null && filePath == other.filePath)
     }
 }

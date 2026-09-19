@@ -1,14 +1,12 @@
 package mihon.domain.animemigration.usecases
 
 import eu.kanade.domain.entries.anime.interactor.UpdateAnime
-import eu.kanade.domain.entries.anime.interactor.SyncSeasonsWithSource
 import eu.kanade.domain.entries.anime.model.hasCustomBackground
 import eu.kanade.domain.entries.anime.model.hasCustomCover
 import eu.kanade.domain.entries.anime.model.toSAnime
 import eu.kanade.domain.episode.interactor.SyncEpisodesWithSource
 import eu.kanade.domain.track.anime.model.toDbTrack
 import eu.kanade.domain.track.anime.model.toDomainTrack
-import eu.kanade.tachiyomi.animesource.model.FetchType
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadManager
 import eu.kanade.tachiyomi.data.cache.AnimeBackgroundCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
@@ -38,7 +36,6 @@ class MigrateAnimeUseCase(
     private val updateAnime: UpdateAnime,
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
     private val syncEpisodesWithSource: SyncEpisodesWithSource,
-    private val syncSeasonsWithSource: SyncSeasonsWithSource,
     private val updateEpisode: UpdateEpisode,
     private val getAnimeHistory: GetAnimeHistory,
     private val upsertAnimeHistory: UpsertAnimeHistory,
@@ -61,28 +58,15 @@ class MigrateAnimeUseCase(
         val currentSource = sourceManager.get(current.source)
 
         try {
-            when (target.fetchType) {
-                FetchType.Seasons -> {
-                    val seasons = targetSource.getSeasonList(target.toSAnime())
+            val episodes = targetSource.getEpisodeList(target.toSAnime())
 
-                    try {
-                        syncSeasonsWithSource.await(seasons, target, targetSource)
-                    } catch (_: Exception) {
-                        // Worst case, seasons won't be synced before flags are copied.
-                    }
-                }
-                FetchType.Episodes -> {
-                    val episodes = targetSource.getEpisodeList(target.toSAnime())
-
-                    try {
-                        syncEpisodesWithSource.await(episodes, target, targetSource)
-                    } catch (_: Exception) {
-                        // Worst case, episodes won't be synced before flags are copied.
-                    }
-                }
+            try {
+                syncEpisodesWithSource.await(episodes, target, targetSource)
+            } catch (_: Exception) {
+                // Worst case, episodes won't be synced before flags are copied.
             }
 
-            if (AnimeMigrationFlag.EPISODE in flags && target.fetchType == FetchType.Episodes) {
+            if (AnimeMigrationFlag.EPISODE in flags) {
                 val previousEpisodes = getEpisodesByAnimeId.await(current.id)
                 val targetEpisodes = getEpisodesByAnimeId.await(target.id)
                 val historyUpdates = mutableListOf<AnimeHistoryUpdate>()
@@ -148,9 +132,7 @@ class MigrateAnimeUseCase(
                     ?.let { insertTrack.awaitAll(it) }
             }
 
-            if (AnimeMigrationFlag.REMOVE_DOWNLOAD in flags && currentSource != null &&
-                current.fetchType == FetchType.Episodes
-            ) {
+            if (AnimeMigrationFlag.REMOVE_DOWNLOAD in flags && currentSource != null) {
                 downloadManager.deleteAnime(current, currentSource)
             }
 

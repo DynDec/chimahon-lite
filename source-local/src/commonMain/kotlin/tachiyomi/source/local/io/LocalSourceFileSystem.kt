@@ -8,7 +8,15 @@ expect class LocalSourceFileSystem {
 
     fun getFilesInBaseDirectory(): List<UniFile>
 
+    fun getMangaEntry(url: String): UniFile?
+
     fun getMangaDirectory(name: String): UniFile?
 
     fun getFilesInMangaDirectory(name: String): List<UniFile>
+
+    fun getChapterFile(url: String): UniFile?
+
+    fun getChapterFile(mangaUrl: String, chapterUrl: String): UniFile?
+
+    fun usesDefaultBaseDirectory(): Boolean
 }

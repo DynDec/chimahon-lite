@@ -34,7 +34,7 @@ fun LibraryPager(
     hasActiveFilters: Boolean,
     selection: Set<Long>,
     searchQuery: String?,
-    onGlobalSearchClicked: () -> Unit,
+    onGlobalSearchClicked: (() -> Unit)?,
     getCategoryForPage: (Int) -> Category,
     getDisplayMode: (Int) -> PreferenceMutableState<LibraryDisplayMode>,
     getColumnsForOrientation: (Boolean) -> PreferenceMutableState<Int>,
@@ -151,7 +151,7 @@ private fun LibraryPagerEmptyScreen(
     searchQuery: String?,
     hasActiveFilters: Boolean,
     contentPadding: PaddingValues,
-    onGlobalSearchClicked: () -> Unit,
+    onGlobalSearchClicked: (() -> Unit)?,
 ) {
     val msg = when {
         !searchQuery.isNullOrEmpty() -> MR.strings.no_results_found
@@ -165,7 +165,7 @@ private fun LibraryPagerEmptyScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        if (!searchQuery.isNullOrEmpty()) {
+        if (!searchQuery.isNullOrEmpty() && onGlobalSearchClicked != null) {
             GlobalSearchItem(
                 modifier = Modifier
                     .fillMaxWidth()

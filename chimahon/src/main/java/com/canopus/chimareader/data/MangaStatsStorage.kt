@@ -6,33 +6,18 @@ import java.time.LocalDate
 
 object MangaStatsStorage {
 
-    private const val FILE_NAME = "manga_stats.json"
-
     private fun getMangaStatsFile(context: Context): File {
-        return File(context.filesDir, FILE_NAME)
-    }
-
-    private inline fun <reified T> readList(file: File): List<T>? where T : Any {
-        if (!file.exists()) return null
-        return try {
-            val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            json.decodeFromString(kotlinx.serialization.serializer(), file.readText())
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private inline fun <reified T> writeList(file: File, value: List<T>) where T : Any {
-        val json = kotlinx.serialization.json.Json { prettyPrint = true }
-        file.writeText(json.encodeToString(kotlinx.serialization.serializer(), value))
+        return File(context.filesDir, FileNames.mangaStats)
     }
 
     fun loadAll(context: Context): List<MangaStats> {
-        return readList(getMangaStatsFile(context)) ?: emptyList()
+        val file = getMangaStatsFile(context)
+        if (!file.exists()) return emptyList()
+        return BookStorage.load<List<MangaStats>>(context.filesDir, FileNames.mangaStats) ?: emptyList()
     }
 
     fun saveAll(context: Context, stats: List<MangaStats>) {
-        writeList(getMangaStatsFile(context), stats)
+        BookStorage.save(stats, context.filesDir, FileNames.mangaStats)
         chimahon.widget.ImmersionWidgetSignals.notifyStatsChanged()
     }
 

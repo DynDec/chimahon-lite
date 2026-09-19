@@ -88,19 +88,6 @@ abstract class ParsedAnimeHttpSource : AnimeHttpSource() {
 
     protected abstract fun episodeFromElement(element: Element): SEpisode
 
-    // AY -->
-
-    override fun seasonListParse(response: Response): List<SAnime> {
-        val document = response.asJsoup()
-        return document.select(seasonListSelector()).map { seasonFromElement(it) }
-    }
-
-    protected abstract fun seasonListSelector(): String
-
-    protected abstract fun seasonFromElement(element: Element): SAnime
-
-    // <-- AY
-
     override fun hosterListParse(response: Response): List<Hoster> {
         val document = response.asJsoup()
         return document.select(hosterListSelector()).map(::hosterFromElement)

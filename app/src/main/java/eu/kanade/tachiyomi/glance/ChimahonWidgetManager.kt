@@ -35,23 +35,19 @@ object ChimahonWidgetManager {
         CONTINUE,
         HISTORY,
         STATS,
-        NOVEL,
         SEARCH,
-        SYSTEM_LOOKUP,
         ;
 
         fun createWidget(): GlanceAppWidget = when (this) {
             CONTINUE -> ContinueReadingWidget()
             HISTORY -> RecentHistoryWidget()
             STATS -> ReadingStatsWidget()
-            NOVEL -> NovelProgressWidget()
             SEARCH -> SearchWidget()
-            SYSTEM_LOOKUP -> ScreenOcrWidget()
         }
 
         companion object {
             val All = entries.toSet()
-            val Data = setOf(CONTINUE, HISTORY, STATS, NOVEL)
+            val Data = setOf(CONTINUE, HISTORY, STATS)
             val HistoryRelated = setOf(CONTINUE, HISTORY)
         }
     }
@@ -121,9 +117,6 @@ object ChimahonWidgetManager {
             .onEach { enqueue(setOf(WidgetTarget.STATS)) }
             .launchIn(scope)
 
-        ImmersionWidgetSignals.novelsChanged
-            .onEach { enqueue(setOf(WidgetTarget.NOVEL)) }
-            .launchIn(scope)
     }
 
     fun updateAllWidgets(context: Context) {

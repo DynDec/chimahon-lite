@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.ui.more
 
-import android.content.Intent
 import androidx.compose.animation.graphics.res.animatedVectorResource
 import androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter
 import androidx.compose.animation.graphics.vector.AnimatedImageVector
@@ -28,19 +27,11 @@ import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.connections.discord.DiscordScreen
-import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadManager
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.ui.category.CategoryScreen
-import eu.kanade.tachiyomi.ui.dictionary.ScreenLookupPermissionActivity
-import eu.kanade.tachiyomi.ui.dictionary.ScreenLookupService
-import eu.kanade.tachiyomi.ui.dictionary.ScreenLookupServiceState
 import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.history.HistoryTab
-import eu.kanade.tachiyomi.ui.libraryUpdateError.LibraryUpdateErrorScreen
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
-import eu.kanade.tachiyomi.ui.stats.StatsScreen
-import eu.kanade.tachiyomi.ui.updates.UpdatesTab
-import exh.ui.batchadd.BatchAddScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,48 +68,29 @@ data object MoreTab : Tab {
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = rememberScreenModel { MoreScreenModel() }
         val downloadQueueState by screenModel.downloadQueueState.collectAsState()
-        val screenLookupActive by ScreenLookupServiceState.isRunning.collectAsState()
         MoreScreen(
             downloadQueueStateProvider = { downloadQueueState },
             downloadedOnly = screenModel.downloadedOnly,
             onDownloadedOnlyChange = { screenModel.downloadedOnly = it },
             incognitoMode = screenModel.incognitoMode,
             onIncognitoModeChange = { screenModel.incognitoMode = it },
-            screenLookupActive = screenLookupActive,
-            onScreenLookupChange = { enabled ->
-                if (enabled) {
-                    context.startActivity(Intent(context, ScreenLookupPermissionActivity::class.java))
-                } else {
-                    ScreenLookupService.stop(context)
-                }
-            },
             // SY -->
             moreTabKeys = {
-                val consolidated = Injekt.get<UiPreferences>().useConsolidatedLibrary().get()
                 NavTabLayout.parse(screenModel.moreTabKeys.value)
-                    .let { if (consolidated) NavTabLayout(it.entries.filter { e -> e.key != NavTabLayout.KEY_NOVELS && e.key != NavTabLayout.KEY_ANIME }) else it }
                     .getKeysForSection(NavSection.MORE)
             }(),
             // SY <--
             onClickDownloadQueue = { navigator.push(DownloadQueueScreen) },
             onClickCategories = { navigator.push(CategoryScreen()) },
-            onClickStats = { navigator.push(StatsScreen()) },
             onClickDataAndStorage = { navigator.push(SettingsScreen(SettingsScreen.Destination.DataAndStorage)) },
             onClickSettings = { navigator.push(SettingsScreen()) },
             onClickAbout = { navigator.push(SettingsScreen(SettingsScreen.Destination.About)) },
             // SY -->
-            onClickBatchAdd = { navigator.push(BatchAddScreen()) },
-            onClickUpdates = { navigator.push(UpdatesTab) },
             onClickHistory = { navigator.push(HistoryTab) },
             onClickLibrary = { navigator.push(eu.kanade.tachiyomi.ui.library.LibraryTab) },
             onClickBrowse = { navigator.push(eu.kanade.tachiyomi.ui.browse.BrowseTab) },
             onClickDictionary = { navigator.push(eu.kanade.tachiyomi.ui.dictionary.DictionaryTab) },
-            onClickNovels = { navigator.push(eu.kanade.tachiyomi.ui.library.novels.NovelsTab) },
-            onClickAnime = { navigator.push(eu.kanade.tachiyomi.ui.entries.anime.AnimeTab) },
             // SY <--
-            // KMK -->
-            onClickLibraryUpdateErrors = { navigator.push(LibraryUpdateErrorScreen()) },
-            // KMK <--
         )
 
         // AM (DISCORD) -->
@@ -133,7 +105,6 @@ data object MoreTab : Tab {
 
 private class MoreScreenModel(
     private val downloadManager: DownloadManager = Injekt.get(),
-    private val animeDownloadManager: AnimeDownloadManager = Injekt.get(),
     preferences: BasePreferences = Injekt.get(),
     // SY -->
     uiPreferences: UiPreferences = Injekt.get(),
@@ -155,12 +126,8 @@ private class MoreScreenModel(
             combine(
                 downloadManager.isDownloaderRunning,
                 downloadManager.queueState,
-                animeDownloadManager.isDownloaderRunning,
-                animeDownloadManager.queueState,
-            ) { mangaRunning, mangaQueue, animeRunning, animeQueue ->
-                val totalSize = mangaQueue.size + animeQueue.size
-                val isRunning = mangaRunning || animeRunning
-                Pair(isRunning, totalSize)
+            ) { mangaRunning, mangaQueue ->
+                Pair(mangaRunning, mangaQueue.size)
             }
                 .collectLatest { (isDownloading, downloadQueueSize) ->
                     val pendingDownloadExists = downloadQueueSize != 0

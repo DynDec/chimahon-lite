@@ -88,6 +88,8 @@ import uy.kohesive.injekt.api.get
 data class BrowseSourceScreen(
     val sourceId: Long,
     private val listingQuery: String?,
+    private val embedded: Boolean = false,
+    private val onMangaDirectoryClick: (() -> Unit)? = null,
     // SY -->
     private val filtersJson: String? = null,
     private val savedSearch: Long? = null,
@@ -127,6 +129,7 @@ data class BrowseSourceScreen(
                 else -> navigator.pop()
             }
         }
+        val toolbarNavigateUp = navigateUp.takeUnless { embedded }
 
         // SY -->
         val context = LocalContext.current
@@ -220,7 +223,8 @@ data class BrowseSourceScreen(
                                 },
                             // KMK <--
                             onDisplayModeChange = { screenModel.displayMode = it },
-                            navigateUp = navigateUp,
+                            navigateUp = toolbarNavigateUp,
+                            onClickCloseSearch = navigateUp,
                             onWebViewClick = onWebViewClick,
                             onHelpClick = onHelpClick,
                             // KMK -->
@@ -236,6 +240,7 @@ data class BrowseSourceScreen(
                             }.takeIf { isConfigurableSource },
                             // KMK <--
                             onSearch = screenModel::search,
+                            onMangaDirectoryClick = onMangaDirectoryClick,
                             // KMK -->
                             toggleSelectionMode = bulkFavoriteScreenModel::toggleSelectionMode,
                             isRunning = bulkFavoriteState.isRunning,

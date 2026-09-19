@@ -27,7 +27,7 @@ class AnimeDownloadProvider(
         get() = storageManager.getAnimeDownloadsDirectory()
 
     internal fun getAnimeDir(animeTitle: String, source: AnimeSource): UniFile {
-        val downloadsDir = downloadsDir
+        val downloadsDir = storageManager.getOrCreateAnimeDownloadsDirectory()
         if (downloadsDir == null) {
             logcat(LogPriority.ERROR) { "Failed to create anime download directory" }
             throw IOException(context.stringResource(MR.strings.storage_failed_to_create_download_directory))

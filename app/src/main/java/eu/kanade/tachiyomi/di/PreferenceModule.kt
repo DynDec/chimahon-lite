@@ -11,16 +11,7 @@ import eu.kanade.tachiyomi.core.security.PrivacyPreferences
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
 import eu.kanade.tachiyomi.network.NetworkPreferences
 import eu.kanade.tachiyomi.ui.dictionary.DictionaryPreferences
-import eu.kanade.tachiyomi.torrentServer.TorrentServerPreferences
-import eu.kanade.tachiyomi.ui.player.settings.AdvancedPlayerPreferences
-import eu.kanade.tachiyomi.ui.player.settings.AudioPreferences
-import eu.kanade.tachiyomi.ui.player.settings.DecoderPreferences
-import eu.kanade.tachiyomi.ui.player.settings.GesturePreferences
-import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
-import eu.kanade.tachiyomi.ui.player.settings.SubtitlePreferences
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
-import chimahon.novel.data.NovelReaderSettings
-import eu.kanade.tachiyomi.util.system.isDebugBuildType
 import tachiyomi.core.common.preference.AndroidPreferenceStore
 import tachiyomi.core.common.preference.PreferenceStore
 import tachiyomi.core.common.storage.AndroidStorageFolderProvider
@@ -28,7 +19,6 @@ import tachiyomi.domain.backup.service.BackupPreferences
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.history.service.HistoryPreferences
 import tachiyomi.domain.library.service.LibraryPreferences
-import tachiyomi.domain.library.service.NovelLibraryPreferences
 import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.domain.updates.service.UpdatesPreferences
 import uy.kohesive.injekt.api.InjektModule
@@ -60,9 +50,6 @@ class PreferenceModule(val app: Application) : InjektModule {
             LibraryPreferences(get())
         }
         addSingletonFactory {
-            NovelLibraryPreferences(get())
-        }
-        addSingletonFactory {
             UpdatesPreferences(get())
         }
         // KMK -->
@@ -74,31 +61,7 @@ class PreferenceModule(val app: Application) : InjektModule {
             ReaderPreferences(get())
         }
         addSingletonFactory {
-            PlayerPreferences(get())
-        }
-        addSingletonFactory {
-            GesturePreferences(get())
-        }
-        addSingletonFactory {
-            SubtitlePreferences(get())
-        }
-        addSingletonFactory {
-            AudioPreferences(get())
-        }
-        addSingletonFactory {
-            DecoderPreferences(get())
-        }
-        addSingletonFactory {
-            AdvancedPlayerPreferences(get())
-        }
-        addSingletonFactory {
-            TorrentServerPreferences(get())
-        }
-        addSingletonFactory {
             DictionaryPreferences(get())
-        }
-        addSingletonFactory {
-            NovelReaderSettings(app)
         }
         addSingletonFactory {
             TrackPreferences(get())

@@ -49,7 +49,6 @@ import eu.kanade.presentation.theme.TachiyomiTheme
 import eu.kanade.presentation.util.AssistContentScreen
 import eu.kanade.presentation.util.Screen
 import eu.kanade.presentation.util.formatEpisodeNumber
-import exh.recs.AnimeRecommendsScreen
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.FetchType
@@ -70,7 +69,6 @@ import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.launch
 import logcat.LogPriority
 import mihon.feature.animemigration.dialog.MigrateAnimeDialog
-import eu.kanade.tachiyomi.ui.browse.animemigration.season.MigrateSeasonSelectScreen
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
@@ -239,13 +237,6 @@ class AnimeScreen(
                         screenModel.fetchRelatedAnimeFromSource()
                     }
                 },
-                onRecommendClicked = {
-                    navigator.push(
-                        AnimeRecommendsScreen(
-                            AnimeRecommendsScreen.Args.SingleSourceAnime(animeId, successState.source.id),
-                        ),
-                    )
-                },
             )
         }
 
@@ -262,7 +253,7 @@ class AnimeScreen(
                 ChangeCategoryDialog(
                     initialSelection = dialog.initialSelection,
                     onDismissRequest = onDismissRequest,
-                    onEditCategories = { navigator.push(CategoryScreen(CategoryScreen.Tab.ANIME)) },
+                    onEditCategories = { navigator.push(CategoryScreen()) },
                     onConfirm = { include, _ ->
                         screenModel.moveAnimeToCategoriesAndAddToLibrary(dialog.anime, include)
                     },
@@ -298,9 +289,6 @@ class AnimeScreen(
                     onClickTitle = {
                         onDismissRequest()
                         navigator.push(AnimeScreen(dialog.newAnime.id))
-                    },
-                    onClickSeasons = {
-                        navigator.push(MigrateSeasonSelectScreen(dialog.oldAnime, dialog.newAnime))
                     },
                     onDismissRequest = onDismissRequest,
                     onComplete = {

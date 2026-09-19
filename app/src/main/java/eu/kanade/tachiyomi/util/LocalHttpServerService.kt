@@ -73,9 +73,9 @@ class LocalHttpServerService : Service() {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentText(stringResource(AMR.strings.server_local_notification_casting))
-            .setSmallIcon(R.drawable.cast_ic_notification_0)
+            .setSmallIcon(R.drawable.ic_chimahon)
             .addAction(
-                R.drawable.quantum_ic_stop_white_24,
+                android.R.drawable.ic_menu_close_clear_cancel,
                 "Stop",
                 pendingStopIntent,
             )

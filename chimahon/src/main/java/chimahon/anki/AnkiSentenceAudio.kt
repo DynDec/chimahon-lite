@@ -70,7 +70,6 @@ enum class AnkiSentenceAudioPlayableFallback {
 data class AnkiSentenceAudioDiagnostic(
     val inputSource: AnkiSentenceAudioInputSource,
     val playableFallback: AnkiSentenceAudioPlayableFallback? = null,
-    val nativeError: String? = null,
 )
 
 sealed interface AnkiSentenceAudioPreparation {

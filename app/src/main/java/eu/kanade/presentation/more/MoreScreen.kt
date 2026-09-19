@@ -16,19 +16,15 @@ import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.GetApp
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -69,28 +65,18 @@ fun MoreScreen(
     onDownloadedOnlyChange: (Boolean) -> Unit,
     incognitoMode: Boolean,
     onIncognitoModeChange: (Boolean) -> Unit,
-    screenLookupActive: Boolean,
-    onScreenLookupChange: (Boolean) -> Unit,
     // SY -->
     moreTabKeys: List<String>,
     // SY <--
     onClickDownloadQueue: () -> Unit,
     onClickCategories: () -> Unit,
-    onClickStats: () -> Unit,
     onClickDataAndStorage: () -> Unit,
     onClickSettings: () -> Unit,
     onClickAbout: () -> Unit,
-    onClickBatchAdd: () -> Unit,
-    onClickUpdates: () -> Unit,
     onClickHistory: () -> Unit,
     onClickLibrary: () -> Unit,
     onClickBrowse: () -> Unit,
     onClickDictionary: () -> Unit,
-    onClickNovels: () -> Unit,
-    onClickAnime: () -> Unit,
-    // KMK -->
-    onClickLibraryUpdateErrors: () -> Unit,
-    // KMK <--
 ) {
     val uriHandler = LocalUriHandler.current
 
@@ -125,16 +111,6 @@ fun MoreScreen(
                     onCheckedChanged = onIncognitoModeChange,
                 )
             }
-            item {
-                SwitchPreferenceWidget(
-                    title = stringResource(MR.strings.screen_lookup_title),
-                    subtitle = stringResource(MR.strings.screen_lookup_more_summary),
-                    icon = Icons.Outlined.Search,
-                    checked = screenLookupActive,
-                    onCheckedChanged = onScreenLookupChange,
-                )
-            }
-
             item { HorizontalDivider() }
 
             item {
@@ -175,22 +151,6 @@ fun MoreScreen(
             }
             item {
                 TextPreferenceWidget(
-                    title = stringResource(MR.strings.label_stats),
-                    icon = Icons.Outlined.QueryStats,
-                    onPreferenceClick = onClickStats,
-                )
-            }
-            // KMK -->
-            item {
-                TextPreferenceWidget(
-                    title = stringResource(KMR.strings.option_label_library_update_errors),
-                    icon = Icons.Outlined.NewReleases,
-                    onPreferenceClick = onClickLibraryUpdateErrors,
-                )
-            }
-            // KMK <--
-            item {
-                TextPreferenceWidget(
                     title = stringResource(MR.strings.label_data_storage),
                     icon = Icons.Outlined.Storage,
                     onPreferenceClick = onClickDataAndStorage,
@@ -206,11 +166,6 @@ fun MoreScreen(
                             icon = Icons.Outlined.CollectionsBookmark,
                             onPreferenceClick = onClickLibrary,
                         )
-                        NavTabLayout.KEY_UPDATES -> TextPreferenceWidget(
-                            title = stringResource(MR.strings.label_recent_updates),
-                            icon = Icons.Outlined.NewReleases,
-                            onPreferenceClick = onClickUpdates,
-                        )
                         NavTabLayout.KEY_HISTORY -> TextPreferenceWidget(
                             title = stringResource(MR.strings.label_recent_manga),
                             icon = Icons.Outlined.History,
@@ -225,16 +180,6 @@ fun MoreScreen(
                             title = stringResource(MR.strings.label_dictionary),
                             icon = Icons.Outlined.Search,
                             onPreferenceClick = onClickDictionary,
-                        )
-                        NavTabLayout.KEY_NOVELS -> TextPreferenceWidget(
-                            title = stringResource(MR.strings.label_novels),
-                            icon = Icons.Outlined.Book,
-                            onPreferenceClick = onClickNovels,
-                        )
-                        NavTabLayout.KEY_ANIME -> TextPreferenceWidget(
-                            title = stringResource(MR.strings.label_anime),
-                            icon = Icons.Outlined.VideoLibrary,
-                            onPreferenceClick = onClickAnime,
                         )
                     }
                 }

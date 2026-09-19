@@ -28,7 +28,7 @@ class AnimeSourcesScreenModel(
         screenModelScope.launchIO {
             combine(
                 animeSourceManager.catalogueSources,
-                preferences.enabledAnimeLanguages().changes(),
+                preferences.enabledLanguages().changes(),
                 preferences.pinnedAnimeSources().changes(),
                 preferences.disabledAnimeSources().changes(),
                 animeExtensionManager.installedExtensionsFlow,

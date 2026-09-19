@@ -148,15 +148,7 @@ internal class ExtensionInstaller(
                     tempFile.getUriCompat(context),
                     installer,
                 )
-                try {
-                    ContextCompat.startForegroundService(context, intent)
-                } catch (e: RuntimeException) {
-                    // App is in background and the system denies the foreground service start
-                    // (ForegroundServiceStartNotAllowedException on Android 12+). Fail the install
-                    // instead of crashing so the user can retry from the extension screen.
-                    logcat(LogPriority.ERROR, e) { "Failed to start extension install service." }
-                    updateInstallStep(downloadId, InstallStep.Error)
-                }
+                ContextCompat.startForegroundService(context, intent)
             }
         }
     }

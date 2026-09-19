@@ -1,19 +1,19 @@
 package eu.kanade.tachiyomi.ui.player
 
 internal class SurfacePlaybackLoadGate(
-    private val loadNow: (url: String, options: String) -> Boolean,
+    private val loadNow: (String) -> Boolean,
 ) {
     private var isSurfaceReady = false
     private var isClosed = false
-    private var pendingLoad: Pair<String, String>? = null
+    private var pendingUrl: String? = null
 
-    fun load(url: String, options: String = "") {
+    fun load(url: String) {
         if (isClosed) return
 
-        if (isSurfaceReady && loadNow(url, options)) {
-            pendingLoad = null
+        if (isSurfaceReady && loadNow(url)) {
+            pendingUrl = null
         } else {
-            pendingLoad = url to options
+            pendingUrl = url
         }
     }
 
@@ -27,9 +27,9 @@ internal class SurfacePlaybackLoadGate(
     fun retryPending() {
         if (isClosed || !isSurfaceReady) return
 
-        val (url, options) = pendingLoad ?: return
-        if (loadNow(url, options)) {
-            pendingLoad = null
+        val url = pendingUrl ?: return
+        if (loadNow(url)) {
+            pendingUrl = null
         }
     }
 
@@ -40,6 +40,6 @@ internal class SurfacePlaybackLoadGate(
     fun close() {
         isClosed = true
         isSurfaceReady = false
-        pendingLoad = null
+        pendingUrl = null
     }
 }

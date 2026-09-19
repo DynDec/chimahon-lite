@@ -37,8 +37,9 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -63,6 +64,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
@@ -73,12 +75,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import chimahon.novel.data.BookMetadata
-import chimahon.novel.sync.ttu.SyncDirection
-import chimahon.novel.sync.ttu.SyncMode
-import chimahon.novel.sync.ttu.SyncResult
-import chimahon.novel.sync.ttu.TtuBookRef
-import chimahon.novel.sync.ttu.TtuSyncManager
+import com.canopus.chimareader.data.BookMetadata
 import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
 import eu.kanade.presentation.library.components.CommonMangaItemDefaults
@@ -89,17 +86,17 @@ import eu.kanade.presentation.library.components.LibraryToolbarTitle
 import eu.kanade.presentation.library.components.libraryModeBoundarySwipe
 import eu.kanade.presentation.library.components.libraryPagerBoundarySwipe
 import eu.kanade.presentation.manga.components.Button as BottomMenuButton
-import eu.kanade.tachiyomi.data.library.NovelUpdateJob
+import com.canopus.chimareader.ttusync.TtuSyncManager
+import eu.kanade.tachiyomi.data.SyncStatus
+import eu.kanade.tachiyomi.data.sync.SyncDataJob
 import eu.kanade.tachiyomi.ui.category.CategoryScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.library.LibraryModeTitleContent
-import chimahon.novel.ui.detail.NovelDetailScreen
 import eu.kanade.tachiyomi.ui.library.LibraryViewMode
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -152,46 +149,12 @@ fun Screen.NovelLibraryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val ttuSyncManager = remember {
-        runCatching { Injekt.get<TtuSyncManager>() }.getOrNull()
+        try { Injekt.get<TtuSyncManager>() } catch (_: Exception) { null }
     }
     val syncStatus = remember {
-        runCatching { Injekt.get<eu.kanade.tachiyomi.data.SyncStatus>() }.getOrNull()
+        try { Injekt.get<SyncStatus>() } catch (_: Exception) { null }
     }
     var ttuSyncJob by remember { mutableStateOf<Job?>(null) }
-
-    suspend fun runTtuSync(
-        refs: List<TtuBookRef>,
-        direction: SyncDirection,
-    ): String {
-        val sync = ttuSyncManager ?: return "TTU sync is not available"
-        var imported = 0
-        var exported = 0
-        var synced = 0
-        var skipped = 0
-        var failed = 0
-        syncStatus?.start()
-        syncStatus?.updateProgress(0f)
-        try {
-            refs.forEachIndexed { index, ref ->
-                when (val result = sync.syncBook(ref, direction)) {
-                    is SyncResult.Imported -> imported++
-                    is SyncResult.Exported -> exported++
-                    is SyncResult.Synced -> synced++
-                    is SyncResult.Skipped -> skipped++
-                    is SyncResult.Failed -> {
-                        failed++
-                        Log.w("TtuSyncUi", "TTU sync failed for '${result.title}': ${result.error}")
-                    }
-                }
-                if (refs.isNotEmpty()) {
-                    syncStatus?.updateProgress((index + 1).toFloat() / refs.size.toFloat())
-                }
-            }
-        } finally {
-            syncStatus?.stop()
-        }
-        return "TTU sync: $imported imported, $exported exported, $synced synced, $skipped skipped, $failed failed"
-    }
 
     fun syncAllTtuBooks() {
         if (ttuSyncJob?.isActive == true) {
@@ -200,18 +163,50 @@ fun Screen.NovelLibraryScreen(
         }
         val sync = ttuSyncManager
         if (sync == null) {
-            context.toast("TTU sync is not available")
+            context.toast("TTSU sync is not available")
+            Log.w("TtuSyncUi", "Sync all requested, but TtuSyncManager is not available")
             return
         }
         if (!sync.isEnabled) {
-            context.toast("TTU sync is disabled or Drive is not connected")
+            context.toast("TTSU sync is disabled or Drive is not connected")
+            Log.w("TtuSyncUi", "Sync all requested, but sync is disabled or Drive is not connected")
             return
         }
         ttuSyncJob = coroutineScope.launch(Dispatchers.IO) {
-            val refs = runCatching { sync.listBooks() }.getOrNull().orEmpty()
-            val summary = runTtuSync(refs, SyncDirection.AUTO)
-            withContext(Dispatchers.Main) {
-                context.toast(summary)
+            syncStatus?.start()
+            syncStatus?.updateProgress(0f)
+            try {
+                Log.d("TtuSyncUi", "Manual TTSU sync all started")
+                val books = com.canopus.chimareader.data.BookStorage.loadAllBooks(context)
+                var imported = 0
+                var exported = 0
+                var synced = 0
+                var skipped = 0
+                var failed = 0
+                books.forEachIndexed { index, book ->
+                    when (val result = sync.syncBook(book)) {
+                        is com.canopus.chimareader.ttusync.SyncResult.Imported -> imported++
+                        is com.canopus.chimareader.ttusync.SyncResult.Exported -> exported++
+                        is com.canopus.chimareader.ttusync.SyncResult.Synced -> synced++
+                        is com.canopus.chimareader.ttusync.SyncResult.Skipped -> skipped++
+                        is com.canopus.chimareader.ttusync.SyncResult.Failed -> {
+                            failed++
+                            Log.w("TtuSyncUi", "TTSU sync failed for '${result.title}': ${result.error}")
+                        }
+                    }
+                    if (books.isNotEmpty()) {
+                        syncStatus?.updateProgress((index + 1).toFloat() / books.size.toFloat())
+                    }
+                }
+                Log.d(
+                    "TtuSyncUi",
+                    "Manual TTSU sync all finished: total=${books.size}, imported=$imported, exported=$exported, synced=$synced, skipped=$skipped, failed=$failed",
+                )
+                withContext(Dispatchers.Main) {
+                    context.toast("TTSU sync: $imported imported, $exported exported, $synced synced, $skipped skipped, $failed failed")
+                }
+            } finally {
+                syncStatus?.stop()
             }
         }
     }
@@ -272,42 +267,29 @@ fun Screen.NovelLibraryScreen(
                 onClickInvertSelection = screenModel::invertSelection,
                 onClickFilter = screenModel::showSortDialog,
                     onClickRefresh = {
-                        if (!NovelUpdateJob.isRunning(context)) {
-                            NovelUpdateJob.startNow(context)
+                        if (!SyncDataJob.isRunning(context)) {
+                            SyncDataJob.startNow(context, manual = true)
                         } else {
-                            context.toast(MR.strings.update_already_running)
+                            context.toast(SYMR.strings.sync_in_progress)
                         }
                     },
                     onClickSyncNow = null,
+                    onClickSyncTtu = { syncAllTtuBooks() }.takeIf { ttuSyncManager?.isEnabled == true },
                 onClickGlobalUpdate = null,
                 onClickOpenRandomManga = {
                     val randomBook = screenModel.getRandomBookForCurrentCategory()
                     if (randomBook != null) {
-                        // Extraction may copy + unzip: off the main thread, then
-                        // launch like a normal tap.
-                        val randomScope = MainScope()
-                        randomScope.launch(Dispatchers.IO) {
-                            val bookDir = chimahon.novel.source.LocalNovelFiles
-                                .ensureReadableDir(context, randomBook.id)
-                                ?: chimahon.novel.data.BookStorage.getBookDirectory(context, randomBook.id)
-                            kotlinx.coroutines.withContext(Dispatchers.Main) {
-                                if (chimahon.novel.data.BookStorage.hasImportedBookContent(bookDir)) {
-                                    chimahon.novel.ui.reader.NovelReaderActivity.launch(context, bookDir)
-                                } else {
-                                    context.toast("No imported content — re-import the EPUB")
-                                }
-                            }
-                        }
+                        val bookDir = com.canopus.chimareader.data.BookStorage.getBookDirectory(context, randomBook.id)
+                        com.canopus.chimareader.ui.reader.NovelReaderActivity.launch(context, bookDir)
                     }
                 },
                 onClickSyncExh = null,
                 isSyncEnabled = false,
-                onClickSyncTtu = { syncAllTtuBooks() },
                 searchQuery = state.searchQuery,
                 onSearchQueryChange = screenModel::search,
                 scrollBehavior = scrollBehavior,
                 onInvalidateDownloadCache = null,
-                onClickEditCategories = { navigator.push(CategoryScreen(CategoryScreen.Tab.NOVELS)) },
+                onClickEditCategories = { navigator.push(CategoryScreen()) },
                 editCategoriesTitle = stringResource(MR.strings.action_edit_novel_categories),
                 updateCategoryTitle = stringResource(SYMR.strings.label_sync),
                 onClickNovelDefaultCategory = screenModel::showNovelDefaultCategoryDialog,
@@ -315,11 +297,12 @@ fun Screen.NovelLibraryScreen(
             )
         },
         bottomBar = {
-            val singleSelection = if (state.selection.size == 1) state.selection.first() else null
-            val singleBook = singleSelection?.let { id -> state.books.firstOrNull { it.id == id } }
-            val ttuManualSync = ttuSyncManager?.isEnabled == true &&
-                ttuSyncManager?.loadSettings()?.mode == SyncMode.Manual &&
-                singleBook?.title != null
+            val singleBookId = if (state.selection.size == 1) state.selection.first() else null
+            val ttuSyncSettings by remember(ttuSyncManager) {
+                ttuSyncManager?.settingsFlow ?: kotlinx.coroutines.flow.flowOf(null)
+            }.collectAsState(initial = ttuSyncManager?.loadSettings())
+            val isAutoSyncMode = ttuSyncSettings?.mode == com.canopus.chimareader.ttusync.SyncMode.Auto
+
             NovelLibraryBottomActionMenu(
                 visible = state.selectionMode,
                 onEditClicked = screenModel::showEditDialog,
@@ -327,35 +310,113 @@ fun Screen.NovelLibraryScreen(
                 onChangeCategoryClicked = screenModel::showChangeCategoryDialog,
                 onDeleteClicked = screenModel::showDeleteConfirmDialog,
                 onResetClicked = screenModel::resetStatsForSelected,
-                onSyncImport = if (ttuManualSync) {
+                isAutoSyncMode = isAutoSyncMode,
+                onSyncImport = if (ttuSyncManager?.isEnabled == true && singleBookId != null) {
                     {
-                        val ref = TtuBookRef(singleBook!!.id, singleBook.title!!)
-                        ttuSyncJob = coroutineScope.launch(Dispatchers.IO) {
-                            val summary = runTtuSync(
-                                listOf(ref),
-                                SyncDirection.IMPORT,
-                            )
-                            withContext(Dispatchers.Main) {
-                                context.toast(summary)
-                                screenModel.clearSelection()
-                                screenModel.loadLibrary()
+                        coroutineScope.launch(Dispatchers.IO) {
+                            syncStatus?.start()
+                            syncStatus?.updateProgress(0f)
+                            try {
+                                val bookDir = com.canopus.chimareader.data.BookStorage.getBookDirectory(context, singleBookId)
+                                val metadata = com.canopus.chimareader.data.BookStorage.loadMetadata(bookDir)
+                                if (metadata != null) {
+                                    val result = ttuSyncManager.syncBook(metadata, com.canopus.chimareader.ttusync.SyncDirection.IMPORT)
+                                    withContext(Dispatchers.Main) {
+                                        when (result) {
+                                            is com.canopus.chimareader.ttusync.SyncResult.Imported -> {
+                                                context.toast("Imported successfully: ${result.title}")
+                                                screenModel.clearSelection()
+                                            }
+                                            is com.canopus.chimareader.ttusync.SyncResult.Synced -> {
+                                                context.toast("Already synced: ${result.title}")
+                                                screenModel.clearSelection()
+                                            }
+                                            is com.canopus.chimareader.ttusync.SyncResult.Failed -> {
+                                                context.toast("Import failed: ${result.error}")
+                                            }
+                                            else -> {}
+                                        }
+                                    }
+                                }
+                            } finally {
+                                syncStatus?.updateProgress(1f)
+                                syncStatus?.stop()
                             }
                         }
                     }
                 } else {
                     null
                 },
-                onSyncExport = if (ttuManualSync) {
+                onSyncExport = if (ttuSyncManager?.isEnabled == true && singleBookId != null) {
                     {
-                        val ref = TtuBookRef(singleBook!!.id, singleBook.title!!)
-                        ttuSyncJob = coroutineScope.launch(Dispatchers.IO) {
-                            val summary = runTtuSync(
-                                listOf(ref),
-                                SyncDirection.EXPORT,
-                            )
-                            withContext(Dispatchers.Main) {
-                                context.toast(summary)
-                                screenModel.clearSelection()
+                        coroutineScope.launch(Dispatchers.IO) {
+                            syncStatus?.start()
+                            syncStatus?.updateProgress(0f)
+                            try {
+                                val bookDir = com.canopus.chimareader.data.BookStorage.getBookDirectory(context, singleBookId)
+                                val metadata = com.canopus.chimareader.data.BookStorage.loadMetadata(bookDir)
+                                if (metadata != null) {
+                                    val result = ttuSyncManager.syncBook(metadata, com.canopus.chimareader.ttusync.SyncDirection.EXPORT)
+                                    withContext(Dispatchers.Main) {
+                                        when (result) {
+                                            is com.canopus.chimareader.ttusync.SyncResult.Exported -> {
+                                                context.toast("Exported successfully: ${result.title}")
+                                                screenModel.clearSelection()
+                                            }
+                                            is com.canopus.chimareader.ttusync.SyncResult.Synced -> {
+                                                context.toast("Already synced: ${result.title}")
+                                                screenModel.clearSelection()
+                                            }
+                                            is com.canopus.chimareader.ttusync.SyncResult.Failed -> {
+                                                context.toast("Export failed: ${result.error}")
+                                            }
+                                            else -> {}
+                                        }
+                                    }
+                                }
+                            } finally {
+                                syncStatus?.updateProgress(1f)
+                                syncStatus?.stop()
+                            }
+                        }
+                    }
+                } else {
+                    null
+                },
+                onSyncAuto = if (ttuSyncManager?.isEnabled == true && singleBookId != null) {
+                    {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            syncStatus?.start()
+                            syncStatus?.updateProgress(0f)
+                            try {
+                                val bookDir = com.canopus.chimareader.data.BookStorage.getBookDirectory(context, singleBookId)
+                                val metadata = com.canopus.chimareader.data.BookStorage.loadMetadata(bookDir)
+                                if (metadata != null) {
+                                    val result = ttuSyncManager.syncBook(metadata, com.canopus.chimareader.ttusync.SyncDirection.AUTO)
+                                    withContext(Dispatchers.Main) {
+                                        when (result) {
+                                            is com.canopus.chimareader.ttusync.SyncResult.Imported -> {
+                                                context.toast("Imported successfully: ${result.title}")
+                                                screenModel.clearSelection()
+                                            }
+                                            is com.canopus.chimareader.ttusync.SyncResult.Exported -> {
+                                                context.toast("Exported successfully: ${result.title}")
+                                                screenModel.clearSelection()
+                                            }
+                                            is com.canopus.chimareader.ttusync.SyncResult.Synced -> {
+                                                context.toast("Sync completed: ${result.title}")
+                                                screenModel.clearSelection()
+                                            }
+                                            is com.canopus.chimareader.ttusync.SyncResult.Failed -> {
+                                                context.toast("Sync failed: ${result.error}")
+                                            }
+                                            else -> {}
+                                        }
+                                    }
+                                }
+                            } finally {
+                                syncStatus?.updateProgress(1f)
+                                syncStatus?.stop()
                             }
                         }
                     }
@@ -405,44 +466,19 @@ fun Screen.NovelLibraryScreen(
                 entryTarget = entryTarget,
                 onEntryTargetConsumed = onEntryTargetConsumed,
                 onBoundarySwipe = onBoundarySwipe,
-                onClickBook = { item ->
-                    when (item) {
-                        is NovelLibraryItem.LocalBook -> {
-                            // Local books open the reader directly. Extract
-                            // first; anything without content prompts
-                            // re-import (the row survives file deletes).
-                            val tapScope = MainScope()
-                            tapScope.launch(Dispatchers.IO) {
-                                val bookDir = chimahon.novel.source.LocalNovelFiles
-                                    .ensureReadableDir(context, item.metadata.id)
-                                    ?: chimahon.novel.data.BookStorage
-                                        .getBookDirectory(context, item.metadata.id)
-                                val novelId = screenModel.getLocalNovelId(item.metadata.id)
-                                kotlinx.coroutines.withContext(Dispatchers.Main) {
-                                    // Content gate, not isDirectory: raw-EPUB-only
-                                    // folders exist but don't parse.
-                                    if (chimahon.novel.data.BookStorage.hasImportedBookContent(bookDir)) {
-                                        chimahon.novel.ui.reader.NovelReaderActivity
-                                            .launch(context, bookDir, novelId)
-                                    } else {
-                                        context.toast("Select the EPUB to restore this book's files")
-                                        epubPicker.launch("application/epub+zip")
-                                    }
-                                }
-                            }
-                        }
-                        is NovelLibraryItem.SourceNovel -> {
-                            navigator.push(
-                                NovelDetailScreen.fromDbNovel(item.novel),
-                            )
-                        }
+                onClickBook = { book ->
+                    if (book.isGhost) {
+                        epubPicker.launch("application/epub+zip")
+                    } else {
+                        val bookDir = com.canopus.chimareader.data.BookStorage.getBookDirectory(context, book.id)
+                        com.canopus.chimareader.ui.reader.NovelReaderActivity.launch(context, bookDir)
                     }
                 },
             )
         }
     }
 
-    // Hide bottom nav while in selection mode
+    // Hide bottom nav while in selection mode — mirrors manga library
     LaunchedEffect(state.selectionMode, state.dialog) {
         HomeScreen.showBottomNav(!state.selectionMode)
     }
@@ -471,7 +507,7 @@ fun Screen.NovelLibraryScreen(
             eu.kanade.presentation.category.components.ChangeCategoryDialog(
                 initialSelection = dialog.initialSelection,
                 onDismissRequest = onDismissRequest,
-                onEditCategories = { navigator.push(CategoryScreen(CategoryScreen.Tab.NOVELS)) },
+                onEditCategories = { navigator.push(CategoryScreen()) },
                 onConfirm = { include, exclude ->
                     screenModel.clearSelection()
                     screenModel.setBooksCategories(dialog.books, include, exclude)
@@ -483,26 +519,10 @@ fun Screen.NovelLibraryScreen(
             AlertDialog(
                 onDismissRequest = onDismissRequest,
                 title = { Text(stringResource(MR.strings.action_delete)) },
-                text = {
-                    Column {
-                        Text(stringResource(MR.strings.action_delete))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { screenModel.toggleDeleteDialogDownloadFiles() },
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(
-                                checked = state.deleteDialogDownloadFiles,
-                                onCheckedChange = { screenModel.toggleDeleteDialogDownloadFiles() },
-                            )
-                            Text(stringResource(MR.strings.delete_downloads_for_manga))
-                        }
-                    }
-                },
+                text = { Text(stringResource(MR.strings.action_delete)) },
                 confirmButton = {
                     TextButton(onClick = {
-                        screenModel.deleteSelected(deleteDownloadedFiles = state.deleteDialogDownloadFiles)
+                        screenModel.deleteSelected()
                         screenModel.closeDialog()
                     }) {
                         Text(stringResource(MR.strings.action_ok))
@@ -826,7 +846,7 @@ fun NovelLibraryContent(
     entryTarget: LibraryPagerBoundary? = null,
     onEntryTargetConsumed: () -> Unit = {},
     onBoundarySwipe: (LibraryPagerBoundary) -> Unit = {},
-    onClickBook: (NovelLibraryItem) -> Unit,
+    onClickBook: (BookMetadata) -> Unit,
 ) {
     val pagerState = rememberPagerState(state.coercedActiveCategoryIndex) { state.displayedCategories.size }
     val scope = rememberCoroutineScope()
@@ -889,11 +909,10 @@ fun NovelLibraryContent(
             refreshing = isRefreshing,
             enabled = state.selection.isEmpty(),
             onRefresh = {
-                NovelUpdateJob.startNow(context)
+                SyncDataJob.startNow(context, manual = true)
                 scope.launch {
                     isRefreshing = true
                     delay(1.seconds)
-                    screenModel.loadLibrary()
                     isRefreshing = false
                 }
             },
@@ -910,16 +929,16 @@ fun NovelLibraryContent(
                 verticalAlignment = Alignment.Top,
             ) { page ->
                 val category = state.displayedCategories[page]
-                val items = state.getItemsForCategory(category)
+                val books = state.getBooksForCategory(category)
 
-                if (items.isEmpty() && !state.searchQuery.isNullOrBlank()) {
+                if (books.isEmpty() && !state.searchQuery.isNullOrBlank()) {
                     EmptyScreen(
                         stringRes = MR.strings.no_results_found,
                         modifier = Modifier
                             .padding(bottom = contentPadding.calculateBottomPadding())
                             .padding(8.dp),
                     )
-                } else if (items.isEmpty()) {
+                } else if (books.isEmpty()) {
                     EmptyScreen(
                         stringRes = MR.strings.information_no_manga_category,
                         modifier = Modifier
@@ -927,23 +946,146 @@ fun NovelLibraryContent(
                             .padding(8.dp),
                     )
                 } else if (displayMode == LibraryDisplayMode.List) {
-                    NovelLibraryList(
-                        items = items,
-                        state = state,
-                        screenModel = screenModel,
-                        onClickBook = onClickBook,
-                        contentPadding = contentPadding,
-                    )
+                    FastScrollLazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()) + PaddingValues(vertical = 8.dp),
+                    ) {
+                        items(books, key = { it.id }) { book ->
+                            val isSelected = state.selection.contains(book.id)
+                            val coverData = tachiyomi.domain.manga.model.MangaCover(
+                                mangaId = book.id.hashCode().toLong(),
+                                sourceId = -1L,
+                                isMangaFavorite = true,
+                                ogUrl = book.cover,
+                                lastModified = 0L,
+                            )
+                            val onLongClick: () -> Unit = { screenModel.toggleSelection(book.id) }
+                            val onClick: () -> Unit = {
+                                if (state.selectionMode) {
+                                    screenModel.toggleSelection(book.id)
+                                } else {
+                                    onClickBook(book)
+                                }
+                            }
+
+                            val bookLang = book.lang
+
+                            eu.kanade.presentation.library.components.MangaListItem(
+                                isSelected = isSelected,
+                                title = book.title ?: "",
+                                coverData = coverData,
+                                badge = {
+                                    if (!bookLang.isNullOrBlank()) {
+                                        eu.kanade.presentation.library.components.LanguageBadge(
+                                            isLocal = true,
+                                            sourceLanguage = bookLang,
+                                        )
+                                    }
+                                    if (book.isGhost) {
+                                        androidx.compose.material3.Surface(
+                                            shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                                            color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
+                                        ) {
+                                            androidx.compose.material3.Text(
+                                                text = "MISSING",
+                                                modifier = androidx.compose.ui.Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                                                color = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
+                                            )
+                                        }
+                                    }
+                                },
+                                onLongClick = onLongClick,
+                                onClick = onClick,
+                            )
+                        }
+                    }
                 } else {
-                    NovelLibraryGrid(
-                        items = items,
-                        displayMode = displayMode,
-                        columns = columns,
-                        state = state,
-                        screenModel = screenModel,
-                        onClickBook = onClickBook,
-                        contentPadding = contentPadding,
-                    )
+                    FastScrollLazyVerticalGrid(
+                        modifier = Modifier.fillMaxSize(),
+                        columns = if (columns == 0) GridCells.Adaptive(128.dp) else GridCells.Fixed(columns),
+                        contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()) + PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(CommonMangaItemDefaults.GridHorizontalSpacer),
+                        verticalArrangement = Arrangement.spacedBy(CommonMangaItemDefaults.GridVerticalSpacer),
+                    ) {
+                        items(books, key = { it.id }) { book ->
+                            val isSelected = state.selection.contains(book.id)
+                            val coverData = tachiyomi.domain.manga.model.MangaCover(
+                                mangaId = book.id.hashCode().toLong(),
+                                sourceId = -1L,
+                                isMangaFavorite = true,
+                                ogUrl = book.cover,
+                                lastModified = 0L,
+                            )
+                            val onLongClick: () -> Unit = { screenModel.toggleSelection(book.id) }
+                            val onClick: () -> Unit = {
+                                if (state.selectionMode) {
+                                    screenModel.toggleSelection(book.id)
+                                } else {
+                                    onClickBook(book)
+                                }
+                            }
+
+                            val bookTitle = if (displayMode == LibraryDisplayMode.CoverOnlyGrid) null else (book.title ?: "")
+                            val bookLang = book.lang
+
+                            val ghostBadge: @Composable (androidx.compose.foundation.layout.RowScope.() -> Unit)? =
+                                if (book.isGhost) {
+                                    {
+                                        androidx.compose.material3.Surface(
+                                            shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                                            color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
+                                        ) {
+                                            androidx.compose.material3.Text(
+                                                text = "MISSING",
+                                                modifier = androidx.compose.ui.Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                                                color = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    null
+                                }
+
+                            if (displayMode == LibraryDisplayMode.ComfortableGrid) {
+                                eu.kanade.presentation.library.components.MangaComfortableGridItem(
+                                    isSelected = isSelected,
+                                    title = bookTitle ?: "",
+                                    coverData = coverData,
+                                    coverBadgeStart = {
+                                        if (!bookLang.isNullOrBlank()) {
+                                            eu.kanade.presentation.library.components.LanguageBadge(
+                                                isLocal = true,
+                                                sourceLanguage = bookLang,
+                                            )
+                                        }
+                                    },
+                                    coverBadgeEnd = ghostBadge,
+                                    onLongClick = onLongClick,
+                                    onClick = onClick,
+                                    usePanoramaCover = false,
+                                )
+                            } else {
+                                eu.kanade.presentation.library.components.MangaCompactGridItem(
+                                    isSelected = isSelected,
+                                    title = bookTitle,
+                                    coverData = coverData,
+                                    coverBadgeStart = {
+                                        if (!bookLang.isNullOrBlank()) {
+                                            eu.kanade.presentation.library.components.LanguageBadge(
+                                                isLocal = true,
+                                                sourceLanguage = bookLang,
+                                            )
+                                        }
+                                    },
+                                    coverBadgeEnd = ghostBadge,
+                                    onLongClick = onLongClick,
+                                    onClick = onClick,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -951,238 +1093,6 @@ fun NovelLibraryContent(
 
     LaunchedEffect(pagerState.currentPage) {
         onCategoryChange(pagerState.currentPage)
-    }
-}
-
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun NovelLibraryList(
-    items: List<NovelLibraryItem>,
-    state: NovelLibraryScreenModel.State,
-    screenModel: NovelLibraryScreenModel,
-    onClickBook: (NovelLibraryItem) -> Unit,
-    contentPadding: PaddingValues,
-) {
-    FastScrollLazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()) + PaddingValues(vertical = 8.dp),
-    ) {
-        items(items, key = { it.id }) { book ->
-            val isSelected = state.selection.contains(book.id)
-            val coverData = tachiyomi.domain.manga.model.MangaCover(
-                mangaId = book.id.hashCode().toLong(),
-                sourceId = -1L,
-                isMangaFavorite = true,
-                ogUrl = book.coverUrl,
-                lastModified = book.coverLastModified,
-            )
-            val onLongClick: () -> Unit = { screenModel.toggleSelection(book.id) }
-            val onClick: () -> Unit = {
-                if (state.selectionMode) {
-                    screenModel.toggleSelection(book.id)
-                } else {
-                    onClickBook(book)
-                }
-            }
-
-            val bookLang = when (book) {
-                is NovelLibraryItem.LocalBook -> book.metadata.lang
-                is NovelLibraryItem.SourceNovel -> null
-            }
-
-            eu.kanade.presentation.library.components.MangaListItem(
-                isSelected = isSelected,
-                title = book.title,
-                coverData = coverData,
-                badge = {
-                    if (book is NovelLibraryItem.SourceNovel && book.downloadCount > 0) {
-                        eu.kanade.presentation.library.components.DownloadsBadge(count = book.downloadCount.toLong())
-                    }
-                    if (book is NovelLibraryItem.SourceNovel && book.unreadCount > 0) {
-                        eu.kanade.presentation.library.components.UnreadBadge(
-                            count = book.unreadCount.toLong(),
-                        )
-                    }
-                    if (!bookLang.isNullOrBlank()) {
-                        eu.kanade.presentation.library.components.LanguageBadge(
-                            isLocal = true,
-                            sourceLanguage = bookLang,
-                        )
-                    }
-                    if (book is NovelLibraryItem.LocalBook && book.metadata.id in state.booksWithoutContent) {
-                        androidx.compose.material3.Surface(
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
-                        ) {
-                            androidx.compose.material3.Text(
-                                text = "MISSING",
-                                modifier = androidx.compose.ui.Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                                color = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
-                            )
-                        }
-                    }
-                },
-                onLongClick = onLongClick,
-                onClick = onClick,
-            )
-        }
-    }
-}
-
-@Composable
-private fun NovelLibraryGrid(
-    items: List<NovelLibraryItem>,
-    displayMode: LibraryDisplayMode,
-    columns: Int,
-    state: NovelLibraryScreenModel.State,
-    screenModel: NovelLibraryScreenModel,
-    onClickBook: (NovelLibraryItem) -> Unit,
-    contentPadding: PaddingValues,
-) {
-    FastScrollLazyVerticalGrid(
-        modifier = Modifier.fillMaxSize(),
-        columns = if (columns == 0) GridCells.Adaptive(128.dp) else GridCells.Fixed(columns),
-        contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()) + PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(CommonMangaItemDefaults.GridHorizontalSpacer),
-        verticalArrangement = Arrangement.spacedBy(CommonMangaItemDefaults.GridVerticalSpacer),
-    ) {
-        items(items, key = { it.id }) { book ->
-            val isSelected = state.selection.contains(book.id)
-            val coverData = tachiyomi.domain.manga.model.MangaCover(
-                mangaId = book.id.hashCode().toLong(),
-                sourceId = -1L,
-                isMangaFavorite = true,
-                ogUrl = book.coverUrl,
-                lastModified = book.coverLastModified,
-            )
-            val onLongClick: () -> Unit = { screenModel.toggleSelection(book.id) }
-            val onClick: () -> Unit = {
-                if (state.selectionMode) {
-                    screenModel.toggleSelection(book.id)
-                } else {
-                    onClickBook(book)
-                }
-            }
-
-            val bookLang = when (book) {
-                is NovelLibraryItem.LocalBook -> book.metadata.lang
-                is NovelLibraryItem.SourceNovel -> null
-            }
-            val bookTitle = if (displayMode == LibraryDisplayMode.CoverOnlyGrid) null else book.title
-
-            val ghostBadge: @Composable (androidx.compose.foundation.layout.RowScope.() -> Unit)? =
-                {
-                    if (book is NovelLibraryItem.SourceNovel && book.unreadCount > 0) {
-                        eu.kanade.presentation.library.components.UnreadBadge(
-                            count = book.unreadCount.toLong(),
-                        )
-                    }
-                    if (book is NovelLibraryItem.SourceNovel && book.downloadCount > 0) {
-                        eu.kanade.presentation.library.components.DownloadsBadge(count = book.downloadCount.toLong())
-                    }
-                    if (book is NovelLibraryItem.LocalBook && book.metadata.id !in state.booksWithoutContent) {
-                        eu.kanade.presentation.library.components.UnreadBadge(count = 1)
-                    }
-                    if (book is NovelLibraryItem.LocalBook && book.metadata.id in state.booksWithoutContent) {
-                        androidx.compose.material3.Surface(
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
-                        ) {
-                            androidx.compose.material3.Text(
-                                text = "MISSING",
-                                modifier = androidx.compose.ui.Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                                color = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
-                            )
-                        }
-                    }
-                }
-
-            if (displayMode == LibraryDisplayMode.ComfortableGrid) {
-                eu.kanade.presentation.library.components.MangaComfortableGridItem(
-                    isSelected = isSelected,
-                    title = bookTitle ?: "",
-                    coverData = coverData,
-                    coverBadgeStart = {
-                        if (book is NovelLibraryItem.SourceNovel && book.downloadCount > 0) {
-                            eu.kanade.presentation.library.components.DownloadsBadge(count = book.downloadCount.toLong())
-                        }
-                        if (book is NovelLibraryItem.SourceNovel && book.unreadCount > 0) {
-                            eu.kanade.presentation.library.components.UnreadBadge(count = book.unreadCount.toLong())
-                        }
-                    },
-                    coverBadgeEnd = {
-                        if (!bookLang.isNullOrBlank()) {
-                            eu.kanade.presentation.library.components.LanguageBadge(
-                                isLocal = book is NovelLibraryItem.LocalBook,
-                                sourceLanguage = bookLang,
-                            )
-                        }
-                        if (book is NovelLibraryItem.LocalBook && book.metadata.id in state.booksWithoutContent) {
-                            androidx.compose.material3.Surface(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-                                color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
-                            ) {
-                                androidx.compose.material3.Text(
-                                    text = "MISSING",
-                                    modifier = androidx.compose.ui.Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                    style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                                    color = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
-                                )
-                            }
-                        }
-                    },
-                    onLongClick = onLongClick,
-                    onClick = onClick,
-                    onClickContinueReading = if (book is NovelLibraryItem.SourceNovel && book.unreadCount > 0) {
-                        { onClickBook(book) }
-                    } else null,
-                    usePanoramaCover = false,
-                )
-            } else {
-                eu.kanade.presentation.library.components.MangaCompactGridItem(
-                    isSelected = isSelected,
-                    title = bookTitle,
-                    coverData = coverData,
-                    coverBadgeStart = {
-                        if (book is NovelLibraryItem.SourceNovel && book.downloadCount > 0) {
-                            eu.kanade.presentation.library.components.DownloadsBadge(count = book.downloadCount.toLong())
-                        }
-                        if (book is NovelLibraryItem.SourceNovel && book.unreadCount > 0) {
-                            eu.kanade.presentation.library.components.UnreadBadge(count = book.unreadCount.toLong())
-                        }
-                    },
-                    coverBadgeEnd = {
-                        if (!bookLang.isNullOrBlank()) {
-                            eu.kanade.presentation.library.components.LanguageBadge(
-                                isLocal = book is NovelLibraryItem.LocalBook,
-                                sourceLanguage = bookLang,
-                            )
-                        }
-                        if (book is NovelLibraryItem.LocalBook && book.metadata.id in state.booksWithoutContent) {
-                            androidx.compose.material3.Surface(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-                                color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
-                            ) {
-                                androidx.compose.material3.Text(
-                                    text = "MISSING",
-                                    modifier = androidx.compose.ui.Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                    style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                                    color = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
-                                )
-                            }
-                        }
-                    },
-                    onLongClick = onLongClick,
-                    onClick = onClick,
-                    onClickContinueReading = if (book is NovelLibraryItem.SourceNovel && book.unreadCount > 0) {
-                        { onClickBook(book) }
-                    } else null,
-                )
-            }
-        }
     }
 }
 
@@ -1198,6 +1108,8 @@ fun NovelLibraryBottomActionMenu(
     onResetClicked: () -> Unit,
     onSyncImport: (() -> Unit)? = null,
     onSyncExport: (() -> Unit)? = null,
+    onSyncAuto: (() -> Unit)? = null,
+    isAutoSyncMode: Boolean = true,
 ) {
     AnimatedVisibility(
         visible = visible,
@@ -1214,7 +1126,7 @@ fun NovelLibraryBottomActionMenu(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             val haptic = LocalHapticFeedback.current
-            val confirm = remember { mutableStateListOf(false, false, false, false) }
+            val confirm = remember { mutableStateListOf(false, false, false, false, false) }
             var resetJob by remember { mutableStateOf<Job?>(null) }
             val onLongClickItem: (Int) -> Unit = { toConfirmIndex ->
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1256,24 +1168,6 @@ fun NovelLibraryBottomActionMenu(
                         onClick = onEditClicked,
                     )
                 }
-                if (onSyncImport != null) {
-                    BottomMenuButton(
-                        title = "TTU import",
-                        icon = Icons.Outlined.Download,
-                        toConfirm = false,
-                        onLongClick = {},
-                        onClick = onSyncImport,
-                    )
-                }
-                if (onSyncExport != null) {
-                    BottomMenuButton(
-                        title = "TTU export",
-                        icon = Icons.Outlined.Upload,
-                        toConfirm = false,
-                        onLongClick = {},
-                        onClick = onSyncExport,
-                    )
-                }
                 BottomMenuButton(
                     title = stringResource(MR.strings.action_delete),
                     icon = Icons.Outlined.Delete,
@@ -1281,6 +1175,52 @@ fun NovelLibraryBottomActionMenu(
                     onLongClick = { onLongClickItem(3) },
                     onClick = onDeleteClicked,
                 )
+                if (onSyncImport != null && onSyncExport != null && onSyncAuto != null) {
+                    var expanded by remember { mutableStateOf(false) }
+                    BottomMenuButton(
+                        title = stringResource(SYMR.strings.label_sync),
+                        icon = Icons.Outlined.Sync,
+                        toConfirm = confirm[4],
+                        onLongClick = { onLongClickItem(4) },
+                        onClick = {
+                            if (isAutoSyncMode) {
+                                onSyncAuto()
+                            } else {
+                                expanded = true
+                            }
+                        },
+                    ) {
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Import from Drive") },
+                                onClick = {
+                                    expanded = false
+                                    onSyncImport()
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Download, null) },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Export to Drive") },
+                                onClick = {
+                                    expanded = false
+                                    onSyncExport()
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Upload, null) },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Auto") },
+                                onClick = {
+                                    expanded = false
+                                    onSyncAuto()
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Sync, null) },
+                            )
+                        }
+                    }
+                }
             }
         }
     }

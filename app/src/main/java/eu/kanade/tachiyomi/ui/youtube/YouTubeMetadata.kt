@@ -15,7 +15,8 @@ fun Video.withoutExternalSubtitleLookup(): Video {
     return copy(
         internalData = metadata,
         initialized = initialized,
-    ).apply { videoPageUrl = this@withoutExternalSubtitleLookup.videoPageUrl }
+        videoPageUrl = videoPageUrl,
+    )
 }
 
 fun Video.allowsExternalSubtitleLookup(): Boolean {

@@ -9,6 +9,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.canopus.chimareader.data.BookStorage
 import com.canopus.chimareader.data.MangaStatsStorage
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.more.stats.StatsTitlesContent
@@ -85,8 +86,6 @@ class StatsTitlesScreenModel(
     private val sourceManager: SourceManager = Injekt.get(),
     private val dictionaryPreferences: DictionaryPreferences = Injekt.get(),
     private val context: Application = Injekt.get(),
-    private val novelRepository: tachiyomi.domain.novel.repository.NovelRepository = Injekt.get(),
-    private val novelReadingStatsRepository: tachiyomi.domain.novel.repository.NovelReadingStatsRepository = Injekt.get(),
 ) : StateScreenModel<StatsTitlesState>(StatsTitlesState.Loading) {
 
     private var rawTitles = emptyList<StatsTitleItem>()
@@ -169,14 +168,13 @@ class StatsTitlesScreenModel(
                 emptyList()
             }
 
-            // 2. Get filtered Novels (DB rows)
+            // 2. Get filtered Novels
             val novelList = if (statsType == StatsType.All || statsType == StatsType.Novels) {
-                runCatching { novelRepository.getAll() }.getOrNull().orEmpty()
-                    .filter { novel ->
-                        val key = novel.localFolder ?: novel.id.toString()
-                        val profileId = resolver.resolve(novelId = key).id
-                        activeProfileId == null || profileId == activeProfileId
-                    }
+                val allNovels = BookStorage.loadAllBooks(context)
+                allNovels.filter { novel ->
+                    val profileId = resolver.resolve(novelId = novel.id).id
+                    activeProfileId == null || profileId == activeProfileId
+                }
             } else {
                 emptyList()
             }
@@ -214,27 +212,26 @@ class StatsTitlesScreenModel(
 
             // Process Novels
             novelList.forEach { novel ->
-                val stats = runCatching { novelReadingStatsRepository.getByNovelId(novel.id) }
-                    .getOrNull().orEmpty()
+                val bookDir = BookStorage.getBookDirectory(context, novel.id)
+                val stats = BookStorage.loadStatistics(bookDir) ?: emptyList()
                 val totalDurationSeconds = stats.sumOf { it.readingTime }
                 val totalDurationMs = (totalDurationSeconds * 1000).toLong()
                 val totalChars = stats.sumOf { it.charactersRead }
                 val lastRead = stats.mapNotNull {
                     runCatching { LocalDate.parse(it.dateKey) }.getOrNull()
                 }.maxOrNull()
-                val novelKey = novel.localFolder ?: novel.id.toString()
 
                 titleItems.add(
                     StatsTitleItem(
-                        id = novelKey,
-                        title = novel.title,
+                        id = novel.id,
+                        title = novel.title ?: "Unknown Title",
                         author = novel.author,
-                        coverData = novel.thumbnailUrl?.let { File(it) },
+                        coverData = novel.cover?.let { File(it) },
                         isNovel = true,
                         lastReadDate = lastRead,
                         readDurationMs = totalDurationMs,
                         charactersRead = totalChars,
-                        novelId = novelKey,
+                        novelId = novel.id,
                         dateAdded = novel.dateAdded,
                     )
                 )

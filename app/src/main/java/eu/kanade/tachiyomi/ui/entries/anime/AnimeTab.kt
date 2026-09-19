@@ -30,7 +30,6 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.entries.components.LibraryBottomActionMenu
-import mihon.feature.animemigration.config.AnimeMigrationConfigScreen
 import eu.kanade.presentation.library.DeleteLibraryEntryDialog
 import eu.kanade.presentation.entries.anime.library.AnimeLibraryContent
 import eu.kanade.presentation.entries.anime.library.AnimeLibrarySettingsDialog
@@ -183,7 +182,7 @@ fun Screen.AnimeLibraryPanel(
                 scrollBehavior = scrollBehavior.takeIf { !tabVisible },
                 onInvalidateDownloadCache = null,
                 onClickEditCategories = {
-                    navigator.push(CategoryScreen(CategoryScreen.Tab.ANIME))
+                    navigator.push(CategoryScreen())
                 },
                 editCategoriesTitle = stringResource(MR.strings.action_edit_categories),
             )
@@ -197,9 +196,6 @@ fun Screen.AnimeLibraryPanel(
                 onDownloadClicked = screenModel::runDownloadActionSelection
                     .takeIf { state.selection.fastAll { !it.anime.isLocal() } },
                 onDeleteClicked = screenModel::openDeleteAnimeDialog,
-                onMigrateClicked = {
-                    navigator.push(AnimeMigrationConfigScreen(state.selection.map { it.anime.id }))
-                },
                 isManga = false,
             )
         },
@@ -291,7 +287,7 @@ fun Screen.AnimeLibraryPanel(
                 onDismissRequest = onDismissRequest,
                 onEditCategories = {
                     screenModel.clearSelection()
-                    navigator.push(CategoryScreen(CategoryScreen.Tab.ANIME))
+                    navigator.push(CategoryScreen())
                 },
                 onConfirm = { include, exclude ->
                     screenModel.clearSelection()

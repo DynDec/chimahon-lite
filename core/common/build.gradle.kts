@@ -66,5 +66,8 @@ dependencies {
     // SY <--
 
     implementation(libs.injekt)
-    implementation(libs.torrentserver)
+    // Torrent playback belongs to the upstream anime/video app, not the
+    // local manga build. Keep it available to legacy source compilation
+    // without pulling its large Go/JNI runtime into the APK.
+    compileOnly(libs.torrentserver)
 }

@@ -5,6 +5,7 @@ plugins {
 
 android {
     namespace = "chimahon.local.ocr"
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         externalNativeBuild {
@@ -26,9 +27,6 @@ dependencies {
     implementation(project(":chimahon"))
     implementation(project(":presentation-core"))
     implementation(project(":domain"))
-
-    implementation(platform(kotlinx.coroutines.bom))
-    implementation(kotlinx.coroutines.core)
 
     implementation(compose.foundation)
     implementation(compose.material3.core)

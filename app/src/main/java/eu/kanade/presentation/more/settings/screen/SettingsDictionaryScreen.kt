@@ -88,7 +88,7 @@ import chimahon.anki.LapisPreset
 import chimahon.anki.Marker
 import chimahon.dictionary.readDictionaryIndex
 import chimahon.ocr.CropPresets
-import chimahon.novel.data.FontManager
+import com.canopus.chimareader.data.FontManager
 import com.hippo.unifile.UniFile
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.tachiyomi.network.NetworkHelper
@@ -316,20 +316,13 @@ private fun loadDictionaryList(context: Context) {
     Log.d(TAG, "loadDictionaryList: called")
     val dictionariesDir = File(context.getExternalFilesDir(null), "dictionaries")
     val names = if (dictionariesDir.exists()) {
-        val typed = listOf("term", "frequency", "pitch", "kanji")
+        listOf("term", "frequency", "pitch", "kanji")
             .flatMap { type ->
                 val typeDir = File(dictionariesDir, type)
                 if (!typeDir.isDirectory) emptyList()
                 else typeDir.listFiles()?.filter { it.isDirectory }?.map { it.name }.orEmpty()
             }
             .distinct()
-        if (typed.isNotEmpty()) {
-            typed
-        } else {
-            // Fallback for flat layout (pre-migration or probe failure) - minimal clean fix
-            val typeSet = setOf("term", "frequency", "pitch", "kanji")
-            dictionariesDir.listFiles()?.filter { it.isDirectory && it.name !in typeSet }?.map { it.name }.orEmpty().distinct()
-        }
     } else {
         emptyList()
     }
@@ -2374,8 +2367,6 @@ object SettingsDictionaryScreen : SearchableSettings {
         onDismiss: () -> Unit,
         onToggleMarker: (String) -> Unit,
     ) {
-        val context = LocalContext.current
-        LaunchedEffect(Unit) { loadDictionaryList(context) }
         var query by remember { mutableStateOf("") }
         var selectedSection by remember { mutableStateOf<String?>(null) }
         var singleGlossaryExpanded by remember { mutableStateOf(false) }

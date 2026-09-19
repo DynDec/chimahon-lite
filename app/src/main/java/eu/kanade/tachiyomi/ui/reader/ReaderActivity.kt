@@ -1095,6 +1095,7 @@ class ReaderActivity : BaseActivity() {
 
     override fun onPause() {
         lifecycleScope.launchNonCancellable {
+            viewModel.saveReadingProgress()
             viewModel.updateHistory()
         }
 
@@ -2381,20 +2382,12 @@ class ReaderActivity : BaseActivity() {
                 file,
             )
 
-            val preset = (cachedActiveProfile ?: Injekt.get<DictionaryPreferences>().profileStore.getActiveProfile())
-                .let { CropPresets.aspectByKey(it.ankiCropPreset) }
             val cropOptions = com.canhub.cropper.CropImageOptions().apply {
                 cropShape = com.canhub.cropper.CropImageView.CropShape.RECTANGLE
                 initialCropWindowPaddingRatio = 0.25f
-                if (preset != null) {
-                    fixAspectRatio = true
-                    aspectRatioX = preset.x
-                    aspectRatioY = preset.y
-                } else {
-                    fixAspectRatio = false
-                    aspectRatioX = 1
-                    aspectRatioY = 1
-                }
+                fixAspectRatio = false
+                aspectRatioX = 1
+                aspectRatioY = 1
                 outputCompressQuality = 70
                 outputCompressFormat = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     android.graphics.Bitmap.CompressFormat.WEBP_LOSSY

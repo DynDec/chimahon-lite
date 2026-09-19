@@ -1,9 +1,9 @@
 package eu.kanade.tachiyomi.data.sync.service
 
 import android.content.Context
-import chimahon.novel.data.NovelCategory
+import com.canopus.chimareader.data.NovelCategory
+import com.canopus.chimareader.data.md5Hex
 import eu.kanade.domain.sync.SyncPreferences
-import eu.kanade.tachiyomi.util.lang.Hash
 import eu.kanade.tachiyomi.data.backup.models.Backup
 import eu.kanade.tachiyomi.data.backup.models.BackupAnime
 import eu.kanade.tachiyomi.data.backup.models.BackupAnimeSource
@@ -18,14 +18,11 @@ import eu.kanade.tachiyomi.data.backup.models.BackupNovelCategory
 import eu.kanade.tachiyomi.data.backup.models.BackupPreference
 import eu.kanade.tachiyomi.data.backup.models.BackupSavedSearch
 import eu.kanade.tachiyomi.data.backup.models.BackupSource
-import eu.kanade.tachiyomi.data.backup.models.BackupSourceNovel
 import eu.kanade.tachiyomi.data.backup.models.BackupSourcePreferences
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
 import logcat.logcat
-import kotlin.math.max
-import kotlin.math.min
 
 @Serializable
 data class SyncData(
@@ -110,10 +107,6 @@ abstract class SyncService(
             remoteSyncData.backup?.backupNovelCategories ?: emptyList(),
             mergedNovelCategoriesList,
         )
-        val mergedSourceNovelsList = mergeSourceNovelLists(
-            localSyncData.backup?.backupSourceNovels,
-            remoteSyncData.backup?.backupSourceNovels,
-        )
         // Chimahon <--
 
         // Create the merged Backup object
@@ -136,7 +129,6 @@ abstract class SyncService(
             // Chimahon -->
             backupNovels = mergedNovelsList,
             backupNovelCategories = mergedNovelCategoriesList,
-            backupSourceNovels = mergedSourceNovelsList,
             // Chimahon <--
         )
 
@@ -787,7 +779,9 @@ abstract class SyncService(
             when {
                 firstStat != null && secondStat == null -> firstStat
                 firstStat == null && secondStat != null -> secondStat
-                firstStat != null && secondStat != null -> mergeNovelStatDay(firstStat, secondStat)
+                firstStat != null && secondStat != null -> {
+                    if (firstStat.lastStatisticModified >= secondStat.lastStatisticModified) firstStat else secondStat
+                }
                 else -> null
             }
         }
@@ -799,42 +793,6 @@ abstract class SyncService(
             stats = mergedStats,
             categoryIds = mergedCategoryIds,
         )
-    }
-
-    /**
-     * Same-day merge for cumulative counters. Recency is unavailable
-     * (DB-backed backups carry `lastStatisticModified = 0`), but counters
-     * only grow, so per-field max already contains the smaller side.
-     */
-    private fun mergeNovelStatDay(
-        first: eu.kanade.tachiyomi.data.backup.models.BackupStatEntry,
-        second: eu.kanade.tachiyomi.data.backup.models.BackupStatEntry,
-    ): eu.kanade.tachiyomi.data.backup.models.BackupStatEntry {
-        // Proxy for recency: the side that read more is further ahead.
-        val newer = if (second.charactersRead > first.charactersRead ||
-            (second.charactersRead == first.charactersRead && second.readingTime > first.readingTime)
-        ) {
-            second
-        } else {
-            first
-        }
-        return first.copy(
-            charactersRead = maxOf(first.charactersRead, second.charactersRead),
-            readingTime = maxOf(first.readingTime, second.readingTime),
-            minReadingSpeed = minNonZeroInt(first.minReadingSpeed, second.minReadingSpeed),
-            altMinReadingSpeed = minNonZeroInt(first.altMinReadingSpeed, second.altMinReadingSpeed),
-            lastReadingSpeed = newer.lastReadingSpeed,
-            maxReadingSpeed = maxOf(first.maxReadingSpeed, second.maxReadingSpeed),
-            lastStatisticModified = maxOf(first.lastStatisticModified, second.lastStatisticModified),
-        )
-    }
-
-    private fun minNonZeroInt(first: Int, second: Int): Int {
-        return when {
-            first <= 0 -> second
-            second <= 0 -> first
-            else -> minOf(first, second)
-        }
     }
 
     private fun mergeNovelCategoriesLists(
@@ -865,7 +823,7 @@ abstract class SyncService(
         val title = novel.title.trim().lowercase()
         val author = novel.author?.trim()?.lowercase().orEmpty()
         return if (title.isNotEmpty() || author.isNotEmpty()) {
-            Hash.md5("$title|$author")
+            md5Hex("$title|$author")
         } else {
             novel.id
         }
@@ -885,58 +843,6 @@ abstract class SyncService(
 
     private fun categoryKey(name: String): String {
         return name.trim().lowercase()
-    }
-
-    private fun mergeSourceNovelLists(
-        localNovelList: List<BackupSourceNovel>?,
-        remoteNovelList: List<BackupSourceNovel>?,
-    ): List<BackupSourceNovel> {
-        val localNovelMap = localNovelList.orEmpty()
-            .groupBy { sourceNovelKey(it) }
-            .mapValues { (_, duplicates) -> duplicates.reduce(::mergeSourceNovelData) }
-        val remoteNovelMap = remoteNovelList.orEmpty()
-            .groupBy { sourceNovelKey(it) }
-            .mapValues { (_, duplicates) -> duplicates.reduce(::mergeSourceNovelData) }
-
-        return (localNovelMap.keys + remoteNovelMap.keys).distinct().mapNotNull { key ->
-            val local = localNovelMap[key]
-            val remote = remoteNovelMap[key]
-            when {
-                local != null && remote == null -> local
-                local == null && remote != null -> remote
-                local != null && remote != null -> mergeSourceNovelData(local, remote)
-                else -> null
-            }
-        }
-    }
-
-    private fun mergeSourceNovelData(first: BackupSourceNovel, second: BackupSourceNovel): BackupSourceNovel {
-        val latest = when {
-            first.version != second.version -> if (first.version > second.version) first else second
-            else -> if (first.lastModifiedAt >= second.lastModifiedAt) first else second
-        }
-        return latest.copy(
-            favorite = first.favorite || second.favorite,
-            dateAdded = minNonZero(first.dateAdded, second.dateAdded),
-            lastUpdate = max(first.lastUpdate, second.lastUpdate),
-            nextUpdate = max(first.nextUpdate, second.nextUpdate),
-            coverLastModified = max(first.coverLastModified, second.coverLastModified),
-            totalChapters = max(first.totalChapters, second.totalChapters),
-            version = max(first.version, second.version),
-            chapters = mergeChapters(first.chapters, second.chapters),
-        )
-    }
-
-    private fun sourceNovelKey(novel: BackupSourceNovel): String {
-        return "${novel.source}|${novel.url}"
-    }
-
-    private fun minNonZero(first: Long, second: Long): Long {
-        return when {
-            first <= 0L -> second
-            second <= 0L -> first
-            else -> min(first, second)
-        }
     }
     // Chimahon <--
 }

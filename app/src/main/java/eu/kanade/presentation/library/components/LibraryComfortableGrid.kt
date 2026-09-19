@@ -19,7 +19,7 @@ internal fun LibraryComfortableGrid(
     onLongClick: (LibraryManga) -> Unit,
     onClickContinueReading: ((LibraryManga) -> Unit)?,
     searchQuery: String?,
-    onGlobalSearchClicked: () -> Unit,
+    onGlobalSearchClicked: (() -> Unit)?,
     // KMK -->
     usePanoramaCover: Boolean = false,
     // KMK <--

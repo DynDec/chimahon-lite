@@ -59,14 +59,11 @@
     <string name="imported_n_books_with_errors">Imported %1$d books (%2$d failed)</string>
     <string name="action_reset_reading_progress">Reset reading progress</string>
     <string name="backup_option_novels">Novel progress &amp; stats</string>
-    <string name="backup_option_source_novel_library">Novel library</string>
-    <string name="novel_servers">Novel Servers</string>
     <string name="label_stats">Statistics</string>
     <string name="action_manga_stats">Statistics</string>
     <string name="label_migration">Migrate</string>
     <string name="label_extensions">Extensions</string>
     <string name="label_anime_extensions">Anime Extensions</string>
-    <string name="label_novel_extensions">Novel Extensions</string>
     <string name="label_anime_sources">Anime Sources</string>
     <string name="label_extension_info">Extension info</string>
     <string name="label_help">Help</string>
@@ -117,7 +114,6 @@
     <string name="action_global_search">Global search</string>
     <string name="action_select_all">Select all</string>
     <string name="action_select_inverse">Select inverse</string>
-    <string name="action_select">Select</string>
     <string name="action_mark_as_read">Mark as read</string>
     <string name="action_mark_as_unread">Mark as unread</string>
     <string name="action_mark_previous_as_read">Mark previous as read</string>
@@ -178,7 +174,6 @@
     <string name="action_display_show_tabs">Show category tabs</string>
     <string name="action_display_show_number_of_items">Show number of items</string>
     <string name="action_display_show_continue_reading_button">Continue reading button</string>
-    <string name="action_display_show_floating_add_button">Show floating add button</string>
     <string name="action_disable">Disable</string>
     <string name="action_pin">Pin</string>
     <string name="action_unpin">Unpin</string>
@@ -312,15 +307,15 @@
     <string name="pref_player_swap_vol_bright">Swap volume and brightness</string>
     <string name="pref_player_swap_vol_bright_summary">Volume on left, brightness on right</string>
     <string name="pref_player_gesture_h_seek">Horizontal seek gesture</string>
-    <string name="pref_player_gesture_h_seek_summary">Swipe left or right to rewind or fast-forward</string>
+    <string name="pref_player_gesture_h_seek_summary">Swipe horizontally to seek</string>
     <string name="pref_player_gesture_subtitle_swipe">Subtitle swipe controls</string>
     <string name="pref_player_gesture_subtitle_swipe_summary">Swipe left/right between subtitles, up to hide, and down to show. Replaces seek and volume/brightness swipes.</string>
     <string name="pref_player_skip_length">Seek skip length</string>
-    <string name="pref_player_smooth_seek">Enable precise seeking</string>
-    <string name="pref_player_smooth_seek_summary">When enabled, seeking will not focus on keyframes, leading to slower but precise seeking</string>
-    <string name="pref_player_left_double_tap">Double tap (left)</string>
-    <string name="pref_player_center_double_tap">Double tap (center)</string>
-    <string name="pref_player_right_double_tap">Double tap (right)</string>
+    <string name="pref_player_smooth_seek">Smooth seek</string>
+    <string name="pref_player_smooth_seek_summary">Show video while seeking</string>
+    <string name="pref_player_left_double_tap">Left double tap</string>
+    <string name="pref_player_center_double_tap">Center double tap</string>
+    <string name="pref_player_right_double_tap">Right double tap</string>
     <string name="pref_player_gesture_none">None</string>
     <string name="pref_player_gesture_seek">Seek</string>
     <string name="pref_player_gesture_play_pause">Play/Pause</string>
@@ -448,20 +443,10 @@
     <string name="ocr_status_pending">Pending</string>
     <string name="ocr_status_processing">Processing</string>
     <string name="ocr_status_error">Error</string>
-    <string name="screen_lookup_title">Screen lookup</string>
-    <string name="screen_lookup_more_summary">OCR text from other apps with a floating capture button</string>
-    <string name="screen_lookup_enable_title">Enable screen lookup</string>
-    <string name="screen_lookup_enable_summary">Chimahon needs permission to show a small capture button over other apps. Android will ask for screen capture permission after that.</string>
-    <string name="screen_lookup_notification_title">Screen lookup is on</string>
-    <string name="screen_lookup_notification_text">Tap the floating button to OCR the current screen.</string>
-    <string name="screen_lookup_capture_button">Capture screen for lookup</string>
-    <string name="screen_lookup_overlay_required">Overlay permission is required for screen lookup.</string>
-    <string name="screen_lookup_unavailable">Screen capture is not available on this device.</string>
-    <string name="screen_lookup_capture_denied">Screen capture permission was not granted.</string>
-    <string name="screen_lookup_capture_failed">Could not capture the screen.</string>
-    <string name="screen_lookup_finding_text">Finding text…</string>
-    <string name="screen_lookup_no_text">No text found</string>
-    <string name="screen_lookup_tap_text">Tap highlighted text to look it up</string>
+    <string name="ocr_capture_failed">Could not recognize text.</string>
+    <string name="ocr_finding_text">Finding text…</string>
+    <string name="ocr_no_text">No text found</string>
+    <string name="ocr_tap_text">Tap highlighted text to look it up</string>
 
       <!-- General section -->
     <string name="pref_category_theme">Theme</string>
@@ -802,6 +787,9 @@
       <!-- Data and storage section -->
     <string name="pref_storage_location">Storage location</string>
     <string name="pref_storage_location_info">Used for automatic backups, chapter downloads, and local source.</string>
+    <string name="pref_manga_directory">Manga folder</string>
+    <string name="pref_manga_directory_info">Supported manga files and folders in this directory appear in Browse. Add entries to your Library to keep them available after changing folders.</string>
+    <string name="pref_manga_directory_default">Use the app’s storage directory</string>
     <string name="pref_import_dictionary">Import dictionary</string>
     <string name="pref_import_dictionary_summ">Import a Yomitan dictionary ZIP file</string>
     <string name="pref_import_dictionary_success">Dictionary imported (%1$d terms, %2$d metadata, %3$d media)</string>
@@ -922,9 +910,6 @@
     <string name="pref_clear_anime_database">Clear anime database</string>
     <string name="pref_clear_anime_database_summary">Delete anime entries that are not saved in your library</string>
     <string name="clear_anime_database_confirmation">You’re about to remove non-library anime entries from the database</string>
-    <string name="pref_clear_novel_database">Clear novel database</string>
-    <string name="pref_clear_novel_database_summary">Delete novel entries that are not saved in your library</string>
-    <string name="clear_novel_database_confirmation">You’re about to remove non-library novel entries from the database</string>
     <string name="clear_database_source_item_count">%1$d non-library entries in database</string>
     <string name="clear_database_text">You’re about to remove entries from the database</string>
     <string name="clear_database_history_warning">Read chapters and progress of non-library entries will be lost</string>
@@ -1340,7 +1325,6 @@
     <string name="appwidget_updates_description">See your recently updated library entries</string>
     <string name="appwidget_unavailable_locked">Widget not available when app lock is enabled</string>
     <string name="remove_manga">You are about to remove \"%s\" from your library</string>
-    <string name="remove_anime">You are about to remove \"%s\" from your library</string>
 
     <!-- Common exceptions -->
     <!-- Do not translate "WebView" -->
@@ -1389,9 +1373,6 @@
     <string name="migrationListScreen.migrateDialog.cancelLabel">Cancel</string>
     <string name="migrationListScreen.progressDialog.cancelLabel">Cancel</string>
     <string name="migrationListScreen.matchWithoutChapterToast">No chapters found, this entry cannot be used for migration</string>
-    <string name="migrationListScreen.matchWithoutEpisodeToast">No episodes found, this entry cannot be used for migration</string>
-    <string name="migrationListScreen.matchWithoutSeasonToast">No seasons found, this entry cannot be used for migration</string>
-    <string name="migrationListScreen.mismatchedFetchType">Mismatched fetch type</string>
     <string name="pref_dict_pitch_accent_display">Pitch Accent Display</string>
     <string name="pref_dict_pitch_diagram">Graph</string>
     <string name="pref_dict_pitch_number">012</string>
@@ -1559,10 +1540,10 @@
     <string name="pref_controls_show_chapter_indicator_info">Show current chapter info</string>
     <string name="pref_controls_show_loading">Show loading indicator</string>
     <string name="pref_controls_swap_vol_brightness">Swap volume and brightness</string>
-    <string name="pref_center_double_tap">Double tap (center)</string>
-    <string name="pref_left_double_tap">Double tap (left)</string>
-    <string name="pref_right_double_tap">Double tap (right)</string>
-    <string name="pref_double_tap_info">When a tap gesture is set to "Custom", it can be bound through input.conf. The key codes are 0x10001 for left, 0x10002 for center, and 0x10003 for right.</string>
+    <string name="pref_center_double_tap">Center double tap</string>
+    <string name="pref_left_double_tap">Left double tap</string>
+    <string name="pref_right_double_tap">Right double tap</string>
+    <string name="pref_double_tap_info">Double tap to seek</string>
     <string name="pref_hosters">Hosters</string>
     <string name="pref_hosters_show_empty">Show empty hosters</string>
     <string name="pref_hosters_show_failure">Show failed hosters</string>
@@ -1571,8 +1552,8 @@
     <string name="pref_skip_3">Skip 3s</string>
     <string name="pref_skip_20">Skip 20s</string>
     <string name="pref_skip_30">Skip 30s</string>
-    <string name="pref_skip_disable">Disable</string>
-    <string name="pref_skip_length">Double tap to skip length</string>
+    <string name="pref_skip_disable">Disabled</string>
+    <string name="pref_skip_length">Skip length</string>
     <string name="pref_try_hw">Try hardware decoding</string>
     <string name="pref_debanding_title">Debanding</string>
     <string name="pref_use_yuv420p_title">Force YUV420P</string>
@@ -1591,9 +1572,9 @@
     <string name="pref_waiting_time_aniskip_8">8 seconds</string>
     <string name="pref_waiting_time_aniskip_9">9 seconds</string>
     <string name="pref_waiting_time_aniskip_10">10 seconds</string>
-    <string name="pref_default_intro_length">Default skip intro length</string>
-    <string name="pref_intro_length">Skip intro length</string>
-    <string name="pref_media_info">When a media control is set to "Custom", it can be bound through input.conf. The key codes are 0x10004 for previous, 0x10005 for play/pause, and 0x10006 for next.</string>
+    <string name="pref_default_intro_length">Default intro length</string>
+    <string name="pref_intro_length">Intro length</string>
+    <string name="pref_media_info">Info</string>
     <string name="pref_media_next">Next</string>
     <string name="pref_media_playpause">Play/Pause</string>
     <string name="pref_media_previous">Previous</string>
@@ -1654,7 +1635,6 @@
     <!-- Anime specific -->
     <string name="delete_downloads_for_anime">Delete downloaded episodes?</string>
     <string name="no_episodes_error">No episodes found</string>
-    <string name="no_seasons_error">No seasons found</string>
     <string name="episode_settings_updated">Episode settings updated</string>
     <string name="snack_add_to_anime_library">Add to library?</string>
     <string name="confirm_tracker_update_anime">Update trackers to episode %d?</string>
@@ -1687,20 +1667,6 @@
     <string name="player_sheets_filters_Saturation">Saturation</string>
     <string name="player_sheets_filters_title">Video Filters</string>
     <string name="player_sheets_filters_warning">Filters may affect performance</string>
-    <string name="player_sheets_deband_title">Deband</string>
-    <string name="player_sheets_deband_iterations">Iterations</string>
-    <string name="player_sheets_deband_threshold">Threshold</string>
-    <string name="player_sheets_deband_range">Range</string>
-    <string name="player_sheets_deband_grain">Grain</string>
-    <string name="player_sheets_subtitles_ass_no">No</string>
-    <string name="player_sheets_subtitles_ass_yes">Yes</string>
-    <string name="player_sheets_subtitles_ass_scale">Scale</string>
-    <string name="player_sheets_subtitles_ass_force">Force</string>
-    <string name="player_sheets_subtitles_ass_strip">Strip</string>
-    <string name="player_pref_subtitle_black_bars">Render on black bars</string>
-    <string name="player_pref_subtitle_black_bars_summary">Display subtitles on black bars when available</string>
-    <string name="player_pref_subtitle_system_fonts">Include system fonts</string>
-    <string name="player_pref_switch_on_failure">Switch video on loading failure</string>
     <string name="player_sheets_more_title">More</string>
     <string name="player_sheets_stats_page_title">Statistics</string>
     <string name="player_sheets_sub_color_alpha">Alpha</string>
@@ -1724,7 +1690,6 @@
     <string name="player_sheets_sub_scale">Scale</string>
     <string name="player_sheets_sub_typography_border_size">Border size</string>
     <string name="player_sheets_sub_typography_border_style">Border style</string>
-    <string name="player_sheets_sub_typography_ass_override">ASS override</string>
     <string name="player_sheets_sub_typography_font">Font</string>
     <string name="player_sheets_sub_typography_font_size">Font size</string>
     <string name="player_sheets_sub_typography_title">Typography</string>
@@ -1742,7 +1707,7 @@
     <string name="single_action_none">None</string>
     <string name="single_action_playpause">Play/Pause</string>
     <string name="single_action_seek">Seek</string>
-    <string name="single_action_switch">Change episode</string>
+    <string name="single_action_switch">Switch</string>
     <string name="rotation_reverse_landscape">Reverse landscape</string>
     <string name="rotation_sensor_landscape">Sensor landscape</string>
     <string name="rotation_sensor_portrait">Sensor portrait</string>
@@ -1769,9 +1734,9 @@
     <string name="sharp_shadow_24" translatable="false">sharp_shadow_24</string>
     <string name="outline_brand_family_24" translatable="false">outline_brand_family_24</string>
     <string name="ic_forward_10_24dp" translatable="false">Forward 10s</string>
-    <string name="enable_volume_brightness_gestures">Enable Volume and Brightness Gestures</string>
-    <string name="enable_horizontal_seek_gesture">Enable Horizontal Seek Gesture</string>
-    <string name="pref_show_seekbar">Show seekbar when seeking</string>
+    <string name="enable_volume_brightness_gestures">Volume and brightness gestures</string>
+    <string name="enable_horizontal_seek_gesture">Horizontal seek gesture</string>
+    <string name="pref_show_seekbar">Seekbar</string>
     <string name="player_subtitles_hidden">Subtitles hidden</string>
     <string name="player_subtitles_shown">Subtitles shown</string>
 
@@ -1785,7 +1750,6 @@
     <string name="action_play_externally">Play externally</string>
     <string name="action_play_internally">Play internally</string>
     <string name="action_show_anime">Show anime</string>
-    <string name="label_show_seasons">Show seasons</string>
     <string name="also_set_episode_settings_for_library">Also set episode settings for library</string>
     <string name="anime_interval_expected_update">Expected next update in %1$s with current interval of %2$s</string>
     <string name="anime_interval_expected_update_null">Expected next update is unknown</string>

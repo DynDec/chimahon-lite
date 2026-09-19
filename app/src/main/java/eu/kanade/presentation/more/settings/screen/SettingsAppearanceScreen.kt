@@ -335,20 +335,12 @@ object SettingsAppearanceScreen : SearchableSettings {
         val navbarEntries = remember(navTabLayoutStr) {
             val layout = eu.kanade.domain.ui.model.NavTabLayout.parse(navTabLayoutStr)
             layout.getKeysForSection(eu.kanade.domain.ui.model.NavSection.NAVBAR)
-                .let { keys ->
-                    if (Injekt.get<UiPreferences>().useConsolidatedLibrary().get()) {
-                        keys.filter { it != eu.kanade.domain.ui.model.NavTabLayout.KEY_NOVELS && it != eu.kanade.domain.ui.model.NavTabLayout.KEY_ANIME }
-                    } else keys
-                }
                 .associateWith { key ->
                     when (key) {
                         eu.kanade.domain.ui.model.NavTabLayout.KEY_LIBRARY -> "Library"
-                        eu.kanade.domain.ui.model.NavTabLayout.KEY_UPDATES -> "Updates"
                         eu.kanade.domain.ui.model.NavTabLayout.KEY_HISTORY -> "History"
                         eu.kanade.domain.ui.model.NavTabLayout.KEY_BROWSE -> "Browse"
                         eu.kanade.domain.ui.model.NavTabLayout.KEY_DICTIONARY -> "Dictionary"
-                        eu.kanade.domain.ui.model.NavTabLayout.KEY_NOVELS -> "Novels"
-                        eu.kanade.domain.ui.model.NavTabLayout.KEY_ANIME -> "Anime"
                         else -> key
                     }
                 }

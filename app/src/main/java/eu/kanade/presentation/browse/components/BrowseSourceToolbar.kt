@@ -32,7 +32,8 @@ fun BrowseSourceToolbar(
     source: Source?,
     displayMode: LibraryDisplayMode?,
     onDisplayModeChange: (LibraryDisplayMode) -> Unit,
-    navigateUp: () -> Unit,
+    navigateUp: (() -> Unit)?,
+    onClickCloseSearch: () -> Unit = navigateUp ?: {},
     onWebViewClick: () -> Unit,
     onHelpClick: () -> Unit,
     // KMK -->
@@ -40,6 +41,7 @@ fun BrowseSourceToolbar(
     onSettingsClick: (() -> Unit)?,
     // KMK <--
     onSearch: (String) -> Unit,
+    onMangaDirectoryClick: (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     // KMK -->
     toggleSelectionMode: () -> Unit,
@@ -58,7 +60,7 @@ fun BrowseSourceToolbar(
         searchQuery = searchQuery,
         onChangeSearchQuery = onSearchQueryChange,
         onSearch = onSearch,
-        onClickCloseSearch = navigateUp,
+        onClickCloseSearch = onClickCloseSearch,
         searchHistoryScope = SearchHistory.SCOPE_ANIME_MANGA,
         actions = {
             AppBarActions(
@@ -87,6 +89,14 @@ fun BrowseSourceToolbar(
                         )
                         // KMK <--
                         if (isLocalSource) {
+                            onMangaDirectoryClick?.let {
+                                add(
+                                    AppBar.OverflowAction(
+                                        title = stringResource(MR.strings.pref_manga_directory),
+                                        onClick = it,
+                                    ),
+                                )
+                            }
                             add(
                                 AppBar.OverflowAction(
                                     title = stringResource(MR.strings.label_help),

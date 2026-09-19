@@ -51,7 +51,7 @@ class PlayerSettingsEditorScreenModel(
     }
 
     fun createFile(fileName: String) {
-        storageManager.getMPVConfigDirectory()
+        storageManager.getOrCreateMPVConfigDirectory()
             ?.createDirectory(selectedType.value.directoryName)
             ?.createFile(fileName)
             ?: run {
@@ -64,8 +64,8 @@ class PlayerSettingsEditorScreenModel(
 
     fun editFile(originalFile: String, fileName: String) {
         val file = storageManager.getMPVConfigDirectory()
-            ?.createDirectory(selectedType.value.directoryName)
-            ?.createFile(originalFile)
+            ?.findFile(selectedType.value.directoryName)
+            ?.findFile(originalFile)
 
         if (file?.renameTo(fileName) == true) {
             updateItems(selectedType.value)
@@ -76,7 +76,7 @@ class PlayerSettingsEditorScreenModel(
 
     fun deleteFile(name: String) {
         val file = storageManager.getMPVConfigDirectory()
-            ?.createDirectory(selectedType.value.directoryName)
+            ?.findFile(selectedType.value.directoryName)
             ?.findFile(name)
 
         if (file?.delete() == true) {
@@ -121,7 +121,7 @@ class PlayerSettingsEditorScreenModel(
     }
 
     private fun getEditorListItems(type: EditorListType): List<EditorListItem> {
-        val directory = storageManager.getMPVConfigDirectory()?.createDirectory(type.directoryName)
+        val directory = storageManager.getMPVConfigDirectory()?.findFile(type.directoryName)
             ?: return emptyList()
 
         val dateFormat = SimpleDateFormat("MMMM d, yyyy HH:mm", Locale.getDefault())

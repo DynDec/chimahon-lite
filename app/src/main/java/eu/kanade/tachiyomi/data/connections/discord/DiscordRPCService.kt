@@ -59,13 +59,7 @@ class DiscordRPCService : Service() {
         }
 
         // Show notification and enter foreground as early as possible
-        try {
-            notification(this)
-        } catch (e: Exception) {
-            Timber.tag(TAG).w(e, "Unable to start Discord RPC foreground service: ${e.message}")
-            stopSelf()
-            return
-        }
+        notification(this)
         // KMK <--
 
         val status = when (connectionsPreferences.discordRPCStatus().get()) {
@@ -191,11 +185,7 @@ class DiscordRPCService : Service() {
                     connectionsPreferences.enableDiscordRPC().set(false)
                 } else if (rpc == null) {
                     since = System.currentTimeMillis()
-                    try {
-                        context.startForegroundService(Intent(context, DiscordRPCService::class.java))
-                    } catch (e: Exception) {
-                        Timber.tag(TAG).w(e, "Unable to start Discord RPC service: ${e.message}")
-                    }
+                    context.startForegroundService(Intent(context, DiscordRPCService::class.java))
                 }
             }
         }

@@ -9,8 +9,12 @@ class StoragePreferences(
     private val preferenceStore: PreferenceStore,
 ) {
 
-    // Storing URI of the directory (either file:/// or storage://
+    // Stores the URI of the app-owned data directory (either file:/// or content://).
     fun baseStorageDirectory() = preferenceStore.getString(Preference.appStateKey("storage_dir"), folderProvider.path())
+
+    // An optional user-selected directory scanned by the local manga source. An empty value
+    // uses the configured base storage directory directly.
+    fun mangaDirectory() = preferenceStore.getString(Preference.appStateKey("manga_dir"), "")
 
     fun showEpisodeFileSize() = preferenceStore.getBoolean(Preference.appStateKey("show_episode_file_size"), false)
 }

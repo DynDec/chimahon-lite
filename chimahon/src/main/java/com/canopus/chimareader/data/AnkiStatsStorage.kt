@@ -6,33 +6,18 @@ import java.time.LocalDate
 
 object AnkiStatsStorage {
 
-    private const val FILE_NAME = "anki_stats.json"
-
     private fun getAnkiStatsFile(context: Context): File {
-        return File(context.filesDir, FILE_NAME)
-    }
-
-    private inline fun <reified T> readList(file: File): List<T>? where T : Any {
-        if (!file.exists()) return null
-        return try {
-            val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            json.decodeFromString(kotlinx.serialization.serializer(), file.readText())
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private inline fun <reified T> writeList(file: File, value: List<T>) where T : Any {
-        val json = kotlinx.serialization.json.Json { prettyPrint = true }
-        file.writeText(json.encodeToString(kotlinx.serialization.serializer(), value))
+        return File(context.filesDir, FileNames.ankiStats)
     }
 
     fun loadAll(context: Context): List<AnkiStats> {
-        return readList(getAnkiStatsFile(context)) ?: emptyList()
+        val file = getAnkiStatsFile(context)
+        if (!file.exists()) return emptyList()
+        return BookStorage.load<List<AnkiStats>>(context.filesDir, FileNames.ankiStats) ?: emptyList()
     }
 
     fun saveAll(context: Context, stats: List<AnkiStats>) {
-        writeList(getAnkiStatsFile(context), stats)
+        BookStorage.save(stats, context.filesDir, FileNames.ankiStats)
         chimahon.widget.ImmersionWidgetSignals.notifyStatsChanged()
     }
 

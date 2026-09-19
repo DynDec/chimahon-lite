@@ -9,23 +9,14 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
--keep,allowoptimization class eu.kanade.**
--keep,allowoptimization class tachiyomi.**
--keep,allowoptimization class mihon.**
--keep class chimahon.** { *; }
--keepclassmembers class chimahon.** { *; }
-
--keep class com.canopus.** { *; }
--keepclassmembers class com.canopus.** { *; }
-
-# MPV native player
--keep class is.xyz.mpv.** { *; }
--keepclassmembers class is.xyz.mpv.** { *; }
-
-# Rhino (NewPipe Extractor dependency)
--keep class org.mozilla.javascript.** { *; }
--keep class org.mozilla.classfile.ClassFileWriter
--dontwarn org.mozilla.javascript.tools.**
+# Keep only the native/reflective OCR and dictionary surfaces. The previous
+# package-wide rules retained dormant anime, novel, and player code in every
+# release APK, defeating R8's reachability analysis.
+-keep class chimahon.ocr.** { *; }
+-keep class chimahon.local.ocr.** { *; }
+-keep class chimahon.HoshiDicts { *; }
+-keep class chimahon.DictionaryRepository { *; }
+-keep class chimahon.audio.** { *; }
 
 # Injekt type resolution - FullTypeReference needs generic type info
 -keep class * extends uy.kohesive.injekt.api.TypeReference { *; }

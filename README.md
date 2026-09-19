@@ -1,110 +1,50 @@
 <div align="center">
 
 <img width="200" height="200" src="./app/src/main/res/drawable/chimahon.png" alt="Chimahon icon" />
-<h1 align="center">Chimahon</h1>
+<h1 align="center">Chimahon Lite</h1>
 
-**Mihon-focused immersion fork with Manga, Novel, and Anime support.**
+**A local-first manga reader for language learning.**
 
 [![GitHub downloads](https://img.shields.io/github/downloads/sohilsayed/chimahon/latest/total?label=Latest%20Downloads&labelColor=27303D&color=0D1111&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/sohilsayed/chimahon/releases/latest)
-[![GitHub downloads](https://img.shields.io/github/downloads/sohilsayed/chimahon/total?label=Total%20Downloads&labelColor=27303D&color=0D1111&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/sohilsayed/chimahon/releases)
-[![Discord](https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white&label=)](https://discord.gg/Ak2sW9Nvr9)
 
----
-
-Chimahon is a specialized Android reader designed for language learners and immersion enthusiasts. It extends the powerful core of **Mihon/Komikku** with integrated tools for dictionary lookup, OCR-assisted text capture, and seamless flashcard creation for vocabulary mining.
-
-## 🖼️ Screenshots
-
-<p align="center">
-  <img src="./.github/readme-images/novel.png" width="32%" />
-  <img src="./.github/readme-images/popup-manga.png" width="32%" />
-  <img src="./.github/readme-images/dict-tab.png" width="32%" />
-  <img src="./.github/readme-images/anime.jpg" width="64%" />
-</p>
-
-## 🚀 Key Immersion Features
-
-### 📖 Novel & Manga Support
-- **Novel Reader**: E-book reader with inline dictionary lookup and an illustration viewer for art OCR and vocabulary mining.
-- **Manga Reader**: Native reading experience with support for all major online and local sources.
-- **Panel-by-Panel Navigation**: AI-driven comic panel detection and smart panel-by-panel reading navigation powered by LiteRT.
-- **Local OCR**: High-performance, on-device text recognition — no internet connection required.
-- **.mokuro Support**: Native integration for reading `.mokuro` formatted manga files with pre-rendered OCR overlays.
-
-### 🔍 Native Dictionary Lookup
-- **Dictionary Tab**: Import and manage multiple dictionary files directly in-app.
-- **Multi-Language Support**: Full support for Japanese, Chinese, Korean, and more.
-- **Recursive Lookups**: Effortlessly search within definitions to clarify complex terms.
-- **Slick Dictionary Popup**: A modern, customizable lookup interface with support for custom fonts, themes, and recursive searches.
-- **E-Ink Optimized**: High-contrast mode designed specifically for e-paper devices.
-- **Pitch Accent**: Native support for visualizing Japanese pitch accent patterns.
-
-### 🎴 Anki Integration
-- **Direct Mining**: Create Anki cards instantly from lookup results while reading.
-- **Screenshot Crop**: Manually crop images for your cards with specialized UI.
-- **Smart Markers**: Flexible field mapping for expression, reading, glossary, pitch, and context sentences.
-- **Duplicate Checking**: Reliable duplicate detection to prevent redundant flashcards.
-
-### 🌐 Screen OCR Lookup
-- **Any App**: Look up and mine text from any app — capture your screen, tap any word, and get an instant dictionary definition.
-
-### 🎬 Anime & Video Player
-- **Video Player**: Full MPV player with subtitle lookup and frame-accurate OCR for vocabulary mining.
-- **Jimaku Support**: Seamless integration for searching, fetching, and syncing Japanese subtitles.
-- **Video Frame OCR**: Look up any on-screen text, signs, or hardsubs directly from the video, even if it's not present in the subtitle file.
-- **Built-in YouTube Extension**: Stream and mine content directly from YouTube inside the app.
-- **Anime Library**: Browse, track, and organize your anime with source extensions and external tracker sync.
-
----
-
-## 🛠️ Core Features (Inherited from Upstream)
-
-Chimahon retains all the features of **Komikku** and **Mihon**:
-
-<p align="center">
-  <img src="./.github/readme-images/screens.png" alt="komikku Screenshots" width="100%"/>
-</p>
-
-- **Massive Source Support**: Access thousands of manga via community-made extensions.
-- **Suggestions**: Discover related titles directly within the app.
-- **Auto-Theme**: UI colors that adapt to the cover art of what you're reading.
-- **Cloud Sync**: 2-way progress tracking with MyAnimeList, AniList, Kitsu, and more.
-- **Privacy & Backups**: Hidden categories and secure backups (Local or Cloud).
-- **Customization**: Extensive theme options, color palettes, and reader settings.
-
----
-
-## 📥 Download
-
-[![Stable Release](https://img.shields.io/github/v/release/sohilsayed/chimahon.svg?maxAge=3600&label=Download%20Stable&labelColor=06599d&color=043b69)](https://github.com/sohilsayed/chimahon/releases/latest)
-
-*Requires Android 8.0 or higher.*
-
----
-
-## 🤝 Contributing & Support
-
-- **Bugs/Requests**: Please check the [Changelog](./CHANGELOG.md) and open an [Issue](https://github.com/sohilsayed/chimahon/issues).
-- **Discord**: Join our community for help and discussion: [Join Discord](https://discord.gg/Ak2sW9Nvr9)
-- **Contributing**: Pull requests are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
-
-### Credits & Acknowledgments
-
-- [Yomitan](https://github.com/yomidevs/yomitan): Inspiration for language-processing workflows.
-- [owocr](https://github.com/AuroraWright/owocr): Base for OCR merge and reconstruction logic.
-- [hoshidicts](https://github.com/Manhhao/hoshidicts/): Native dictionary engine powering our lookups.
-- [manga-panel-detector-yolo26n](https://huggingface.co/leoxs22/manga-panel-detector-yolo26n) by [@leoxs22](https://huggingface.co/leoxs22): YOLO model powering panel-by-panel navigation and speech bubble detection.
-- [Machita Chima (町田ちま)](https://www.youtube.com/channel/UCo7TRj3cS-f_1D9ZDmuTsjw): App name inspiration.
-
-### License
-
-This project is licensed under the **GNU General Public License v3.0**. See [LICENSE](./LICENSE) for details.
-
----
-
-<div align="center">
-  <p>Made with ❤️ for the immersion community.</p>
-  <a href="https://github.com/sohilsayed/chimahon/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=sohilsayed/chimahon" alt="Chimahon contributors" width="600"/>
-  </a>
 </div>
+
+Chimahon Lite is a focused fork of Chimahon. It keeps the manga library, reader, local OCR, Hoshidicts dictionary lookup, and Anki workflow while making the filesystem the source of truth for manga discovery.
+
+## How it works
+
+- The Browse tab opens the local manga source directly.
+- Choose or replace the manga folder from Browse’s folder action or Data & storage settings.
+- Each immediate subfolder is a manga. New folders are added to the library automatically; removed folders leave the database and reading history intact but are removed from the library.
+- The app-owned `local` directory remains the fallback when no folder has been selected.
+
+Folder selection uses Android’s document-tree storage access so a user-owned directory can be persisted across app restarts. See the [Android shared-storage guidance](https://developer.android.com/training/data-storage/shared/documents-files).
+
+## Kept
+
+- Manga library, entries, downloads, history, and the core reader.
+- On-device manga OCR and OCR overlays in the reader.
+- Hoshidicts-backed dictionary lookup and vocabulary mining.
+- Anki export and related media capture for manga reading.
+- Dictionary, appearance, reader, backup, and tracking settings that remain relevant to manga use.
+
+## Removed from the active product
+
+- Online Mihon extensions and extension repositories.
+- Anime browsing, library, downloads, and video-player surfaces.
+- Novel reading and novel-specific navigation.
+- The Updates tab and system-wide screen OCR.
+
+## Development
+
+The first fork pass is intentionally verified with static inspection and compilation only; it does not emulate a device or run the app. Use the JDK bundled with Android Studio when building locally.
+
+## Credits and license
+
+- [Yomitan](https://github.com/yomidevs/yomitan): language-processing inspiration.
+- [owocr](https://github.com/AuroraWright/owocr): OCR merge and reconstruction logic.
+- [hoshidicts](https://github.com/Manhhao/hoshidicts/): dictionary engine.
+- [manga-panel-detector-yolo26n](https://huggingface.co/leoxs22/manga-panel-detector-yolo26n): panel detection model.
+- [Machita Chima (町田ちま)](https://www.youtube.com/channel/UCo7TRj3cS-f_1D9ZDmuTsjw): app name inspiration.
+
+This project is licensed under the **GNU General Public License v3.0**. See [LICENSE](./LICENSE).

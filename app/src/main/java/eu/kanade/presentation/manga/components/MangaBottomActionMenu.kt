@@ -263,10 +263,10 @@ fun LibraryBottomActionMenu(
     onMarkAsUnreadClicked: () -> Unit,
     onDownloadClicked: ((DownloadAction) -> Unit)?,
     onDeleteClicked: () -> Unit,
-    onMigrateClicked: () -> Unit,
+    onMigrateClicked: (() -> Unit)?,
     // KMK -->
-    onMergeClicked: () -> Unit,
-    onSelectionUpdateClicked: () -> Unit,
+    onMergeClicked: (() -> Unit)?,
+    onSelectionUpdateClicked: (() -> Unit)?,
     // KMK <--
     // SY -->
     onClickCleanTitles: (() -> Unit)?,
@@ -351,7 +351,7 @@ fun LibraryBottomActionMenu(
                 val isTabletUi = remember { configuration.isTabletUi() }
                 // SY <--
                 // KMK -->
-                if (onDownloadClicked == null || isTabletUi) {
+                if (onSelectionUpdateClicked != null && (onDownloadClicked == null || isTabletUi)) {
                     Button(
                         title = stringResource(KMR.strings.action_update),
                         icon = Icons.Outlined.Refresh,
@@ -360,7 +360,7 @@ fun LibraryBottomActionMenu(
                         onClick = onSelectionUpdateClicked,
                     )
                 }
-                if (isTabletUi) {
+                if (isTabletUi && onMigrateClicked != null) {
                     // KMK <--
                     Button(
                         title = stringResource(MR.strings.migrate),
@@ -385,27 +385,31 @@ fun LibraryBottomActionMenu(
                     ) {
                         // KMK -->
                         if (!isTabletUi) {
-                            if (onDownloadClicked != null) {
+                            if (onDownloadClicked != null && onSelectionUpdateClicked != null) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(KMR.strings.action_update)) },
                                     onClick = onSelectionUpdateClicked,
                                 )
                             }
                             // KMK <--
-                            DropdownMenuItem(
-                                text = { Text(stringResource(MR.strings.migrate)) },
-                                onClick = onMigrateClicked,
-                            )
+                            if (onMigrateClicked != null) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(MR.strings.migrate)) },
+                                    onClick = onMigrateClicked,
+                                )
+                            }
                         }
                         DropdownMenuItem(
                             text = { Text(stringResource(MR.strings.action_delete)) },
                             onClick = onDeleteClicked,
                         )
                         // KMK -->
-                        DropdownMenuItem(
-                            text = { Text(stringResource(SYMR.strings.merge)) },
-                            onClick = onMergeClicked,
-                        )
+                        if (onMergeClicked != null) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(SYMR.strings.merge)) },
+                                onClick = onMergeClicked,
+                            )
+                        }
                         if (onClickCleanTitles != null) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(SYMR.strings.action_clean_titles)) },

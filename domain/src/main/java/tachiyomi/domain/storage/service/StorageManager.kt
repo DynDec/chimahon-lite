@@ -34,12 +34,13 @@ import tachiyomi.core.common.util.system.logcat
 
 class StorageManager(
     private val context: Context,
-    storagePreferences: StoragePreferences,
+    private val storagePreferences: StoragePreferences,
 ) {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
     private var baseDir: UniFile? = getBaseDir(storagePreferences.baseStorageDirectory().get())
+    private var mangaDir: UniFile? = getMangaDir(storagePreferences.mangaDirectory().get())
 
     private val _changes: Channel<Unit> = Channel(Channel.UNLIMITED)
     val changes = _changes.receiveAsFlow()
@@ -51,18 +52,42 @@ class StorageManager(
             .distinctUntilChanged()
             .onEach { uri ->
                 baseDir = getBaseDir(uri)
-                baseDir?.let { parent ->
-                    parent.createDirectory(AUTOMATIC_BACKUPS_PATH)
-                    parent.createDirectory(LOCAL_SOURCE_PATH)
-                    parent.createDirectory(LOCAL_ANIMESOURCE_PATH)
-                    parent.createDirectory(LOCAL_NOVELSOURCE_PATH)
-                    parent.createDirectory(DOWNLOADS_PATH).also {
-                        DiskUtil.createNoMediaFile(it, context)
-                    }
-                }
+                mangaDir = getMangaDir(storagePreferences.mangaDirectory().get())
                 _changes.send(Unit)
             }
             .launchIn(scope)
+
+        storagePreferences.mangaDirectory().changes()
+            .drop(1)
+            .distinctUntilChanged()
+            .onEach { uri ->
+                mangaDir = getMangaDir(uri)
+                _changes.send(Unit)
+            }
+            .launchIn(scope)
+    }
+
+    private fun getMangaDir(uri: String): UniFile? {
+        return if (uri.isBlank()) {
+            baseDir
+        } else {
+            UniFile.fromUri(context, uri.toUri())
+                ?.takeIf { it.isAccessibleDirectory }
+                ?: baseDir
+        }
+    }
+
+    /** Resolves a persisted local media URI without depending on the selected browse folder. */
+    fun getFileFromUri(uri: String): UniFile? {
+        val parsedUri = uri.toUri()
+        return when (parsedUri.scheme) {
+            "content", "file" -> UniFile.fromUri(context, parsedUri)
+            else -> null
+        }
+    }
+
+    fun usesDefaultMangaDirectory(): Boolean {
+        return storagePreferences.mangaDirectory().get().isBlank()
     }
 
     private fun getBaseDir(uri: String): UniFile? {
@@ -126,44 +151,58 @@ class StorageManager(
     }
 
     fun getAutomaticBackupsDirectory(): UniFile? {
+        return baseDir?.findFile(AUTOMATIC_BACKUPS_PATH)
+    }
+
+    fun getOrCreateAutomaticBackupsDirectory(): UniFile? {
         return baseDir?.createDirectory(AUTOMATIC_BACKUPS_PATH)
     }
 
     fun getDownloadsDirectory(): UniFile? {
-        return baseDir?.createDirectory(DOWNLOADS_PATH)
+        return baseDir?.findFile(DOWNLOADS_PATH)
+    }
+
+    fun getOrCreateDownloadsDirectory(): UniFile? {
+        return baseDir?.createDirectory(DOWNLOADS_PATH)?.also {
+            DiskUtil.createNoMediaFile(it, context)
+        }
     }
 
     fun getLocalSourceDirectory(): UniFile? {
-        return baseDir?.createDirectory(LOCAL_SOURCE_PATH)
+        return mangaDir
     }
 
     fun getAnimeDownloadsDirectory(): UniFile? {
+        return baseDir?.findFile(ANIME_DOWNLOADS_PATH)
+    }
+
+    fun getOrCreateAnimeDownloadsDirectory(): UniFile? {
         return baseDir?.createDirectory(ANIME_DOWNLOADS_PATH)
     }
 
     fun getLocalAnimeSourceDirectory(): UniFile? {
-        return baseDir?.createDirectory(LOCAL_ANIMESOURCE_PATH)
-    }
-
-    fun getLocalNovelSourceDirectory(): UniFile? {
-        return baseDir?.createDirectory(LOCAL_NOVELSOURCE_PATH)
+        return baseDir?.findFile(LOCAL_ANIMESOURCE_PATH)
     }
 
     fun getMPVConfigDirectory(): UniFile? {
+        return baseDir?.findFile(MPV_CONFIG_PATH)
+    }
+
+    fun getOrCreateMPVConfigDirectory(): UniFile? {
         return baseDir?.createDirectory(MPV_CONFIG_PATH)
     }
 
     fun getScriptsDirectory(): UniFile? {
-        return baseDir?.createDirectory("$MPV_CONFIG_PATH/$SCRIPTS_PATH")
+        return getMPVConfigDirectory()?.findFile(SCRIPTS_PATH)
     }
 
     fun getScriptOptsDirectory(): UniFile? {
-        return baseDir?.createDirectory("$MPV_CONFIG_PATH/$SCRIPT_OPTS_PATH")
+        return getMPVConfigDirectory()?.findFile(SCRIPT_OPTS_PATH)
     }
 
     // SY -->
     fun getLogsDirectory(): UniFile? {
-        return baseDir?.createDirectory(LOGS_PATH)
+        return baseDir?.findFile(LOGS_PATH)
     }
     // SY <--
 
@@ -301,9 +340,7 @@ class StorageManager(
 private const val AUTOMATIC_BACKUPS_PATH = "autobackup"
 private const val DOWNLOADS_PATH = "downloads"
 private const val ANIME_DOWNLOADS_PATH = "downloads"
-private const val LOCAL_SOURCE_PATH = "local"
 private const val LOCAL_ANIMESOURCE_PATH = "localanime"
-private const val LOCAL_NOVELSOURCE_PATH = "localnovel"
 
 // SY -->
 private const val LOGS_PATH = "logs"

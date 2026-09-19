@@ -19,8 +19,6 @@ import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import kotlinx.coroutines.flow.collectLatest
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.screens.LoadingScreen
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 
 data class ExtensionDetailsScreen(
     private val pkgName: String,
@@ -62,16 +60,7 @@ data class ExtensionDetailsScreen(
         ExtensionDetailsScreen(
             navigateUp = navigator::pop,
             state = state,
-            onClickSourcePreferences = { sourceId ->
-                val novelSource = try {
-                    Injekt.get<chimahon.novel.manager.NovelSourceManager>().getNovelSource(sourceId)
-                } catch (_: Exception) { null }
-                if (novelSource != null) {
-                    navigator.push(eu.kanade.tachiyomi.ui.browse.novel.NovelSourcePreferencesScreen(sourceId))
-                } else {
-                    navigator.push(SourcePreferencesScreen(sourceId))
-                }
-            },
+            onClickSourcePreferences = { navigator.push(SourcePreferencesScreen(it)) },
             // KMK -->
             onOpenWebView = if (source != null && source is HttpSource) {
                 {

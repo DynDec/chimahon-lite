@@ -17,9 +17,6 @@ import eu.kanade.core.preference.asState
 import eu.kanade.domain.entries.anime.interactor.UpdateAnime
 import eu.kanade.domain.entries.anime.model.toDomainAnime
 import eu.kanade.domain.source.anime.interactor.GetAnimeIncognitoState
-import kotlinx.serialization.json.Json
-import tachiyomi.domain.source.anime.interactor.GetAnimeSavedSearchById
-import xyz.nulldev.ts.api.http.serializer.AnimeFilterSerializer
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.track.anime.interactor.AddAnimeTracks
 import eu.kanade.presentation.util.ioCoroutineScope
@@ -65,7 +62,6 @@ import eu.kanade.tachiyomi.animesource.model.AnimeFilter as AnimeSourceModelFilt
 class BrowseAnimeSourceScreenModel(
     private val sourceId: Long,
     listingQuery: String?,
-    private val savedSearchId: Long? = null,
     sourceManager: AnimeSourceManager = Injekt.get(),
     sourcePreferences: SourcePreferences = Injekt.get(),
     private val animeLibraryPreferences: AnimeLibraryPreferences = Injekt.get(),
@@ -82,10 +78,7 @@ class BrowseAnimeSourceScreenModel(
     private val updateAnime: UpdateAnime = Injekt.get(),
     private val addTracks: AddAnimeTracks = Injekt.get(),
     private val getIncognitoState: GetAnimeIncognitoState = Injekt.get(),
-    private val getAnimeSavedSearchById: GetAnimeSavedSearchById = Injekt.get(),
 ) : StateScreenModel<BrowseAnimeSourceScreenModel.State>(State(Listing.valueOf(listingQuery))) {
-
-    private val filterSerializer = AnimeFilterSerializer()
 
     var displayMode by sourcePreferences.sourceDisplayMode().asState(screenModelScope)
 
@@ -108,34 +101,10 @@ class BrowseAnimeSourceScreenModel(
                     toolbarQuery = query,
                 )
             }
-
-            savedSearchId?.let { applySavedSearch(source, it) }
         }
 
         if (!getIncognitoState.await(source.id)) {
             sourcePreferences.lastUsedAnimeSource().set(source.id)
-        }
-    }
-
-    private fun applySavedSearch(source: AnimeCatalogueSource, savedSearchId: Long) {
-        screenModelScope.launchIO {
-            val savedSearch = getAnimeSavedSearchById.await(savedSearchId) ?: return@launchIO
-            val filters = source.getFilterList()
-            savedSearch.filtersJson?.let { json ->
-                runCatching {
-                    filterSerializer.deserialize(
-                        filters = filters,
-                        json = Json.decodeFromString(json),
-                    )
-                }
-            }
-            mutableState.update {
-                it.copy(
-                    listing = Listing.Search(savedSearch.query, filters),
-                    filters = filters,
-                    toolbarQuery = savedSearch.query,
-                )
-            }
         }
     }
 

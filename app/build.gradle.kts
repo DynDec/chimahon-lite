@@ -124,16 +124,6 @@ android {
                 "libimagedecoder",
                 "libquickjs",
                 "libsqlite3x",
-                "libmpv",
-                "libavcodec",
-                "libavformat",
-                "libswscale",
-                "libavutil",
-                "libswresample",
-                "libavfilter",
-                "libass",
-                "libdav1d",
-                "libplacebo",
             )
                 .map { "**/$it.so" }
         }
@@ -160,12 +150,6 @@ android {
                 "**/libLiteRtClGlAccelerator.so",
                 "**/liblitert_jni.so",
             )
-            // quickjs-kt (io.github.dokar3:quickjs-kt) and core:common's
-            // quickjs-android (com.github.zhanghai:quickjs-java) both bundle
-            // libquickjs.so at the same JNI path. The two wrappers are different
-            // Java APIs over the same QuickJS engine, so the first native wins.
-            // pickFirsts keeps the build green without dropping either dependency.
-            pickFirsts += listOf("**/libquickjs.so")
         }
     }
 
@@ -275,10 +259,6 @@ dependencies {
     implementation(androidx.profileinstaller)
 
     implementation(androidx.bundles.lifecycle)
-    implementation(libs.datastore.preferences)
-
-    // JS engine for LNReader plugins (Hayai reference)
-    implementation(libs.quickjs.kt)
 
     // Job scheduling
     implementation(androidx.workmanager)
@@ -363,17 +343,21 @@ dependencies {
 
     testImplementation(kotlinx.coroutines.test)
 
-    // MPV player
-    implementation(libs.aniyomi.mpv)
-    implementation(libs.seeker)
-    implementation(libs.ffmpeg.kit)
-    implementation(libs.smart.exception.java)
-    implementation(libs.mediasession)
-    implementation(libs.truetypeparser)
-    implementation(libs.torrentserver)
-    implementation(libs.nanohttpd)
-    implementation(libs.media.router)
-    implementation(libs.cast.play.services)
+    // The local manga build does not ship the video/player stack. Keep these
+    // on the compile classpath for the legacy source that is still shared
+    // with the upstream app, but do not package its native payloads.
+    compileOnly(libs.aniyomi.mpv)
+    compileOnly(libs.seeker)
+    compileOnly(libs.ffmpeg.kit)
+    compileOnly(libs.libavif)
+    compileOnly(libs.smart.exception.java)
+    compileOnly(libs.mediasession)
+    compileOnly(libs.truetypeparser)
+    compileOnly(libs.torrentserver)
+    // Only retained as a compile-time dependency for dormant upstream code.
+    compileOnly(libs.nanohttpd)
+    compileOnly(libs.media.router)
+    compileOnly(libs.cast.play.services)
 
     // SY -->
     // Better logging (EH)
@@ -389,8 +373,8 @@ dependencies {
     // ZXing Android Embedded
     implementation(sylibs.zxing.android.embedded)
 
-    // NewPipe Extractor for YouTube stream resolution
-    implementation(libs.newpipe.extractor)
+    // NewPipe is only used by the removed video/source path.
+    compileOnly(libs.newpipe.extractor)
 }
 
 androidComponents {

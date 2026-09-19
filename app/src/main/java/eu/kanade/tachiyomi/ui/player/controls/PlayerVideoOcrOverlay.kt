@@ -32,8 +32,6 @@ import eu.kanade.tachiyomi.ui.dictionary.OcrSelection
 import eu.kanade.tachiyomi.ui.dictionary.OcrStatusOverlay
 import eu.kanade.tachiyomi.ui.dictionary.OcrTapHint
 import eu.kanade.tachiyomi.ui.dictionary.getDictionaryPaths
-import eu.kanade.tachiyomi.ui.dictionary.screenLookupCharOffset
-import eu.kanade.tachiyomi.ui.dictionary.toScreenLookupBlocks
 import eu.kanade.tachiyomi.ui.player.PlayerViewModel
 import eu.kanade.tachiyomi.ui.reader.viewer.OcrLineGeometry
 import eu.kanade.tachiyomi.ui.reader.viewer.OcrLookupPopup
@@ -124,7 +122,7 @@ internal fun PlayerVideoOcrOverlay(
             runCatching {
                 withContext(Dispatchers.Default) {
                     recognizePage(screenshot, language)
-                        .toScreenLookupBlocks(language.bcp47)
+                        .toPlayerVideoOcrBlocks(language.bcp47)
                 }
             }.onSuccess { ocrBlocks ->
                 blocks = remapToScreenArea(
@@ -135,12 +133,12 @@ internal fun PlayerVideoOcrOverlay(
                     screenHeight = heightPx,
                 )
                 if (blocks.isEmpty()) {
-                    error = context.contextStringResource(MR.strings.screen_lookup_no_text)
+                    error = context.contextStringResource(MR.strings.ocr_no_text)
                 } else {
                     showTapHint = true
                 }
             }.onFailure {
-                error = it.message ?: context.contextStringResource(MR.strings.screen_lookup_capture_failed)
+                error = it.message ?: context.contextStringResource(MR.strings.ocr_capture_failed)
             }
             isLoading = false
 
@@ -159,7 +157,7 @@ internal fun PlayerVideoOcrOverlay(
             activeMatchOffset = matchOffset,
             selection = selection,
             onBlockTapped = { tapped, tapX, tapY ->
-                val charOffset = tapped.screenLookupCharOffset(tapX, tapY)
+                val charOffset = tapped.playerVideoOcrCharOffset(tapX, tapY)
                 val orderedCharOffset = tapped.toOrderedOffset(charOffset)
                 val text = tapped.orderedFullText
                 if (selection?.block == tapped && selection?.sentenceOffset == orderedCharOffset) {
@@ -199,13 +197,13 @@ internal fun PlayerVideoOcrOverlay(
         OcrStatusOverlay(
             isLoading = isLoading,
             error = error,
-            loadingText = stringResource(MR.strings.screen_lookup_finding_text),
+            loadingText = stringResource(MR.strings.ocr_finding_text),
             modifier = Modifier.align(Alignment.Center),
         )
 
         OcrTapHint(
             visible = showTapHint && blocks.isNotEmpty() && selection == null,
-            hintText = stringResource(MR.strings.screen_lookup_tap_text),
+            hintText = stringResource(MR.strings.ocr_tap_text),
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 84.dp),

@@ -199,6 +199,7 @@ class ReaderViewModel @JvmOverloads constructor(
     )
 
     private val ocrCacheMutex = Mutex()
+    private val chapterProgressMutex = Mutex()
     private val ocrCache = LinkedHashMap<OcrCacheKey, List<eu.kanade.tachiyomi.ui.reader.viewer.OcrTextBlock>>()
     private val ocrInFlight =
         mutableMapOf<OcrCacheKey, Deferred<List<eu.kanade.tachiyomi.ui.reader.viewer.OcrTextBlock>>>()
@@ -809,7 +810,9 @@ class ReaderViewModel @JvmOverloads constructor(
 
         // Save last page read and mark as read if needed
         viewModelScope.launchNonCancellable {
-            updateChapterProgress(selectedChapter, page/* SY --> */, hasExtraPage/* SY <-- */)
+            chapterProgressMutex.withLock {
+                updateChapterProgress(selectedChapter, page/* SY --> */, hasExtraPage/* SY <-- */)
+            }
         }
 
         trackMangaStats(page)
@@ -978,6 +981,20 @@ class ReaderViewModel @JvmOverloads constructor(
                 SyncDataJob.startNow(Injekt.get<Application>())
             }
             // SY <--
+        }
+    }
+
+    /**
+     * Persists the currently visible page when the reader is leaving the foreground.
+     * Page callbacks can be delayed while a viewer is being torn down, so relying on them
+     * exclusively can leave the chapter at its previous saved position.
+     */
+    suspend fun saveReadingProgress() {
+        val page = getSelectedReaderPage() ?: return
+        if (page is InsertPage) return
+
+        chapterProgressMutex.withLock {
+            updateChapterProgress(page.chapter, page, hasExtraPage = false)
         }
     }
 
@@ -1927,16 +1944,13 @@ class ReaderViewModel @JvmOverloads constructor(
 
     private fun resolveChapterFile(chapter: Chapter, source: Source): ChapterFileInfo? {
         return if (source.isLocal()) {
-            val parts = chapter.url.split('/', limit = 2)
-            if (parts.size != 2) return null
-            val (mangaDirName, chapterName) = parts
-
-            val baseDir = localFileSystem.getBaseDirectory()
-                ?.findFile(mangaDirName) ?: return null
-
-            val chapterFile = baseDir.findFile(chapterName) ?: return null
-
-            ChapterFileInfo(chapterFile, baseDir, chapterName)
+            val manga = state.value.manga ?: return null
+            val chapterFile = localFileSystem.getChapterFile(manga.url, chapter.url) ?: return null
+            ChapterFileInfo(
+                chapterFile,
+                chapterFile.parentFile ?: return null,
+                chapterFile.name ?: return null,
+            )
         } else {
             val manga = state.value.manga ?: return null
             val chapterFile = downloadProvider.findChapterDir(
@@ -2136,18 +2150,9 @@ class ReaderViewModel @JvmOverloads constructor(
     private fun resolveChapterImageFiles(chapter: Chapter, source: Source): List<chimahon.ocr.ImageFileInfo> {
         if (source.isLocal() == false) return emptyList()
 
-        val parts = chapter.url.split('/', limit = 2)
-        if (parts.size != 2) return emptyList()
-        val (mangaDirName, chapterName) = parts
-
-        val mangaDir = localFileSystem.getBaseDirectory()
-            ?.findFile(mangaDirName)
-            ?: return emptyList()
-
-        val chapterFile = mangaDir.findFile(chapterName)
-            ?: return emptyList()
-
-        return resolveChapterImageFiles(chapterFile, chapterName)
+        val manga = state.value.manga ?: return emptyList()
+        val chapterFile = localFileSystem.getChapterFile(manga.url, chapter.url) ?: return emptyList()
+        return resolveChapterImageFiles(chapterFile, chapterFile.name.orEmpty())
     }
 
     private fun resolveChapterImageFiles(

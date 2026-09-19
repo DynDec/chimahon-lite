@@ -406,10 +406,6 @@ private fun ColumnScope.DisplayPage(
         label = stringResource(MR.strings.action_display_show_number_of_items),
         pref = screenModel.libraryPreferences.categoryNumberOfItems(),
     )
-    CheckboxItem(
-        label = stringResource(MR.strings.action_display_show_floating_add_button),
-        pref = screenModel.libraryPreferences.showFloatingAddButton(),
-    )
 }
 
 // SY -->
