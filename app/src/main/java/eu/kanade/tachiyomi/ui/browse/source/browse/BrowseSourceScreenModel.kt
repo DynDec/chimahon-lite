@@ -17,6 +17,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.core.preference.asState
 import eu.kanade.domain.manga.interactor.UpdateManga
+import eu.kanade.domain.manga.model.toSManga
 import eu.kanade.domain.source.interactor.GetExhSavedSearch
 import eu.kanade.domain.source.interactor.GetIncognitoState
 import eu.kanade.domain.source.interactor.ToggleIncognito
@@ -54,6 +55,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import logcat.LogPriority
@@ -84,11 +87,13 @@ import tachiyomi.domain.source.model.StubSource
 import tachiyomi.domain.source.repository.SourcePagingSource
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.sy.SYMR
+import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import xyz.nulldev.ts.api.http.serializer.FilterSerializer
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import eu.kanade.tachiyomi.source.model.Filter as SourceModelFilter
 
 open class BrowseSourceScreenModel(
@@ -127,6 +132,9 @@ open class BrowseSourceScreenModel(
     private val getExhSavedSearch: GetExhSavedSearch = Injekt.get(),
     // SY <--
 ) : StateScreenModel<BrowseSourceScreenModel.State>(State(Listing.valueOf(listingQuery))) {
+
+    private val localCoverGenerationUrls = ConcurrentHashMap.newKeySet<String>()
+    private val localCoverGenerationSemaphore = Semaphore(2)
 
     var displayMode by sourcePreferences.sourceDisplayMode().asState(screenModelScope)
 
@@ -229,6 +237,7 @@ open class BrowseSourceScreenModel(
                 // SY <--
             }.flow.map { pagingData ->
                 pagingData.map { (manga, metadata) ->
+                    scheduleLocalCoverGeneration(manga)
                     getManga.subscribe(manga.url, manga.source)
                         .map { it ?: manga }
                         // SY -->
@@ -241,6 +250,45 @@ open class BrowseSourceScreenModel(
                 .cachedIn(ioCoroutineScope)
         }
         .stateIn(ioCoroutineScope, SharingStarted.Lazily, emptyFlow())
+
+    /**
+     * Local source entries can be listed before their first chapter has been read. Queue cover
+     * extraction after the entry has been inserted so the initial page stays responsive. The
+     * screen model scope owns these jobs, which also stops extraction when the browse screen is
+     * closed.
+     */
+    private fun scheduleLocalCoverGeneration(manga: Manga) {
+        val localSource = source as? LocalSource ?: return
+        if (manga.source != localSource.id || !manga.thumbnailUrl.isNullOrBlank()) return
+        if (!localCoverGenerationUrls.add(manga.url)) return
+
+        screenModelScope.launchIO {
+            try {
+                localCoverGenerationSemaphore.withPermit {
+                    val sourceManga = localSource.getMangaUpdate(
+                        manga = manga.toSManga(),
+                        chapters = emptyList(),
+                        fetchDetails = false,
+                        fetchChapters = true,
+                    ).manga
+                    manga.updateLocalCoverFromSourceFetch(
+                        source = localSource,
+                        sourceManga = sourceManga,
+                        updateManga = updateManga,
+                        coverCache = coverCache,
+                    )
+                    if (sourceManga.thumbnail_url.isNullOrBlank()) {
+                        localCoverGenerationUrls.remove(manga.url)
+                    }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                localCoverGenerationUrls.remove(manga.url)
+                logcat(LogPriority.ERROR, e) { "Error generating local cover for ${manga.title}" }
+            }
+        }
+    }
 
     fun getColumnsPreference(orientation: Int): GridCells {
         val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
