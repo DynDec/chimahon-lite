@@ -4,16 +4,21 @@ import android.content.Context
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.util.lang.Hash
-import eu.kanade.tachiyomi.util.storage.DiskUtil
 import mihon.core.archive.ZipWriter
 import tachiyomi.core.common.storage.nameWithoutExtension
 import tachiyomi.core.common.util.system.ImageUtil
 import tachiyomi.source.local.io.LocalSourceFileSystem
+import java.io.File
 import java.io.InputStream
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 private const val DEFAULT_COVER_NAME = "cover.jpg"
 private const val COVER_ARCHIVE_NAME = "cover.cbi"
-private const val LOOSE_COVER_PREFIX = ".chimahon-cover-"
+private const val GENERATED_COVER_DIRECTORY = "local_covers"
+private const val GENERATED_COVER_PREFIX = "cover-"
+private const val LEGACY_LOOSE_COVER_PREFIX = ".chimahon-cover-"
 
 actual class LocalCoverManager(
     private val context: Context,
@@ -21,11 +26,11 @@ actual class LocalCoverManager(
 ) {
 
     actual fun find(mangaUrl: String): UniFile? {
-        val mangaDirectory = fileSystem.getMangaDirectory(mangaUrl)
-        if (mangaDirectory == null) {
-            return findLooseCover(mangaUrl)
-        }
+        // Generated covers live in the app cache so scanning a source never writes to
+        // user storage. Keep source folder covers as a fallback for existing libraries.
+        findGeneratedCover(mangaUrl)?.let { return it }
 
+        val mangaDirectory = fileSystem.getMangaDirectory(mangaUrl) ?: return null
         return mangaDirectory.listFiles().orEmpty().asSequence()
             // Get all file whose names start with "cover"
             .filter { it.isFile && it.nameWithoutExtension.equals("cover", ignoreCase = true) }
@@ -42,85 +47,95 @@ actual class LocalCoverManager(
         encrypted: Boolean,
         // SY <--
     ): UniFile? {
-        val mangaDirectory = fileSystem.getMangaDirectory(manga.url)
-        val directory = mangaDirectory ?: getLooseCoverDirectory(manga.url)
-        if (directory == null) {
+        val target = generatedCoverFile(manga.url, if (encrypted) COVER_ARCHIVE_NAME else DEFAULT_COVER_NAME)
+        val targetParent = target.parentFile
+        if (targetParent == null || !targetParent.exists() && !targetParent.mkdirs()) {
             inputStream.close()
             return null
         }
 
-        // SY -->
-        val targetFile = find(manga.url) ?: directory.createFile(
-            if (mangaDirectory != null) {
-                if (encrypted) COVER_ARCHIVE_NAME else DEFAULT_COVER_NAME
-            } else {
-                coverName(manga.url, if (encrypted) COVER_ARCHIVE_NAME else DEFAULT_COVER_NAME)
-            },
-        )
-        // SY <--
-        if (targetFile == null) {
-            inputStream.close()
-            return null
-        }
+        val temporary = File.createTempFile("${target.name}.", ".tmp", targetParent)
+        try {
+            val temporaryFile = UniFile.fromFile(temporary)
+            if (temporaryFile == null) {
+                inputStream.close()
+                return null
+            }
 
-        inputStream.use { input ->
             // SY -->
             if (encrypted) {
-                ZipWriter(context, targetFile, encrypt = true).use { writer ->
-                    writer.write(inputStream.readBytes(), DEFAULT_COVER_NAME)
+                ZipWriter(context, temporaryFile, encrypt = true).use { writer ->
+                    writer.write(inputStream.use { it.readBytes() }, DEFAULT_COVER_NAME)
                 }
-                if (mangaDirectory != null) {
-                    DiskUtil.createNoMediaFile(directory, context)
-                }
-
-                manga.thumbnail_url = targetFile.uri.toString()
-                return targetFile
             } else {
                 // SY <--
-                targetFile.openOutputStream().use { output ->
-                    input.copyTo(output)
+                inputStream.use { input ->
+                    temporaryFile.openOutputStream().use { output ->
+                        input.copyTo(output)
+                    }
                 }
-                if (mangaDirectory != null) {
-                    DiskUtil.createNoMediaFile(directory, context)
-                }
-                manga.thumbnail_url = targetFile.uri.toString()
-                return targetFile
             }
+
+            try {
+                Files.move(
+                    temporary.toPath(),
+                    target.toPath(),
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING,
+                )
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(
+                    temporary.toPath(),
+                    target.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
+                )
+            }
+
+            // A chapter can change format between refreshes. Remove the old representation
+            // so find() cannot return a stale encrypted cover after a normal image is written.
+            generatedCoverFile(
+                manga.url,
+                if (encrypted) DEFAULT_COVER_NAME else COVER_ARCHIVE_NAME,
+            ).takeUnless { it == target }?.delete()
+            deleteLegacyLooseCovers(manga.url)
+
+            val targetFile = UniFile.fromFile(target) ?: return null
+            manga.thumbnail_url = targetFile.uri.toString()
+            return targetFile
+        } finally {
+            temporary.delete()
         }
     }
 
-    private fun findLooseCover(mangaUrl: String): UniFile? {
-        val mangaEntry = fileSystem.getMangaEntry(mangaUrl)?.takeIf { it.isFile } ?: return null
-        val directory = getParentDirectory(mangaEntry) ?: return null
-
+    private fun findGeneratedCover(mangaUrl: String): UniFile? {
         return sequenceOf(
-            directory.findFile(coverName(mangaUrl, DEFAULT_COVER_NAME)),
-            directory.findFile(coverName(mangaUrl, COVER_ARCHIVE_NAME)),
+            generatedCoverFile(mangaUrl, DEFAULT_COVER_NAME),
+            generatedCoverFile(mangaUrl, COVER_ARCHIVE_NAME),
         )
-            .filterNotNull()
             .filter { it.isFile }
             .firstOrNull {
-                it.name?.equals(coverName(mangaUrl, COVER_ARCHIVE_NAME), ignoreCase = true) == true ||
-                    ImageUtil.isImage(it.name) { it.openInputStream() }
+                it.extension.equals(COVER_ARCHIVE_NAME.substringAfterLast('.'), ignoreCase = true) ||
+                    ImageUtil.isImage(it.name) { it.inputStream() }
             }
+            ?.let { UniFile.fromFile(it) }
     }
 
-    private fun getLooseCoverDirectory(mangaUrl: String): UniFile? {
-        val mangaEntry = fileSystem.getMangaEntry(mangaUrl)?.takeIf { it.isFile } ?: return null
-        return getParentDirectory(mangaEntry)
-    }
-
-    private fun getParentDirectory(file: UniFile): UniFile? {
-        file.parentFile?.takeIf { it.isDirectory }?.let { return it }
-
-        // UniFile.fromUri does not retain the parent. Resolve direct children through the
-        // selected source root so loose files remain writable after their URI is persisted.
-        return fileSystem.getBaseDirectory()
-            ?.takeIf { it.findFile(file.name)?.uri == file.uri }
-    }
-
-    private fun coverName(mangaUrl: String, coverName: String): String {
+    private fun generatedCoverFile(mangaUrl: String, coverName: String): File {
+        val directory = File(context.cacheDir, GENERATED_COVER_DIRECTORY).also { it.mkdirs() }
         val extension = coverName.substringAfterLast('.')
-        return "$LOOSE_COVER_PREFIX${Hash.sha256(mangaUrl)}.$extension"
+        return File(directory, "$GENERATED_COVER_PREFIX${Hash.sha256(mangaUrl)}.$extension")
+    }
+
+    private fun deleteLegacyLooseCovers(mangaUrl: String) {
+        if (fileSystem.getMangaDirectory(mangaUrl) != null) return
+
+        val mangaEntry = fileSystem.getMangaEntry(mangaUrl)?.takeIf { it.isFile } ?: return
+        val directory = mangaEntry.parentFile?.takeIf { it.isDirectory }
+            ?: fileSystem.getBaseDirectory()?.takeIf { it.findFile(mangaEntry.name)?.uri == mangaEntry.uri }
+            ?: return
+        val hash = Hash.sha256(mangaUrl)
+        sequenceOf(DEFAULT_COVER_NAME, COVER_ARCHIVE_NAME)
+            .map { "$LEGACY_LOOSE_COVER_PREFIX$hash.${it.substringAfterLast('.')}" }
+            .forEach { directory.findFile(it)?.delete() }
     }
 }

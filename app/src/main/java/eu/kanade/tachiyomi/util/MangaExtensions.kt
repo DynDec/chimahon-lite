@@ -48,18 +48,18 @@ suspend fun Manga.updateLocalCoverFromSourceFetch(
     coverCache: CoverCache = Injekt.get(),
 ) {
     val generatedCover = sourceManga.thumbnail_url?.takeIf { it.isNotBlank() } ?: return
-    if (!source.isLocal() || generatedCover == thumbnailUrl) return
+    if (!source.isLocal()) return
+
+    // Local generated covers live in the app cache and may be evicted while the database
+    // still points at the same URI. Refresh the timestamp even when the URI is unchanged
+    // so Coil retries the regenerated file instead of keeping a failed result cached.
+    if (generatedCover != thumbnailUrl) coverCache.deleteFromCache(this, false)
 
     updateManga.await(
         tachiyomi.domain.manga.model.MangaUpdate(
             id = id,
             thumbnailUrl = sourceManga.thumbnail_url,
-            coverLastModified = if (sourceManga.thumbnail_url != thumbnailUrl) {
-                coverCache.deleteFromCache(this, false)
-                java.time.Instant.now().toEpochMilli()
-            } else {
-                null
-            },
+            coverLastModified = Instant.now().toEpochMilli(),
             initialized = true,
         ),
     )

@@ -88,6 +88,7 @@ import tachiyomi.domain.source.repository.SourcePagingSource
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.source.local.LocalSource
+import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -115,6 +116,7 @@ open class BrowseSourceScreenModel(
     private val setMangaDefaultChapterFlags: SetMangaDefaultChapterFlags = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
     private val updateManga: UpdateManga = Injekt.get(),
+    private val localCoverManager: LocalCoverManager = Injekt.get(),
     private val addTracks: AddTracks = Injekt.get(),
     getIncognitoState: GetIncognitoState = Injekt.get(),
     // KMK -->
@@ -259,18 +261,32 @@ open class BrowseSourceScreenModel(
      */
     private fun scheduleLocalCoverGeneration(manga: Manga) {
         val localSource = source as? LocalSource ?: return
-        if (manga.source != localSource.id || !manga.thumbnailUrl.isNullOrBlank()) return
+        if (manga.source != localSource.id) return
+
+        // The generated cover is stored in the app cache and may disappear independently
+        // of the database row. Check the actual source/cache files instead of trusting a
+        // possibly stale thumbnail URI, so the next browse can regenerate it.
+        val availableCover = localCoverManager.find(manga.url)?.uri?.toString()
+        if (availableCover != null && availableCover == manga.thumbnailUrl) return
         if (!localCoverGenerationUrls.add(manga.url)) return
 
         screenModelScope.launchIO {
             try {
                 localCoverGenerationSemaphore.withPermit {
-                    val sourceManga = localSource.getMangaUpdate(
+                    val sourceManga = localCoverManager.find(manga.url)?.let { cover ->
+                        manga.toSManga().apply { thumbnail_url = cover.uri.toString() }
+                    } ?: localSource.getMangaUpdate(
                         manga = manga.toSManga(),
                         chapters = emptyList(),
                         fetchDetails = false,
                         fetchChapters = true,
                     ).manga
+                    // getChapterList intentionally skips extraction when a source cover
+                    // already exists. Reflect that cover in the source model as well so a
+                    // stale database URI is repaired during this browse pass.
+                    localCoverManager.find(manga.url)?.let { cover ->
+                        sourceManga.thumbnail_url = cover.uri.toString()
+                    }
                     manga.updateLocalCoverFromSourceFetch(
                         source = localSource,
                         sourceManga = sourceManga,
