@@ -455,7 +455,7 @@ class LocalSource(
                 }
                 is Format.Epub -> {
                     format.file.epubReader(context).use { epub ->
-                        val entry = epub.getImagesFromPages().firstOrNull()
+                        val entry = epub.getCoverImage()
 
                         entry?.let { coverManager.update(manga, epub.getInputStream(it)!!) }
                     }
