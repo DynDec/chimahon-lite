@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import eu.kanade.domain.entries.anime.model.downloadedFilter
-import eu.kanade.domain.entries.anime.model.forceDownloaded
 import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
 import kotlinx.collections.immutable.persistentListOf
@@ -92,8 +91,7 @@ fun EpisodeSettingsDialog(
                 0 -> {
                     FilterPage(
                         downloadFilter = anime?.downloadedFilter ?: TriState.DISABLED,
-                        onDownloadFilterChanged = onDownloadFilterChanged
-                            .takeUnless { anime?.forceDownloaded() == true },
+                        onDownloadFilterChanged = onDownloadFilterChanged,
                         unseenFilter = anime?.unseenFilter ?: TriState.DISABLED,
                         onUnseenFilterChanged = onUnseenFilterChanged,
                         bookmarkedFilter = anime?.bookmarkedFilter ?: TriState.DISABLED,

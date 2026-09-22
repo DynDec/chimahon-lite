@@ -36,8 +36,6 @@ import tachiyomi.presentation.core.i18n.stringResource
 import java.math.RoundingMode
 import java.text.NumberFormat
 
-val DownloadedOnlyBannerBackgroundColor
-    @Composable get() = MaterialTheme.colorScheme.tertiary
 val IncognitoModeBannerBackgroundColor
     @Composable get() = MaterialTheme.colorScheme.primary
 val IndexingBannerBackgroundColor
@@ -78,7 +76,6 @@ private val percentFormatter = NumberFormat.getPercentInstance().apply {
 
 @Composable
 fun AppStateBanners(
-    downloadedOnlyMode: Boolean,
     incognitoMode: Boolean,
     indexing: Boolean,
     // KMK -->
@@ -127,27 +124,13 @@ fun AppStateBanners(
         }.fastMap { it.measure(constraints) }
         val indexingHeight = indexingPlaceable.fastMaxBy { it.height }?.height ?: 0
 
-        val downloadedOnlyPlaceable = subcompose(1) {
-            AnimatedVisibility(
-                visible = downloadedOnlyMode,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
-            ) {
-                val top = (mainInsetsTop - indexingHeight).coerceAtLeast(0)
-                DownloadedOnlyModeBanner(
-                    modifier = Modifier.windowInsetsPadding(WindowInsets(top = top)),
-                )
-            }
-        }.fastMap { it.measure(constraints) }
-        val downloadedOnlyHeight = downloadedOnlyPlaceable.fastMaxBy { it.height }?.height ?: 0
-
-        val incognitoPlaceable = subcompose(2) {
+        val incognitoPlaceable = subcompose(1) {
             AnimatedVisibility(
                 visible = incognitoMode,
                 enter = expandVertically(),
                 exit = shrinkVertically(),
             ) {
-                val top = (mainInsetsTop - indexingHeight - downloadedOnlyHeight).coerceAtLeast(0)
+                val top = (mainInsetsTop - indexingHeight).coerceAtLeast(0)
                 IncognitoModeBanner(
                     modifier = Modifier.windowInsetsPadding(WindowInsets(top = top)),
                 )
@@ -155,33 +138,15 @@ fun AppStateBanners(
         }.fastMap { it.measure(constraints) }
         val incognitoHeight = incognitoPlaceable.fastMaxBy { it.height }?.height ?: 0
 
-        layout(constraints.maxWidth, indexingHeight + downloadedOnlyHeight + incognitoHeight) {
+        layout(constraints.maxWidth, indexingHeight + incognitoHeight) {
             indexingPlaceable.fastForEach {
                 it.place(0, 0)
             }
-            downloadedOnlyPlaceable.fastForEach {
-                it.place(0, indexingHeight)
-            }
             incognitoPlaceable.fastForEach {
-                it.place(0, indexingHeight + downloadedOnlyHeight)
+                it.place(0, indexingHeight)
             }
         }
     }
-}
-
-@Composable
-private fun DownloadedOnlyModeBanner(modifier: Modifier = Modifier) {
-    Text(
-        text = stringResource(MR.strings.label_downloaded_only),
-        modifier = Modifier
-            .background(DownloadedOnlyBannerBackgroundColor)
-            .fillMaxWidth()
-            .padding(4.dp)
-            .then(modifier),
-        color = MaterialTheme.colorScheme.onTertiary,
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.labelMedium,
-    )
 }
 
 @Composable

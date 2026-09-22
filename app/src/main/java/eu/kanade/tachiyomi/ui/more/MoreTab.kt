@@ -5,7 +5,6 @@ import androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter
 import androidx.compose.animation.graphics.vector.AnimatedImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -27,16 +26,10 @@ import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.connections.discord.DiscordScreen
-import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.ui.category.CategoryScreen
-import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.history.HistoryTab
+import eu.kanade.tachiyomi.ui.ocr.OcrQueueScreen
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
@@ -67,11 +60,7 @@ data object MoreTab : Tab {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = rememberScreenModel { MoreScreenModel() }
-        val downloadQueueState by screenModel.downloadQueueState.collectAsState()
         MoreScreen(
-            downloadQueueStateProvider = { downloadQueueState },
-            downloadedOnly = screenModel.downloadedOnly,
-            onDownloadedOnlyChange = { screenModel.downloadedOnly = it },
             incognitoMode = screenModel.incognitoMode,
             onIncognitoModeChange = { screenModel.incognitoMode = it },
             // SY -->
@@ -80,7 +69,7 @@ data object MoreTab : Tab {
                     .getKeysForSection(NavSection.MORE)
             }(),
             // SY <--
-            onClickDownloadQueue = { navigator.push(DownloadQueueScreen) },
+            onClickOcrQueue = { navigator.push(OcrQueueScreen) },
             onClickCategories = { navigator.push(CategoryScreen()) },
             onClickDataAndStorage = { navigator.push(SettingsScreen(SettingsScreen.Destination.DataAndStorage)) },
             onClickSettings = { navigator.push(SettingsScreen()) },
@@ -104,45 +93,15 @@ data object MoreTab : Tab {
 }
 
 private class MoreScreenModel(
-    private val downloadManager: DownloadManager = Injekt.get(),
     preferences: BasePreferences = Injekt.get(),
     // SY -->
     uiPreferences: UiPreferences = Injekt.get(),
     // SY <--
 ) : ScreenModel {
 
-    var downloadedOnly by preferences.downloadedOnly().asState(screenModelScope)
     var incognitoMode by preferences.incognitoMode().asState(screenModelScope)
 
     // SY -->
     val moreTabKeys = uiPreferences.navTabLayout().asState(screenModelScope)
     // SY <--
-
-    private var _downloadQueueState: MutableStateFlow<DownloadQueueState> = MutableStateFlow(DownloadQueueState.Stopped)
-    val downloadQueueState: StateFlow<DownloadQueueState> = _downloadQueueState.asStateFlow()
-
-    init {
-        screenModelScope.launchIO {
-            combine(
-                downloadManager.isDownloaderRunning,
-                downloadManager.queueState,
-            ) { mangaRunning, mangaQueue ->
-                Pair(mangaRunning, mangaQueue.size)
-            }
-                .collectLatest { (isDownloading, downloadQueueSize) ->
-                    val pendingDownloadExists = downloadQueueSize != 0
-                    _downloadQueueState.value = when {
-                        !pendingDownloadExists -> DownloadQueueState.Stopped
-                        !isDownloading -> DownloadQueueState.Paused(downloadQueueSize)
-                        else -> DownloadQueueState.Downloading(downloadQueueSize)
-                    }
-                }
-        }
-    }
-}
-
-sealed interface DownloadQueueState {
-    data object Stopped : DownloadQueueState
-    data class Paused(val pending: Int) : DownloadQueueState
-    data class Downloading(val pending: Int) : DownloadQueueState
 }

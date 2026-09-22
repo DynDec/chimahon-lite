@@ -39,7 +39,6 @@ import eu.kanade.presentation.util.Screen
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
 import eu.kanade.tachiyomi.ui.dictionary.DictionaryTab
-import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.history.HistoryTab
 import eu.kanade.tachiyomi.ui.library.LibraryTab
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
@@ -186,16 +185,11 @@ object HomeScreen : Screen() {
                             Tab.History -> HistoryTab
                             is Tab.Browse -> BrowseTab
                             Tab.Dictionary -> DictionaryTab
-                            is Tab.More -> MoreTab
+                            Tab.More -> MoreTab
                         }
 
                         if (it is Tab.Library && it.mangaIdToOpen != null) {
                             navigator.push(MangaScreen(it.mangaIdToOpen))
-                        }
-                        if (it is Tab.More) {
-                            if (it.toDownloads) {
-                                navigator.push(DownloadQueueScreen)
-                            }
                         }
                     }
                 }
@@ -298,8 +292,6 @@ object HomeScreen : Screen() {
         data object History : Tab
         data object Browse : Tab
         data object Dictionary : Tab
-        data class More(
-            val toDownloads: Boolean,
-        ) : Tab
+        data object More : Tab
     }
 }

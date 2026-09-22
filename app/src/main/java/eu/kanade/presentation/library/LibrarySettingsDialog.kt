@@ -41,7 +41,6 @@ import eu.kanade.tachiyomi.util.system.isReleaseBuildType
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.map
-import tachiyomi.core.common.preference.TriState
 import tachiyomi.core.common.preference.toggle
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.library.model.LibraryDisplayMode
@@ -125,17 +124,11 @@ private fun ColumnScope.FilterPage(
     categories: List<Category>,
 ) {
     val filterDownloaded by screenModel.libraryPreferences.filterDownloaded().collectAsState()
-    val downloadedOnly by screenModel.preferences.downloadedOnly().collectAsState()
     val autoUpdateMangaRestrictions by screenModel.libraryPreferences.autoUpdateMangaRestrictions().collectAsState()
 
     TriStateItem(
         label = stringResource(MR.strings.label_downloaded),
-        state = if (downloadedOnly) {
-            TriState.ENABLED_IS
-        } else {
-            filterDownloaded
-        },
-        enabled = !downloadedOnly,
+        state = filterDownloaded,
         onClick = { screenModel.toggleFilter(LibraryPreferences::filterDownloaded) },
     )
     val filterUnread by screenModel.libraryPreferences.filterUnread().collectAsState()

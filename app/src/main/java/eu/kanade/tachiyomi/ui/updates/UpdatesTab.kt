@@ -34,7 +34,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.zIndex
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
@@ -52,7 +51,6 @@ import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.connections.discord.DiscordScreen
-import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.main.MainActivity
@@ -88,10 +86,6 @@ data object UpdatesTab : Tab {
                 icon = rememberAnimatedVectorPainter(image, isSelected),
             )
         }
-
-    override suspend fun onReselect(navigator: Navigator) {
-        navigator.push(DownloadQueueScreen)
-    }
 
     @Composable
     override fun Content() {

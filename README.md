@@ -22,8 +22,8 @@ Folder selection uses Android’s document-tree storage access so a user-owned d
 
 ## Kept
 
-- Manga library, entries, downloads, history, and the core reader.
-- On-device manga OCR and OCR overlays in the reader.
+- Manga library, entries, history, and the core reader.
+- On-device manga OCR, OCR overlays in the reader, and an OCR Queue for progress, retry, and cancellation.
 - Hoshidicts-backed dictionary lookup and vocabulary mining.
 - Anki export and related media capture for manga reading.
 - Dictionary, appearance, reader, backup, and tracking settings that remain relevant to manga use.
@@ -34,6 +34,7 @@ Folder selection uses Android’s document-tree storage access so a user-owned d
 - Anime browsing, library, downloads, and video-player surfaces.
 - Novel reading and novel-specific navigation.
 - The Updates tab and system-wide screen OCR.
+- Downloaded Only mode, the Download Queue, and Downloads settings.
 
 ## Development
 

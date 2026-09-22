@@ -12,11 +12,6 @@ class BasePreferences(
     private val preferenceStore: PreferenceStore,
 ) {
 
-    fun downloadedOnly() = preferenceStore.getBoolean(
-        Preference.appStateKey("pref_downloaded_only"),
-        false,
-    )
-
     fun incognitoMode() = preferenceStore.getBoolean(Preference.appStateKey("incognito_mode"), false)
 
     fun extensionInstaller() = ExtensionInstallerPreference(context, preferenceStore)

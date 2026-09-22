@@ -21,7 +21,6 @@ import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
 import eu.kanade.tachiyomi.ui.entries.anime.library.AnimeLibrarySettingsScreenModel
 import kotlinx.collections.immutable.persistentListOf
-import tachiyomi.core.common.preference.TriState
 import tachiyomi.domain.category.model.AnimeCategory
 import tachiyomi.domain.library.model.LibraryDisplayMode
 import tachiyomi.domain.library.model.LibraryGroup
@@ -79,16 +78,10 @@ private fun ColumnScope.FilterPage(
     screenModel: AnimeLibrarySettingsScreenModel,
 ) {
     val filterDownloaded by screenModel.libraryPreferences.filterDownloaded().collectAsState()
-    val downloadedOnly by screenModel.preferences.downloadedOnly().collectAsState()
 
     TriStateItem(
         label = stringResource(MR.strings.label_downloaded),
-        state = if (downloadedOnly) {
-            TriState.ENABLED_IS
-        } else {
-            filterDownloaded
-        },
-        enabled = !downloadedOnly,
+        state = filterDownloaded,
         onClick = { screenModel.toggleFilter { it.filterDownloaded() } },
     )
     val filterUnseen by screenModel.libraryPreferences.filterUnseen().collectAsState()

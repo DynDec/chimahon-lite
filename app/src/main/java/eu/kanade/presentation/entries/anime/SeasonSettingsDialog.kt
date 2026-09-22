@@ -15,12 +15,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.entries.anime.model.seasonDownloadedFilter
 import eu.kanade.domain.entries.anime.model.seasonUnseenFilter
 import eu.kanade.domain.entries.anime.model.seasonStartedFilter
@@ -44,8 +42,6 @@ import tachiyomi.presentation.core.components.SliderItem
 import tachiyomi.presentation.core.components.SortItem
 import tachiyomi.presentation.core.components.TriStateItem
 import tachiyomi.presentation.core.i18n.stringResource
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 
 @Composable
 fun SeasonSettingsDialog(
@@ -84,8 +80,6 @@ fun SeasonSettingsDialog(
         )
     }
 
-    val downloadedOnly = remember { Injekt.get<BasePreferences>().downloadedOnly().get() }
-
     TabbedDialog(
         onDismissRequest = onDismissRequest,
         tabTitles = persistentListOf(
@@ -112,8 +106,7 @@ fun SeasonSettingsDialog(
                 0 -> {
                     SeasonFilterPage(
                         downloadFilter = anime?.seasonDownloadedFilter ?: TriState.DISABLED,
-                        onDownloadFilterChanged = onDownloadFilterChanged
-                            .takeUnless { downloadedOnly },
+                        onDownloadFilterChanged = onDownloadFilterChanged,
                         unseenFilter = anime?.seasonUnseenFilter ?: TriState.DISABLED,
                         onUnseenFilterChanged = onUnseenFilterChanged,
                         startedFilter = anime?.seasonStartedFilter ?: TriState.DISABLED,

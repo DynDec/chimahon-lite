@@ -99,7 +99,6 @@ import eu.kanade.tachiyomi.ui.reader.SaveImageNotifier
 import eu.kanade.tachiyomi.ui.youtube.YouTubeSource
 import eu.kanade.tachiyomi.ui.youtube.YouTubeVideoMetadata
 import eu.kanade.tachiyomi.util.editCover
-import eu.kanade.tachiyomi.util.episode.filterDownloadedEpisodes
 import eu.kanade.tachiyomi.util.lang.byteSize
 import eu.kanade.tachiyomi.util.lang.takeBytes
 import eu.kanade.tachiyomi.util.storage.DiskUtil
@@ -2640,13 +2639,6 @@ class PlayerViewModel @JvmOverloads constructor(
 
         return episodes
             .sortedWith(getEpisodeSort(anime, sortDescending = false))
-            .run {
-                if (basePreferences.downloadedOnly().get()) {
-                    filterDownloadedEpisodes(anime)
-                } else {
-                    this
-                }
-            }
             .map { it.toDbEpisode() }
     }
 

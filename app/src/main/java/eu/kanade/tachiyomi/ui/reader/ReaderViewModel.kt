@@ -59,7 +59,6 @@ import eu.kanade.tachiyomi.ui.reader.viewer.fullText
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.PagerViewer
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.R2LPagerViewer
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
-import eu.kanade.tachiyomi.util.chapter.filterDownloaded
 import eu.kanade.tachiyomi.util.chapter.removeDuplicates
 import eu.kanade.tachiyomi.util.editCover
 import eu.kanade.tachiyomi.util.lang.byteSize
@@ -419,13 +418,6 @@ class ReaderViewModel @JvmOverloads constructor(
             .run {
                 if (readerPreferences.skipDupe().get()) {
                     removeDuplicates(selectedChapter)
-                } else {
-                    this
-                }
-            }
-            .run {
-                if (basePreferences.downloadedOnly().get()) {
-                    filterDownloaded(manga, mangaMap)
                 } else {
                     this
                 }

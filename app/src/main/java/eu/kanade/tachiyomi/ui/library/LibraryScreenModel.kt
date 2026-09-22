@@ -431,9 +431,8 @@ class LibraryScreenModel(
         excludedCategories: ImmutableSet<Long>,
         // KMK <--
     ): List<LibraryItem> {
-        val downloadedOnly = preferences.globalFilterDownloaded
         val skipOutsideReleasePeriod = preferences.skipOutsideReleasePeriod
-        val filterDownloaded = if (downloadedOnly) TriState.ENABLED_IS else preferences.filterDownloaded
+        val filterDownloaded = preferences.filterDownloaded
         val filterUnread = preferences.filterUnread
         val filterStarted = preferences.filterStarted
         val filterBookmarked = preferences.filterBookmarked
@@ -734,7 +733,6 @@ class LibraryScreenModel(
             libraryPreferences.languageBadge().changes(),
             libraryPreferences.autoUpdateMangaRestrictions().changes(),
 
-            preferences.downloadedOnly().changes(),
             libraryPreferences.filterDownloaded().changes(),
             libraryPreferences.filterUnread().changes(),
             libraryPreferences.filterStarted().changes(),
@@ -756,20 +754,19 @@ class LibraryScreenModel(
                 localBadge = it[2] as Boolean,
                 languageBadge = it[3] as Boolean,
                 skipOutsideReleasePeriod = LibraryPreferences.MANGA_OUTSIDE_RELEASE_PERIOD in (it[4] as Set<*>),
-                globalFilterDownloaded = it[5] as Boolean,
-                filterDownloaded = it[6] as TriState,
-                filterUnread = it[7] as TriState,
-                filterStarted = it[8] as TriState,
-                filterBookmarked = it[9] as TriState,
-                filterCompleted = it[10] as TriState,
-                filterIntervalCustom = it[11] as TriState,
+                filterDownloaded = it[5] as TriState,
+                filterUnread = it[6] as TriState,
+                filterStarted = it[7] as TriState,
+                filterBookmarked = it[8] as TriState,
+                filterCompleted = it[9] as TriState,
+                filterIntervalCustom = it[10] as TriState,
                 // SY -->
-                filterLewd = it[12] as TriState,
+                filterLewd = it[11] as TriState,
                 // SY <--
                 // KMK -->
-                sourceBadge = it[13] as Boolean,
-                useLangIcon = it[14] as Boolean,
-                filterCategories = it[15] as Boolean,
+                sourceBadge = it[12] as Boolean,
+                useLangIcon = it[13] as Boolean,
+                filterCategories = it[14] as Boolean,
             )
         }
     }
@@ -1658,7 +1655,6 @@ class LibraryScreenModel(
         // KMK <--
         val skipOutsideReleasePeriod: Boolean,
 
-        val globalFilterDownloaded: Boolean,
         val filterDownloaded: TriState,
         val filterUnread: TriState,
         val filterStarted: TriState,

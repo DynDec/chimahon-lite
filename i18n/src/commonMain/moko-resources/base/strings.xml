@@ -438,6 +438,8 @@
     <string name="action_delete_ocr">Delete OCR data</string>
     <string name="action_ocr">OCR</string>
     <string name="action_pre_ocr">Pre-OCR chapters</string>
+    <string name="ocr_queue">OCR Queue</string>
+    <string name="ocr_queue_empty">No OCR tasks</string>
     <string name="ocr_processing">OCR processing</string>
     <string name="ocr_waiting_download">Waiting for download…</string>
     <string name="ocr_status_pending">Pending</string>

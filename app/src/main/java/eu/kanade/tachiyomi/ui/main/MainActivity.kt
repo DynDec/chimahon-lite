@@ -55,7 +55,6 @@ import eu.kanade.domain.connections.service.ConnectionsPreferences
 import eu.kanade.domain.source.interactor.GetIncognitoState
 import eu.kanade.domain.sync.SyncPreferences
 import eu.kanade.presentation.components.AppStateBanners
-import eu.kanade.presentation.components.DownloadedOnlyBannerBackgroundColor
 import eu.kanade.presentation.components.IncognitoModeBannerBackgroundColor
 import eu.kanade.presentation.components.IndexingBannerBackgroundColor
 import eu.kanade.presentation.components.RestoringBannerBackgroundColor
@@ -185,7 +184,6 @@ class MainActivity : BaseActivity() {
             val context = LocalContext.current
 
             var incognito by remember { mutableStateOf(getIncognitoState.await(null)) }
-            val downloadOnly by preferences.downloadedOnly().collectAsState()
             val indexing by downloadCache.isInitializing.collectAsState()
             // KMK -->
             val restoringState by backupRestoreStatus.isRunning.collectAsState()
@@ -210,7 +208,6 @@ class MainActivity : BaseActivity() {
                 restoring -> RestoringBannerBackgroundColor
                 // KMK <--
                 indexing -> IndexingBannerBackgroundColor
-                downloadOnly -> DownloadedOnlyBannerBackgroundColor
                 incognito -> IncognitoModeBannerBackgroundColor
                 else -> MaterialTheme.colorScheme.surface
             }
@@ -255,7 +252,6 @@ class MainActivity : BaseActivity() {
                 Scaffold(
                     topBar = {
                         AppStateBanners(
-                            downloadedOnlyMode = downloadOnly,
                             incognitoMode = incognito,
                             indexing = indexing,
                             // KMK -->
@@ -583,7 +579,7 @@ class MainActivity : BaseActivity() {
             Constants.SHORTCUT_SOURCES, Constants.SHORTCUT_EXTENSIONS -> HomeScreen.Tab.Browse
             Constants.SHORTCUT_DOWNLOADS -> {
                 navigator.popUntilRoot()
-                HomeScreen.Tab.More(toDownloads = true)
+                HomeScreen.Tab.More
             }
             Constants.SHORTCUT_STATS -> {
                 navigator.popUntilRoot()

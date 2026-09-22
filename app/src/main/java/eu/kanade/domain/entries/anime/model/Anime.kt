@@ -1,6 +1,5 @@
 package eu.kanade.domain.entries.anime.model
 
-import eu.kanade.domain.base.BasePreferences
 import eu.kanade.tachiyomi.data.cache.AnimeBackgroundCache
 import eu.kanade.tachiyomi.data.cache.AnimeCoverCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
@@ -15,7 +14,6 @@ import uy.kohesive.injekt.api.get
 // TODO: move these into the domain model
 val Anime.downloadedFilter: TriState
     get() {
-        if (forceDownloaded()) return TriState.ENABLED_IS
         return when (downloadedFilterRaw) {
             Anime.EPISODE_SHOW_DOWNLOADED -> TriState.ENABLED_IS
             Anime.EPISODE_SHOW_NOT_DOWNLOADED -> TriState.ENABLED_NOT
@@ -30,13 +28,8 @@ fun Anime.episodesFiltered(): Boolean {
         fillermarkedFilter != TriState.DISABLED
     // <-- AM (FILLERMARK)
 }
-fun Anime.forceDownloaded(): Boolean {
-    return favorite && Injekt.get<BasePreferences>().downloadedOnly().get()
-}
-
 val Anime.seasonDownloadedFilter: TriState
     get() {
-        if (forceDownloaded()) return TriState.ENABLED_IS
         return when (seasonFlags and Anime.SEASON_DOWNLOADED_MASK) {
             Anime.SEASON_SHOW_DOWNLOADED -> TriState.ENABLED_IS
             Anime.SEASON_SHOW_NOT_DOWNLOADED -> TriState.ENABLED_NOT

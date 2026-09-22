@@ -16,9 +16,8 @@ import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.CollectionsBookmark
-import androidx.compose.material.icons.outlined.GetApp
+import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Public
@@ -43,7 +42,6 @@ import eu.kanade.presentation.more.settings.widget.SwitchPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.tachiyomi.R
-import eu.kanade.tachiyomi.ui.more.DownloadQueueState
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import tachiyomi.core.common.Constants
 import tachiyomi.i18n.MR
@@ -53,22 +51,16 @@ import tachiyomi.presentation.core.components.ScrollbarLazyColumn
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.components.material.TextButton
 import tachiyomi.presentation.core.components.material.padding
-import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 
 @Composable
 fun MoreScreen(
-    downloadQueueStateProvider: () -> DownloadQueueState,
-    downloadedOnly: Boolean,
-    onDownloadedOnlyChange: (Boolean) -> Unit,
     incognitoMode: Boolean,
     onIncognitoModeChange: (Boolean) -> Unit,
     // SY -->
     moreTabKeys: List<String>,
     // SY <--
-    onClickDownloadQueue: () -> Unit,
+    onClickOcrQueue: () -> Unit,
     onClickCategories: () -> Unit,
     onClickDataAndStorage: () -> Unit,
     onClickSettings: () -> Unit,
@@ -90,15 +82,6 @@ fun MoreScreen(
             }
             item {
                 SwitchPreferenceWidget(
-                    title = stringResource(MR.strings.label_downloaded_only),
-                    subtitle = stringResource(MR.strings.downloaded_only_summary),
-                    icon = Icons.Outlined.CloudOff,
-                    checked = downloadedOnly,
-                    onCheckedChanged = onDownloadedOnlyChange,
-                )
-            }
-            item {
-                SwitchPreferenceWidget(
                     title = stringResource(MR.strings.pref_incognito_mode),
                     subtitle = stringResource(MR.strings.pref_incognito_mode_summary),
                     // KMK -->
@@ -114,32 +97,10 @@ fun MoreScreen(
             item { HorizontalDivider() }
 
             item {
-                val downloadQueueState = downloadQueueStateProvider()
                 TextPreferenceWidget(
-                    title = stringResource(MR.strings.label_download_queue),
-                    subtitle = when (downloadQueueState) {
-                        DownloadQueueState.Stopped -> null
-                        is DownloadQueueState.Paused -> {
-                            val pending = downloadQueueState.pending
-                            if (pending == 0) {
-                                stringResource(MR.strings.paused)
-                            } else {
-                                "${stringResource(MR.strings.paused)} • ${
-                                    pluralStringResource(
-                                        MR.plurals.download_queue_summary,
-                                        count = pending,
-                                        pending,
-                                    )
-                                }"
-                            }
-                        }
-                        is DownloadQueueState.Downloading -> {
-                            val pending = downloadQueueState.pending
-                            pluralStringResource(MR.plurals.download_queue_summary, count = pending, pending)
-                        }
-                    },
-                    icon = Icons.Outlined.GetApp,
-                    onPreferenceClick = onClickDownloadQueue,
+                    title = stringResource(MR.strings.ocr_queue),
+                    icon = Icons.Outlined.DocumentScanner,
+                    onPreferenceClick = onClickOcrQueue,
                 )
             }
             item {

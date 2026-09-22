@@ -13,7 +13,6 @@ import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.GetApp
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Palette
@@ -260,14 +259,6 @@ object SettingsMainScreen : Screen() {
                 subtitleRes = MR.strings.pref_library_summary,
                 icon = Icons.Outlined.CollectionsBookmark,
                 screen = SettingsLibraryScreen,
-            ),
-        ),
-        MainEntry.Item(
-            Item(
-                titleRes = MR.strings.pref_category_downloads,
-                subtitleRes = MR.strings.pref_downloads_summary,
-                icon = Icons.Outlined.GetApp,
-                screen = SettingsDownloadScreen,
             ),
         ),
         MainEntry.Item(
