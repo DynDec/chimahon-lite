@@ -14,17 +14,18 @@ data class BackupOptions(
     val history: Boolean = true,
     val readEntries: Boolean = true,
     val appSettings: Boolean = true,
-    val extensionStores: Boolean = true,
-    val sourceSettings: Boolean = true,
+    // Retained for legacy sync callers; these are not offered by Create backup.
+    val extensionStores: Boolean = false,
+    val sourceSettings: Boolean = false,
     val privateSettings: Boolean = false,
     // SY -->
     val customInfo: Boolean = true,
     val savedSearchesFeeds: Boolean = true,
     // SY <--
     // Chimahon -->
-    val novels: Boolean = true,
+    val novels: Boolean = false,
     // Chimahon <--
-    val animeEntries: Boolean = true,
+    val animeEntries: Boolean = false,
 ) {
 
     fun asBooleanArray() = booleanArrayOf(
@@ -35,21 +36,22 @@ data class BackupOptions(
         history,
         readEntries,
         appSettings,
-        extensionStores,
-        sourceSettings,
+        // Keep the WorkManager array positions, but never export unsupported data.
+        false,
+        false,
         privateSettings,
         // SY -->
         customInfo,
         savedSearchesFeeds,
         // SY <--
         // Chimahon -->
-        novels,
+        false,
         // Chimahon <--
-        animeEntries,
+        false,
     )
 
     fun canCreate() =
-        libraryEntries || animeEntries || categories || appSettings || extensionStores || sourceSettings || savedSearchesFeeds || novels
+        libraryEntries || categories || appSettings || savedSearchesFeeds
 
     companion object {
         val libraryOptions = persistentListOf(
@@ -59,27 +61,22 @@ data class BackupOptions(
                 setter = { options, enabled -> options.copy(libraryEntries = enabled) },
             ),
             Entry(
-                label = MR.strings.label_anime,
-                getter = BackupOptions::animeEntries,
-                setter = { options, enabled -> options.copy(animeEntries = enabled) },
-            ),
-            Entry(
                 label = MR.strings.chapters,
                 getter = BackupOptions::chapters,
                 setter = { options, enabled -> options.copy(chapters = enabled) },
-                enabled = { it.libraryEntries || it.animeEntries },
+                enabled = { it.libraryEntries },
             ),
             Entry(
                 label = MR.strings.track,
                 getter = BackupOptions::tracking,
                 setter = { options, enabled -> options.copy(tracking = enabled) },
-                enabled = { it.libraryEntries || it.animeEntries },
+                enabled = { it.libraryEntries },
             ),
             Entry(
                 label = MR.strings.history,
                 getter = BackupOptions::history,
                 setter = { options, enabled -> options.copy(history = enabled) },
-                enabled = { it.libraryEntries || it.animeEntries },
+                enabled = { it.libraryEntries },
             ),
             Entry(
                 label = MR.strings.categories,
@@ -90,7 +87,7 @@ data class BackupOptions(
                 label = MR.strings.non_library_settings,
                 getter = BackupOptions::readEntries,
                 setter = { options, enabled -> options.copy(readEntries = enabled) },
-                enabled = { it.libraryEntries || it.animeEntries },
+                enabled = { it.libraryEntries },
             ),
             // SY -->
             Entry(
@@ -107,13 +104,6 @@ data class BackupOptions(
                 setter = { options, enabled -> options.copy(savedSearchesFeeds = enabled) },
             ),
             // SY <--
-            // Chimahon -->
-            Entry(
-                label = MR.strings.backup_option_novels,
-                getter = BackupOptions::novels,
-                setter = { options, enabled -> options.copy(novels = enabled) },
-            ),
-            // Chimahon <--
         )
 
         val settingsOptions = persistentListOf(
@@ -123,20 +113,10 @@ data class BackupOptions(
                 setter = { options, enabled -> options.copy(appSettings = enabled) },
             ),
             Entry(
-                label = MR.strings.extensionStores,
-                getter = BackupOptions::extensionStores,
-                setter = { options, enabled -> options.copy(extensionStores = enabled) },
-            ),
-            Entry(
-                label = MR.strings.source_settings,
-                getter = BackupOptions::sourceSettings,
-                setter = { options, enabled -> options.copy(sourceSettings = enabled) },
-            ),
-            Entry(
                 label = MR.strings.private_settings,
                 getter = BackupOptions::privateSettings,
                 setter = { options, enabled -> options.copy(privateSettings = enabled) },
-                enabled = { it.appSettings || it.sourceSettings },
+                enabled = { it.appSettings },
             ),
         )
 
@@ -148,17 +128,18 @@ data class BackupOptions(
             history = array[4],
             readEntries = array[5],
             appSettings = array[6],
-            extensionStores = array[7],
-            sourceSettings = array[8],
+            // Ignore unsupported options in jobs queued by older versions.
+            extensionStores = false,
+            sourceSettings = false,
             privateSettings = array[9],
             // SY -->
             customInfo = array[10],
             savedSearchesFeeds = array[11],
             // SY <--
             // Chimahon -->
-            novels = array.getOrElse(12) { true },
+            novels = false,
             // Chimahon <--
-            animeEntries = array.getOrElse(13) { true },
+            animeEntries = false,
         )
     }
 

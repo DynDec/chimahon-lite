@@ -198,7 +198,7 @@ class BackupCreator(
     }
 
     suspend fun backupAnimeCategories(options: BackupOptions): List<BackupCategory> {
-        if (!options.categories) return emptyList()
+        if (!options.animeEntries || !options.categories) return emptyList()
 
         return animeCategoriesBackupCreator()
     }
