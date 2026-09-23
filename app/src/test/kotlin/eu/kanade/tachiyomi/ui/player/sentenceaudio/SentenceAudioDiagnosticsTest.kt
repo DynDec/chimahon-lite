@@ -23,7 +23,7 @@ class SentenceAudioDiagnosticsTest {
             Authorization: Bearer secret-value
             lsig=secret-lsig-token
             sig=secret-sig-token
-            /data/user/0/app.chimahon.dev/cache/source.mp4
+            /data/user/0/app.chimahon.lite.dev/cache/source.mp4
             C:\\Users\\teera\\AppData\\Local\\cache\\source.mp4
         """.trimIndent()
 

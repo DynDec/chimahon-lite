@@ -11,7 +11,7 @@ class MpvConfigDirectoryResolverTest {
         assertEquals(
             "/storage/emulated/0/chimaFork/mpv",
             resolveMpvConfigDirectory(
-                internalConfigDirectory = "/data/user/0/app.chimahon.dev/files",
+                internalConfigDirectory = "/data/user/0/app.chimahon.lite.dev/files",
                 useExternalConfigDirectory = true,
                 externalConfigDirectory = { "/storage/emulated/0/chimaFork/mpv" },
             ),
@@ -21,9 +21,9 @@ class MpvConfigDirectoryResolverTest {
     @Test
     fun `missing external directory falls back to internal storage`() {
         assertEquals(
-            "/data/user/0/app.chimahon.dev/files",
+            "/data/user/0/app.chimahon.lite.dev/files",
             resolveMpvConfigDirectory(
-                internalConfigDirectory = "/data/user/0/app.chimahon.dev/files",
+                internalConfigDirectory = "/data/user/0/app.chimahon.lite.dev/files",
                 useExternalConfigDirectory = true,
                 externalConfigDirectory = { null },
             ),
@@ -33,9 +33,9 @@ class MpvConfigDirectoryResolverTest {
     @Test
     fun `blank external path falls back to internal storage`() {
         assertEquals(
-            "/data/user/0/app.chimahon.dev/files",
+            "/data/user/0/app.chimahon.lite.dev/files",
             resolveMpvConfigDirectory(
-                internalConfigDirectory = "/data/user/0/app.chimahon.dev/files",
+                internalConfigDirectory = "/data/user/0/app.chimahon.lite.dev/files",
                 useExternalConfigDirectory = true,
                 externalConfigDirectory = { " " },
             ),
@@ -48,9 +48,9 @@ class MpvConfigDirectoryResolverTest {
         var reportedFailure: Exception? = null
 
         assertEquals(
-            "/data/user/0/app.chimahon.dev/files",
+            "/data/user/0/app.chimahon.lite.dev/files",
             resolveMpvConfigDirectory(
-                internalConfigDirectory = "/data/user/0/app.chimahon.dev/files",
+                internalConfigDirectory = "/data/user/0/app.chimahon.lite.dev/files",
                 useExternalConfigDirectory = true,
                 externalConfigDirectory = { throw failure },
                 onExternalFailure = { reportedFailure = it },
@@ -64,9 +64,9 @@ class MpvConfigDirectoryResolverTest {
         var lookupCount = 0
 
         assertEquals(
-            "/data/user/0/app.chimahon.dev/files",
+            "/data/user/0/app.chimahon.lite.dev/files",
             resolveMpvConfigDirectory(
-                internalConfigDirectory = "/data/user/0/app.chimahon.dev/files",
+                internalConfigDirectory = "/data/user/0/app.chimahon.lite.dev/files",
                 useExternalConfigDirectory = false,
                 externalConfigDirectory = {
                     lookupCount++
