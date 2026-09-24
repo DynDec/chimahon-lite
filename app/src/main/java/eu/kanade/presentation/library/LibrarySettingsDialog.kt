@@ -412,7 +412,6 @@ private fun groupTypeDrawableRes(type: Int): Int {
     return when (type) {
         LibraryGroup.BY_STATUS -> R.drawable.ic_progress_clock_24dp
         LibraryGroup.BY_TRACK_STATUS -> R.drawable.ic_sync_24dp
-        LibraryGroup.BY_SOURCE -> R.drawable.ic_browse_filled_24dp
         LibraryGroup.UNGROUPED -> R.drawable.ic_ungroup_24dp
         else -> R.drawable.ic_label_24dp
     }
@@ -428,7 +427,6 @@ private fun ColumnScope.GroupPage(
     val groups = remember(hasCategories, trackers) {
         buildList {
             add(LibraryGroup.BY_DEFAULT)
-            add(LibraryGroup.BY_SOURCE)
             add(LibraryGroup.BY_STATUS)
             if (trackers.isNotEmpty()) {
                 add(LibraryGroup.BY_TRACK_STATUS)

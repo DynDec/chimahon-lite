@@ -12,10 +12,6 @@ fun getChapterSort(
     Chapter,
 ) -> Int {
     return when (manga.sorting) {
-        Manga.CHAPTER_SORTING_SOURCE -> when (sortDescending) {
-            true -> { c1, c2 -> c1.sourceOrder.compareTo(c2.sourceOrder) }
-            false -> { c1, c2 -> c2.sourceOrder.compareTo(c1.sourceOrder) }
-        }
         Manga.CHAPTER_SORTING_NUMBER -> when (sortDescending) {
             true -> { c1, c2 -> c2.chapterNumber.compareTo(c1.chapterNumber) }
             false -> { c1, c2 -> c1.chapterNumber.compareTo(c2.chapterNumber) }

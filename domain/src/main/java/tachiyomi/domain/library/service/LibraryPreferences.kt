@@ -228,7 +228,7 @@ class LibraryPreferences(
     // and upload date
     fun sortChapterBySourceOrNumber() = preferenceStore.getLong(
         "default_chapter_sort_by_source_or_number",
-        Manga.CHAPTER_SORTING_SOURCE,
+        Manga.CHAPTER_SORTING_NUMBER,
     )
 
     fun displayChapterByNameOrNumber() = preferenceStore.getLong(
@@ -238,7 +238,7 @@ class LibraryPreferences(
 
     fun sortChapterByAscendingOrDescending() = preferenceStore.getLong(
         "default_chapter_sort_by_ascending_or_descending",
-        Manga.CHAPTER_SORT_DESC,
+        Manga.CHAPTER_SORT_ASC,
     )
 
     fun setChapterSettingsDefault(manga: Manga) {

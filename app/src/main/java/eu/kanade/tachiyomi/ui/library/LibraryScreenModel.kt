@@ -171,6 +171,9 @@ class LibraryScreenModel(
     // SY <--
 
     init {
+        if (libraryPreferences.groupLibraryBy().get() == LibraryGroup.BY_SOURCE) {
+            libraryPreferences.groupLibraryBy().set(LibraryGroup.BY_DEFAULT)
+        }
         mutableState.update { state ->
             state.copy(activeCategoryIndex = libraryPreferences.lastUsedCategory().get())
         }

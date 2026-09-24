@@ -63,16 +63,12 @@ FROM chapters C
 -- KMK -->
 JOIN mangas M ON C.manga_id = M._id
 -- KMK <--
-LEFT JOIN excluded_scanlators ES
-ON C.manga_id = ES.manga_id
-AND C.scanlator = ES.scanlator
 WHERE C.manga_id = :mangaId
 AND (
     :applyFilter = 0
     -- KMK -->
     OR (
-        ES.scanlator IS NULL
-        AND ((M.chapter_flags & :bookmarkUnmask) = 0 OR C.bookmark = 0)
+        ((M.chapter_flags & :bookmarkUnmask) = 0 OR C.bookmark = 0)
         AND ((M.chapter_flags & :bookmarkMask) = 0 OR C.bookmark = 1)
     )
     -- KMK <--
@@ -107,9 +103,6 @@ FROM (
 ) AS M
 JOIN chapters C
 ON C.manga_id = M.manga_id
-LEFT JOIN excluded_scanlators ES
-ON M.merge_id = ES.manga_id
-AND C.scanlator = ES.scanlator
 -- KMK -->
 JOIN mangas MA ON MA._id = :mangaId
 -- KMK <--
@@ -118,8 +111,7 @@ AND (
     :applyFilter = 0
     -- KMK -->
     OR (
-        ES.scanlator IS NULL
-        AND ((MA.chapter_flags & :bookmarkUnmask) = 0 OR C.bookmark = 0)
+        ((MA.chapter_flags & :bookmarkUnmask) = 0 OR C.bookmark = 0)
         AND ((MA.chapter_flags & :bookmarkMask) = 0 OR C.bookmark = 1)
     )
     -- KMK <--

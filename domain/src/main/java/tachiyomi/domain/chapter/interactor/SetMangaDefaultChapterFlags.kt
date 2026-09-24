@@ -15,6 +15,12 @@ class SetMangaDefaultChapterFlags(
     suspend fun await(manga: Manga) {
         withNonCancellableContext {
             with(libraryPreferences) {
+                val savedSortingMode = sortChapterBySourceOrNumber().get()
+                val legacySourceSort = savedSortingMode == Manga.CHAPTER_SORTING_SOURCE
+                if (legacySourceSort) {
+                    sortChapterBySourceOrNumber().set(Manga.CHAPTER_SORTING_NUMBER)
+                    sortChapterByAscendingOrDescending().set(Manga.CHAPTER_SORT_ASC)
+                }
                 setMangaChapterFlags.awaitSetAllFlags(
                     mangaId = manga.id,
                     unreadFilter = filterChapterByRead().get(),

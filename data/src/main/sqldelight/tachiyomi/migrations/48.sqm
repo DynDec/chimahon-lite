@@ -1,0 +1,6 @@
+-- Replace the retired Source chapter sort with chapter-number ascending.
+-- Sorting mode occupies bits 8-9 (768); direction occupies bit 0 (1).
+-- Preserve all unrelated chapter flags and other sorting modes.
+UPDATE mangas
+SET chapter_flags = (chapter_flags & ~769) | 257
+WHERE (chapter_flags & 768) = 0;
