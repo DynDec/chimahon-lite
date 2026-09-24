@@ -32,6 +32,7 @@ import okio.Source
 import okio.buffer
 import okio.sink
 import okio.source
+import tachiyomi.core.common.storage.CoverFileStorage
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.manga.model.MangaCover
@@ -276,15 +277,10 @@ class MangaCoverFetcher(
     }
 
     private fun writeSourceToCoverCache(input: Source, cacheFile: File) {
-        cacheFile.parentFile?.mkdirs()
-        cacheFile.delete()
-        try {
-            cacheFile.sink().buffer().use { output ->
+        CoverFileStorage.write(cacheFile) { temporary ->
+            temporary.sink().buffer().use { output ->
                 output.writeAll(input)
             }
-        } catch (e: Exception) {
-            cacheFile.delete()
-            throw e
         }
     }
 

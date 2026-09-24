@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +63,7 @@ import eu.kanade.presentation.more.settings.screen.data.RestoreBackupScreen
 import eu.kanade.presentation.more.settings.screen.data.StorageInfo
 import eu.kanade.presentation.more.settings.screen.data.SyncSettingsSelector
 import eu.kanade.presentation.more.settings.screen.data.SyncTriggerOptionsScreen
+import eu.kanade.presentation.more.settings.screen.data.coverCleanupPreference
 import eu.kanade.presentation.more.settings.widget.BasePreferenceWidget
 import eu.kanade.presentation.more.settings.widget.EditTextPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.PrefsHorizontalPadding
@@ -388,6 +390,7 @@ object SettingsDataScreen : SearchableSettings {
         val chapterCache = remember { Injekt.get<ChapterCache>() }
         var cacheReadableSizeSema by remember { mutableIntStateOf(0) }
         val cacheReadableSize = remember(cacheReadableSizeSema) { chapterCache.readableSize }
+        var storageRefresh by remember { mutableIntStateOf(0) }
 
         // SY -->
         val pagePreviewCache = remember { Injekt.get<PagePreviewCache>() }
@@ -403,9 +406,11 @@ object SettingsDataScreen : SearchableSettings {
                 ) {
                     BasePreferenceWidget(
                         subcomponent = {
-                            StorageInfo(
-                                modifier = Modifier.padding(horizontal = PrefsHorizontalPadding),
-                            )
+                            key(storageRefresh) {
+                                StorageInfo(
+                                    modifier = Modifier.padding(horizontal = PrefsHorizontalPadding),
+                                )
+                            }
                         },
                     )
                 },
@@ -428,6 +433,7 @@ object SettingsDataScreen : SearchableSettings {
                         }
                     },
                 ),
+                coverCleanupPreference(onComplete = { storageRefresh++ }),
                 // SY -->
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(SYMR.strings.pref_clear_page_preview_cache),

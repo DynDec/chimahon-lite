@@ -5,14 +5,12 @@ import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.util.lang.Hash
 import mihon.core.archive.ZipWriter
+import tachiyomi.core.common.storage.CoverFileStorage
 import tachiyomi.core.common.storage.nameWithoutExtension
 import tachiyomi.core.common.util.system.ImageUtil
 import tachiyomi.source.local.io.LocalSourceFileSystem
 import java.io.File
 import java.io.InputStream
-import java.nio.file.AtomicMoveNotSupportedException
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 
 private const val DEFAULT_COVER_NAME = "cover.jpg"
 private const val COVER_ARCHIVE_NAME = "cover.cbi"
@@ -49,7 +47,7 @@ actual class LocalCoverManager(
     ): UniFile? {
         val target = generatedCoverFile(manga.url, if (encrypted) COVER_ARCHIVE_NAME else DEFAULT_COVER_NAME)
         val targetParent = target.parentFile
-        if (targetParent == null || !targetParent.exists() && !targetParent.mkdirs()) {
+        if (targetParent == null || (!targetParent.exists() && !targetParent.mkdirs())) {
             inputStream.close()
             return null
         }
@@ -76,27 +74,14 @@ actual class LocalCoverManager(
                 }
             }
 
-            try {
-                Files.move(
-                    temporary.toPath(),
-                    target.toPath(),
-                    StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING,
-                )
-            } catch (_: AtomicMoveNotSupportedException) {
-                Files.move(
-                    temporary.toPath(),
-                    target.toPath(),
-                    StandardCopyOption.REPLACE_EXISTING,
-                )
-            }
+            CoverFileStorage.replace(temporary, target)
 
             // A chapter can change format between refreshes. Remove the old representation
             // so find() cannot return a stale encrypted cover after a normal image is written.
             generatedCoverFile(
                 manga.url,
                 if (encrypted) DEFAULT_COVER_NAME else COVER_ARCHIVE_NAME,
-            ).takeUnless { it == target }?.delete()
+            ).takeUnless { it == target }?.let(CoverFileStorage::delete)
             deleteLegacyLooseCovers(manga.url)
 
             val targetFile = UniFile.fromFile(target) ?: return null
