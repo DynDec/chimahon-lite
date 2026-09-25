@@ -24,6 +24,7 @@ import eu.kanade.presentation.components.SEARCH_DEBOUNCE_MILLIS
 import eu.kanade.presentation.library.components.LibraryToolbarTitle
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.tachiyomi.data.cache.CoverCache
+import eu.kanade.tachiyomi.data.cache.LocalCoverRecovery
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.track.TrackStatus
@@ -62,6 +63,7 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableSet
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -72,6 +74,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
@@ -81,6 +84,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.runBlocking
+import logcat.LogPriority
 import mihon.core.common.utils.mutate
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.CheckboxState
@@ -89,6 +93,7 @@ import tachiyomi.core.common.util.lang.compareToWithCollator
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.core.common.util.lang.withIOContext
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.interactor.SetMangaCategories
 import tachiyomi.domain.category.model.Category
@@ -125,6 +130,7 @@ import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 import tachiyomi.domain.source.model.Source as DomainSource
 
@@ -160,6 +166,7 @@ class LibraryScreenModel(
     // SY <--
     // KMK -->
     private val smartSearchMerge: SmartSearchMerge = Injekt.get(),
+    private val localCoverRecovery: LocalCoverRecovery = LocalCoverRecovery(),
     // KMK <--
 ) : StateScreenModel<LibraryScreenModel.State>(State()) {
 
@@ -168,6 +175,7 @@ class LibraryScreenModel(
     val recommendationSearch = RecommendationSearchHelper(preferences.context)
 
     private var recommendationSearchJob: Job? = null
+    private val scheduledLocalCoverIds = ConcurrentHashMap.newKeySet<Long>()
     // SY <--
 
     init {
@@ -776,7 +784,9 @@ class LibraryScreenModel(
 
     private fun getFavoritesFlow(): Flow<List<LibraryItem>> {
         return combine(
-            getLibraryManga.subscribe(),
+            getLibraryManga.subscribe().onEach { library ->
+                library.forEach { scheduleLocalCoverRecovery(it.manga) }
+            },
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
         ) { libraryManga, preferences, _ ->
@@ -831,6 +841,25 @@ class LibraryScreenModel(
                     },
                     // KMK <--
                 )
+            }
+        }
+    }
+
+    private fun scheduleLocalCoverRecovery(manga: Manga) {
+        if (!manga.isLocal() || !scheduledLocalCoverIds.add(manga.id)) return
+        screenModelScope.launchIO {
+            try {
+                // Source initialization is asynchronous on cold start, including immediately after updating.
+                sourceManager.isInitialized.first { it }
+                val source = sourceManager.get(manga.source) as? LocalSource ?: return@launchIO
+                localCoverRecovery.recover(manga, source)
+            } catch (e: CancellationException) {
+                scheduledLocalCoverIds.remove(manga.id)
+                throw e
+            } catch (e: Exception) {
+                // Keep a failed book from retrying on every other cover's database update.
+                // Opening a new library screen or Browse can retry once storage is available again.
+                logcat(LogPriority.ERROR, e) { "Error recovering local library cover for ${manga.id}" }
             }
         }
     }

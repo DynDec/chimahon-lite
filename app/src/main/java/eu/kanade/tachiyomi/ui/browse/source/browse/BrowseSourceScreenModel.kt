@@ -17,7 +17,6 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.core.preference.asState
 import eu.kanade.domain.manga.interactor.UpdateManga
-import eu.kanade.domain.manga.model.toSManga
 import eu.kanade.domain.source.interactor.GetExhSavedSearch
 import eu.kanade.domain.source.interactor.GetIncognitoState
 import eu.kanade.domain.source.interactor.ToggleIncognito
@@ -26,12 +25,12 @@ import eu.kanade.domain.track.interactor.AddTracks
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.util.ioCoroutineScope
 import eu.kanade.tachiyomi.data.cache.CoverCache
+import eu.kanade.tachiyomi.data.cache.LocalCoverRecovery
 import eu.kanade.tachiyomi.extension.ExtensionManager
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.online.MetadataSource
 import eu.kanade.tachiyomi.source.online.all.MangaDex
 import eu.kanade.tachiyomi.util.removeCovers
-import eu.kanade.tachiyomi.util.updateLocalCoverFromSourceFetch
 import exh.metadata.metadata.RaisedSearchMetadata
 import exh.source.EH_PACKAGE
 import exh.source.ExhPreferences
@@ -55,8 +54,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import logcat.LogPriority
@@ -88,7 +85,6 @@ import tachiyomi.domain.source.repository.SourcePagingSource
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.source.local.LocalSource
-import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -116,7 +112,7 @@ open class BrowseSourceScreenModel(
     private val setMangaDefaultChapterFlags: SetMangaDefaultChapterFlags = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
     private val updateManga: UpdateManga = Injekt.get(),
-    private val localCoverManager: LocalCoverManager = Injekt.get(),
+    private val localCoverRecovery: LocalCoverRecovery = LocalCoverRecovery(),
     private val addTracks: AddTracks = Injekt.get(),
     getIncognitoState: GetIncognitoState = Injekt.get(),
     // KMK -->
@@ -136,7 +132,6 @@ open class BrowseSourceScreenModel(
 ) : StateScreenModel<BrowseSourceScreenModel.State>(State(Listing.valueOf(listingQuery))) {
 
     private val localCoverGenerationUrls = ConcurrentHashMap.newKeySet<String>()
-    private val localCoverGenerationSemaphore = Semaphore(2)
 
     var displayMode by sourcePreferences.sourceDisplayMode().asState(screenModelScope)
 
@@ -263,45 +258,18 @@ open class BrowseSourceScreenModel(
         val localSource = source as? LocalSource ?: return
         if (manga.source != localSource.id) return
 
-        // The generated cover is stored in the app cache and may disappear independently
-        // of the database row. Check the actual source/cache files instead of trusting a
-        // possibly stale thumbnail URI, so the next browse can regenerate it.
-        val availableCover = localCoverManager.find(manga.url)?.uri?.toString()
-        if (availableCover != null && availableCover == manga.thumbnailUrl) return
         if (!localCoverGenerationUrls.add(manga.url)) return
 
         screenModelScope.launchIO {
             try {
-                localCoverGenerationSemaphore.withPermit {
-                    val sourceManga = localCoverManager.find(manga.url)?.let { cover ->
-                        manga.toSManga().apply { thumbnail_url = cover.uri.toString() }
-                    } ?: localSource.getMangaUpdate(
-                        manga = manga.toSManga(),
-                        chapters = emptyList(),
-                        fetchDetails = false,
-                        fetchChapters = true,
-                    ).manga
-                    // getChapterList intentionally skips extraction when a source cover
-                    // already exists. Reflect that cover in the source model as well so a
-                    // stale database URI is repaired during this browse pass.
-                    localCoverManager.find(manga.url)?.let { cover ->
-                        sourceManga.thumbnail_url = cover.uri.toString()
-                    }
-                    manga.updateLocalCoverFromSourceFetch(
-                        source = localSource,
-                        sourceManga = sourceManga,
-                        updateManga = updateManga,
-                        coverCache = coverCache,
-                    )
-                    if (sourceManga.thumbnail_url.isNullOrBlank()) {
-                        localCoverGenerationUrls.remove(manga.url)
-                    }
-                }
+                localCoverRecovery.recover(manga, localSource)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                localCoverGenerationUrls.remove(manga.url)
                 logcat(LogPriority.ERROR, e) { "Error generating local cover for ${manga.title}" }
+            } finally {
+                // Deduplicate pending work, but allow a later browse to repair another cache eviction.
+                localCoverGenerationUrls.remove(manga.url)
             }
         }
     }
