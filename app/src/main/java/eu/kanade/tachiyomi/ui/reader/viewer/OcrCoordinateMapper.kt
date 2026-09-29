@@ -3,7 +3,6 @@ package eu.kanade.tachiyomi.ui.reader.viewer
 import android.graphics.RectF
 import okio.BufferedSource
 import tachiyomi.decoder.ImageDecoder
-import java.io.ByteArrayInputStream
 import kotlin.math.max
 
 /**
@@ -13,8 +12,8 @@ import kotlin.math.max
  * When the reader applies transformations (crop borders, split, merge, webtoon splitAndMerge)
  * the displayed bitmap differs from the original, so block coordinates must be remapped.
  *
- * Crop rect is read directly from the native [ImageDecoder] which runs the C++ `borders.cpp`
- * algorithm — no Kotlin reimplementation needed.
+ * The shared reader crop policy skips sparse white pages; otherwise the crop rect comes from
+ * the native [ImageDecoder], keeping OCR aligned with the displayed image.
  */
 object OcrCoordinateMapper {
 
@@ -129,10 +128,10 @@ object OcrCoordinateMapper {
     /**
      * Remap blocks to match the cropped image that ImageDecoder returns when cropBorders=true.
      *
-     * Reads the crop rect directly from the native [ImageDecoder], then adjusts OCR coordinates
-     * so they align with the cropped bitmap.
+     * Uses the shared reader crop policy, then adjusts OCR coordinates to the effective crop.
      *
      * Returns original blocks unchanged if:
+     * - The page is sparse and white, so cropping is skipped
      * - The stream cannot be decoded
      * - No crop is detected (full image is returned)
      *
@@ -423,36 +422,9 @@ object OcrCoordinateMapper {
     }
 
     // ──────────────────────────────────────────────────
-    // Crop border detection (delegates to native ImageDecoder)
+    // Crop border detection (shared with reader rendering)
     // ──────────────────────────────────────────────────
 
-    fun detectCropRect(stream: BufferedSource): RectF? {
-        val decoder = try {
-            val bytes = stream.peek().readByteArray()
-            ImageDecoder.newInstance(ByteArrayInputStream(bytes), cropBorders = true, displayProfile = null)
-        } catch (e: Exception) {
-            null
-        } ?: return null
-
-        try {
-            return detectCropRect(decoder)
-        } finally {
-            decoder.recycle()
-        }
-    }
-
-    private fun detectCropRect(decoder: ImageDecoder): RectF? {
-        if (decoder.cropX == 0 && decoder.cropY == 0 &&
-            decoder.width == decoder.originalWidth &&
-            decoder.height == decoder.originalHeight
-        ) {
-            return null
-        }
-        return RectF(
-            decoder.cropX.toFloat() / decoder.originalWidth,
-            decoder.cropY.toFloat() / decoder.originalHeight,
-            (decoder.cropX + decoder.width).toFloat() / decoder.originalWidth,
-            (decoder.cropY + decoder.height).toFloat() / decoder.originalHeight,
-        )
-    }
+    fun detectCropRect(stream: BufferedSource): RectF? =
+        ReaderBorderCropPolicy.evaluate(stream, enabled = true, isAnimated = false).rect
 }

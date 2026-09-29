@@ -19,6 +19,8 @@ import eu.kanade.tachiyomi.ui.reader.model.InsertPage
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.viewer.OcrCoordinateMapper
 import eu.kanade.tachiyomi.ui.reader.viewer.OcrTextBlock
+import eu.kanade.tachiyomi.ui.reader.viewer.ReaderBorderCropDecision
+import eu.kanade.tachiyomi.ui.reader.viewer.ReaderBorderCropPolicy
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderPageImageView
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderProgressIndicator
 import eu.kanade.tachiyomi.ui.webview.WebViewActivity
@@ -270,10 +272,11 @@ class PagerPageHolder(
                             null
                         }
 
-                        val cropRect = if (!isAnimated && viewer.config.imageCropBorders) {
-                            OcrCoordinateMapper.detectCropRect(itemSource)
-                        } else null
-                        pageCropRect = cropRect
+                        val cropDecision = ReaderBorderCropPolicy.evaluate(
+                            itemSource,
+                            enabled = viewer.config.imageCropBorders,
+                            isAnimated = isAnimated,
+                        )
 
                         val panelBitmap = if (!isAnimated && viewer.config.panelNavigation) {
                             decodePanelBitmap(itemSource)
@@ -281,18 +284,19 @@ class PagerPageHolder(
                             null
                         }
 
-                        LoadResult(itemSource, isAnimated, background, panelBitmap)
+                        LoadResult(itemSource, isAnimated, background, panelBitmap, cropDecision)
                     }
                 }
             }
             withUIContext {
+                pageCropRect = loadResult.cropDecision.rect
                 setImage(
                     loadResult.source,
                     loadResult.isAnimated,
                     Config(
                         zoomDuration = viewer.config.doubleTapAnimDuration,
                         minimumScaleType = viewer.config.imageScaleType,
-                        cropBorders = viewer.config.imageCropBorders,
+                        cropBorders = loadResult.cropDecision.enabled,
                         zoomStartPosition = viewer.config.imageZoomType,
                         landscapeZoom = viewer.config.landscapeZoom,
                         // KMK -->
@@ -309,6 +313,8 @@ class PagerPageHolder(
                 removeErrorLayout()
                 maybeStartPanelDetection(loadResult)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Throwable) {
             logcat(LogPriority.ERROR, e)
             withUIContext {
@@ -978,6 +984,7 @@ private data class LoadResult(
     val isAnimated: Boolean,
     val background: Drawable?,
     val panelBitmap: DecodedPanelBitmap?,
+    val cropDecision: ReaderBorderCropDecision,
 )
 
 private data class DecodedPanelBitmap(

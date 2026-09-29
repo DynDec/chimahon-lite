@@ -41,7 +41,7 @@ class PagerConfig(
     var imageZoomType = ReaderPageImageView.ZoomStartPosition.LEFT
         private set
 
-    var imageCropBorders = false
+    var imageCropBorders = readerPreferences.cropBorders().get()
         private set
 
     var navigateToPan = false

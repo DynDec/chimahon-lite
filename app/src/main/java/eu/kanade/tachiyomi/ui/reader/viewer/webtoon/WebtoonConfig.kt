@@ -26,7 +26,7 @@ class WebtoonConfig(
 
     var themeChangedListener: (() -> Unit)? = null
 
-    var imageCropBorders = false
+    var imageCropBorders = readerPreferences.cropBordersWebtoon().get()
         private set
 
     var zoomOutDisabled = false
@@ -57,7 +57,7 @@ class WebtoonConfig(
     // SY -->
     var usePageTransitions = false
 
-    var continuousCropBorders = false
+    var continuousCropBorders = readerPreferences.cropBordersContinuousVertical().get()
         private set
 
     // SY <--

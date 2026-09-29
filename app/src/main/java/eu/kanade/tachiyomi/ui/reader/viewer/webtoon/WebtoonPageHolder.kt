@@ -18,6 +18,7 @@ import eu.kanade.tachiyomi.databinding.ReaderErrorBinding
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.viewer.OcrCoordinateMapper
+import eu.kanade.tachiyomi.ui.reader.viewer.ReaderBorderCropPolicy
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderPageImageView
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderProgressIndicator
 import eu.kanade.tachiyomi.ui.webview.WebViewActivity
@@ -218,34 +219,32 @@ class WebtoonPageHolder(
         val streamFn = page?.stream ?: return
 
         try {
-            val (source, isAnimated, cropRect) = withIOContext {
+            val (source, isAnimated, cropDecision) = withIOContext {
                 val source = streamFn().use { process(Buffer().readFrom(it)) }
                 val isAnimated = ImageUtil.isAnimatedAndSupported(source)
 
                 val cropBorders = (viewer.config.imageCropBorders && viewer.isContinuous) ||
                     (viewer.config.continuousCropBorders && !viewer.isContinuous)
-                val cropRect = if (!isAnimated && cropBorders) {
-                    OcrCoordinateMapper.detectCropRect(source)
-                } else null
+                val cropDecision = ReaderBorderCropPolicy.evaluate(source, cropBorders, isAnimated)
 
-                Triple(source, isAnimated, cropRect)
+                Triple(source, isAnimated, cropDecision)
             }
             withUIContext {
-                pageCropRect = cropRect
+                pageCropRect = cropDecision.rect
                 frame.setImage(
                     source,
                     isAnimated,
                     ReaderPageImageView.Config(
                         zoomDuration = viewer.config.doubleTapAnimDuration,
                         minimumScaleType = SubsamplingScaleImageView.SCALE_TYPE_FIT_WIDTH,
-                        cropBorders =
-                        (viewer.config.imageCropBorders && viewer.isContinuous) ||
-                            (viewer.config.continuousCropBorders && !viewer.isContinuous),
+                        cropBorders = cropDecision.enabled,
                         eInkMode = viewer.config.eInkMode,
                     ),
                 )
                 removeErrorLayout()
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Throwable) {
             logcat(LogPriority.ERROR, e)
             withUIContext {
