@@ -167,15 +167,12 @@ fun MangaScreen(
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
     onEditFetchIntervalClicked: (() -> Unit)?,
-    onMigrateClicked: (() -> Unit)?,
+    onRelinkFolderClicked: (() -> Unit)?,
     onEditNotesClicked: () -> Unit,
     // SY -->
     onMetadataViewerClicked: () -> Unit,
     onEditInfoClicked: () -> Unit,
     onRecommendClicked: () -> Unit,
-    onMergedSettingsClicked: () -> Unit,
-    onMergeClicked: () -> Unit,
-    onMergeWithAnotherClicked: () -> Unit,
     onOpenPagePreview: (Int) -> Unit,
     onMorePreviewsClicked: () -> Unit,
     previewsRowCount: Int,
@@ -247,15 +244,12 @@ fun MangaScreen(
             onDownloadActionClicked = onDownloadActionClicked,
             onEditCategoryClicked = onEditCategoryClicked,
             onEditIntervalClicked = onEditFetchIntervalClicked,
-            onMigrateClicked = onMigrateClicked,
+            onRelinkFolderClicked = onRelinkFolderClicked,
             onEditNotesClicked = onEditNotesClicked,
             // SY -->
             onMetadataViewerClicked = onMetadataViewerClicked,
             onEditInfoClicked = onEditInfoClicked,
             onRecommendClicked = onRecommendClicked,
-            onMergedSettingsClicked = onMergedSettingsClicked,
-            onMergeClicked = onMergeClicked,
-            onMergeWithAnotherClicked = onMergeWithAnotherClicked,
             onOpenPagePreview = onOpenPagePreview,
             onMorePreviewsClicked = onMorePreviewsClicked,
             previewsRowCount = previewsRowCount,
@@ -313,15 +307,12 @@ fun MangaScreen(
             onDownloadActionClicked = onDownloadActionClicked,
             onEditCategoryClicked = onEditCategoryClicked,
             onEditIntervalClicked = onEditFetchIntervalClicked,
-            onMigrateClicked = onMigrateClicked,
+            onRelinkFolderClicked = onRelinkFolderClicked,
             onEditNotesClicked = onEditNotesClicked,
             // SY -->
             onMetadataViewerClicked = onMetadataViewerClicked,
             onEditInfoClicked = onEditInfoClicked,
             onRecommendClicked = onRecommendClicked,
-            onMergedSettingsClicked = onMergedSettingsClicked,
-            onMergeClicked = onMergeClicked,
-            onMergeWithAnotherClicked = onMergeWithAnotherClicked,
             onOpenPagePreview = onOpenPagePreview,
             onMorePreviewsClicked = onMorePreviewsClicked,
             previewsRowCount = previewsRowCount,
@@ -389,15 +380,12 @@ private fun MangaScreenSmallImpl(
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
     onEditIntervalClicked: (() -> Unit)?,
-    onMigrateClicked: (() -> Unit)?,
+    onRelinkFolderClicked: (() -> Unit)?,
     onEditNotesClicked: () -> Unit,
     // SY -->
     onMetadataViewerClicked: () -> Unit,
     onEditInfoClicked: () -> Unit,
     onRecommendClicked: () -> Unit,
-    onMergedSettingsClicked: () -> Unit,
-    onMergeClicked: () -> Unit,
-    onMergeWithAnotherClicked: () -> Unit,
     onOpenPagePreview: (Int) -> Unit,
     onMorePreviewsClicked: () -> Unit,
     previewsRowCount: Int,
@@ -502,7 +490,7 @@ private fun MangaScreenSmallImpl(
                 onClickDownload = onDownloadActionClicked,
                 onClickEditCategory = onEditCategoryClicked,
                 onClickRefresh = onRefresh,
-                onClickMigrate = onMigrateClicked,
+                onClickRelinkFolder = onRelinkFolderClicked,
                 onClickEditNotes = onEditNotesClicked,
                 // SY -->
                 onClickEditInfo = onEditInfoClicked.takeIf { state.manga.favorite },
@@ -518,8 +506,6 @@ private fun MangaScreenSmallImpl(
                 },
                 // KMK <--
                 onClickRecommend = onRecommendClicked.takeIf { state.showRecommendationsInOverflow },
-                onClickMergedSettings = onMergedSettingsClicked.takeIf { state.manga.source == MERGED_SOURCE_ID },
-                onClickMerge = onMergeClicked.takeIf { state.showMergeInOverflow },
                 // SY <--
                 actionModeCounter = selectedChapterCount,
                 onCancelActionMode = { onAllChapterSelected(false) },
@@ -674,7 +660,6 @@ private fun MangaScreenSmallImpl(
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
                             // SY -->
-                            onMergeClicked = onMergeClicked.takeUnless { state.showMergeInOverflow },
                             // SY <--
                             // KMK -->
                             status = state.manga.status,
@@ -767,16 +752,14 @@ private fun MangaScreenSmallImpl(
                     // KMK <--
 
                     // SY -->
-                    if (!state.showRecommendationsInOverflow || state.showMergeWithAnother) {
+                    if (!state.showRecommendationsInOverflow) {
                         item(
                             key = MangaScreenItem.INFO_BUTTONS,
                             contentType = MangaScreenItem.INFO_BUTTONS,
                         ) {
                             MangaInfoButtons(
                                 showRecommendsButton = !state.showRecommendationsInOverflow,
-                                showMergeWithAnotherButton = state.showMergeWithAnother,
                                 onRecommendClicked = onRecommendClicked,
-                                onMergeWithAnotherClicked = onMergeWithAnotherClicked,
                             )
                         }
                     }
@@ -861,15 +844,12 @@ private fun MangaScreenLargeImpl(
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
     onEditIntervalClicked: (() -> Unit)?,
-    onMigrateClicked: (() -> Unit)?,
+    onRelinkFolderClicked: (() -> Unit)?,
     onEditNotesClicked: () -> Unit,
     // SY -->
     onMetadataViewerClicked: () -> Unit,
     onEditInfoClicked: () -> Unit,
     onRecommendClicked: () -> Unit,
-    onMergedSettingsClicked: () -> Unit,
-    onMergeClicked: () -> Unit,
-    onMergeWithAnotherClicked: () -> Unit,
     onOpenPagePreview: (Int) -> Unit,
     onMorePreviewsClicked: () -> Unit,
     previewsRowCount: Int,
@@ -965,7 +945,7 @@ private fun MangaScreenLargeImpl(
                 onClickDownload = onDownloadActionClicked,
                 onClickEditCategory = onEditCategoryClicked,
                 onClickRefresh = onRefresh,
-                onClickMigrate = onMigrateClicked,
+                onClickRelinkFolder = onRelinkFolderClicked,
                 onClickEditNotes = onEditNotesClicked,
                 onCancelActionMode = { onAllChapterSelected(false) },
                 // SY -->
@@ -982,8 +962,6 @@ private fun MangaScreenLargeImpl(
                 },
                 // KMK <--
                 onClickRecommend = onRecommendClicked.takeIf { state.showRecommendationsInOverflow },
-                onClickMergedSettings = onMergedSettingsClicked.takeIf { state.manga.source == MERGED_SOURCE_ID },
-                onClickMerge = onMergeClicked.takeIf { state.showMergeInOverflow },
                 // SY <--
                 actionModeCounter = selectedChapterCount,
                 onSelectAll = { onAllChapterSelected(true) },
@@ -1132,7 +1110,6 @@ private fun MangaScreenLargeImpl(
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
                             // SY -->
-                            onMergeClicked = onMergeClicked.takeUnless { state.showMergeInOverflow },
                             // SY <--
                             // KMK -->
                             status = state.manga.status,
@@ -1163,12 +1140,10 @@ private fun MangaScreenLargeImpl(
                             // SY <--
                         )
                         // SY -->
-                        if (!state.showRecommendationsInOverflow || state.showMergeWithAnother) {
+                        if (!state.showRecommendationsInOverflow) {
                             MangaInfoButtons(
                                 showRecommendsButton = !state.showRecommendationsInOverflow,
-                                showMergeWithAnotherButton = state.showMergeWithAnother,
                                 onRecommendClicked = onRecommendClicked,
-                                onMergeWithAnotherClicked = onMergeWithAnotherClicked,
                             )
                         }
                         if (state.pagePreviewsState !is PagePreviewState.Unused && previewsRowCount > 0) {

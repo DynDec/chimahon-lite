@@ -8,6 +8,8 @@ expect class LocalCoverManager {
 
     fun find(mangaUrl: String): UniFile?
 
+    fun copyForRelink(oldUrl: String, newUrl: String): UniFile?
+
     // SY -->
     fun update(manga: SManga, inputStream: InputStream, encrypted: Boolean = false): UniFile?
     // SY <--

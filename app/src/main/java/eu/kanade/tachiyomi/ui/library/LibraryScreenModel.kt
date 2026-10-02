@@ -16,7 +16,6 @@ import eu.kanade.core.preference.asState
 import eu.kanade.core.util.fastFilterNot
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.chapter.interactor.SetReadStatus
-import eu.kanade.domain.manga.interactor.SmartSearchMerge
 import eu.kanade.domain.manga.interactor.UpdateManga
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.sync.SyncPreferences
@@ -165,7 +164,6 @@ class LibraryScreenModel(
     syncPreferences: SyncPreferences = Injekt.get(),
     // SY <--
     // KMK -->
-    private val smartSearchMerge: SmartSearchMerge = Injekt.get(),
     private val localCoverRecovery: LocalCoverRecovery = LocalCoverRecovery(),
     // KMK <--
 ) : StateScreenModel<LibraryScreenModel.State>(State()) {
@@ -1660,19 +1658,6 @@ class LibraryScreenModel(
      * Will get first merged manga in the list as target merging.
      * If there is no merged manga, then it will use the first one in list to create a new target.
      */
-    suspend fun smartSearchMerge(selectedMangas: PersistentList<Manga>): Long? {
-        val mergedManga = selectedMangas.firstOrNull { it.source == MERGED_SOURCE_ID }?.let { listOf(it) }
-            ?: emptyList()
-        val mergingMangas = selectedMangas.fastFilterNot { it.source == MERGED_SOURCE_ID }
-        val toMergeMangas = mergedManga + mergingMangas
-        if (toMergeMangas.size <= 1) return null
-
-        var mergingMangaId = toMergeMangas.first().id
-        for (manga in toMergeMangas.drop(1)) {
-            mergingMangaId = smartSearchMerge.smartSearchMerge(manga, mergingMangaId).id
-        }
-        return mergingMangaId
-    }
     // KMK <--
 
     @Immutable

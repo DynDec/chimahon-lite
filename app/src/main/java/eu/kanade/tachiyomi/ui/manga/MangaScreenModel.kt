@@ -28,7 +28,6 @@ import eu.kanade.core.util.addOrRemove
 import eu.kanade.core.util.insertSeparators
 import eu.kanade.domain.chapter.interactor.SetReadStatus
 import eu.kanade.domain.manga.interactor.GetPagePreviews
-import eu.kanade.domain.manga.interactor.SmartSearchMerge
 import eu.kanade.domain.manga.interactor.UpdateManga
 import eu.kanade.domain.manga.model.PagePreview
 import eu.kanade.domain.manga.model.chaptersFiltered
@@ -68,9 +67,9 @@ import eu.kanade.tachiyomi.ui.manga.RelatedManga.Companion.sorted
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
-import eu.kanade.tachiyomi.util.updateLocalCoverFromSourceFetch
 import eu.kanade.tachiyomi.util.system.getBitmapOrNull
 import eu.kanade.tachiyomi.util.system.toast
+import eu.kanade.tachiyomi.util.updateLocalCoverFromSourceFetch
 import exh.debug.DebugToggles
 import exh.eh.EHentaiUpdateHelper
 import exh.log.xLogD
@@ -87,7 +86,6 @@ import exh.util.trimOrNull
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
-
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
@@ -160,8 +158,8 @@ import tachiyomi.domain.track.model.Track
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.source.local.LocalSource
-import tachiyomi.source.local.isLocal
 import tachiyomi.source.local.io.LocalSourceFileSystem
+import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
@@ -175,7 +173,6 @@ class MangaScreenModel(
     // SY -->
     /** If it is opened from Source then it will auto expand the manga description */
     private val isFromSource: Boolean,
-    private val smartSearched: Boolean,
     // SY <--
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
     private val trackPreferences: TrackPreferences = Injekt.get(),
@@ -197,7 +194,6 @@ class MangaScreenModel(
     private val getMergedMangaById: GetMergedMangaById = Injekt.get(),
     private val getMergedReferencesById: GetMergedReferencesById = Injekt.get(),
     // KMK -->
-    private val smartSearchMerge: SmartSearchMerge = Injekt.get(),
     // KMK <--
     private val updateMergedSettings: UpdateMergedSettings = Injekt.get(),
     private val networkToLocalManga: NetworkToLocalManga = Injekt.get(),
@@ -454,8 +450,6 @@ class MangaScreenModel(
                     hideMissingChapters = libraryPreferences.hideMissingChapters().get(),
                     // SY -->
                     showRecommendationsInOverflow = uiPreferences.recommendsInOverflow().get(),
-                    showMergeInOverflow = uiPreferences.mergeInOverflow().get(),
-                    showMergeWithAnother = smartSearched,
                     mergedData = mergedData,
                     meta = raiseMetadata(meta, source),
                     pagePreviewsState = if (source.getMainSource() is PagePreviewSource) {
@@ -726,9 +720,6 @@ class MangaScreenModel(
         }
     }
 
-    suspend fun smartSearchMerge(manga: Manga, originalMangaId: Long): Manga {
-        return smartSearchMerge.smartSearchMerge(manga, originalMangaId)
-    }
     // KMK <--
 
     fun updateMergeSettings(mergedMangaReferences: List<MergedMangaReference>) {
@@ -1977,7 +1968,6 @@ class MangaScreenModel(
         ) : Dialog
         data class DeleteChapters(val chapters: List<Chapter>) : Dialog
         data class DuplicateManga(val manga: Manga, val duplicates: List<MangaWithChapterCount>) : Dialog
-        data class Migrate(val target: Manga, val current: Manga) : Dialog
         data class SetFetchInterval(val manga: Manga) : Dialog
 
         // SY -->
@@ -2015,11 +2005,6 @@ class MangaScreenModel(
 
     fun showCoverDialog() {
         updateSuccessState { it.copy(dialog = Dialog.FullCover) }
-    }
-
-    fun showMigrateDialog(duplicate: Manga) {
-        val manga = successState?.manga ?: return
-        updateSuccessState { it.copy(dialog = Dialog.Migrate(target = manga, current = duplicate)) }
     }
 
     // SY -->
@@ -2106,8 +2091,6 @@ class MangaScreenModel(
             val meta: RaisedSearchMetadata?,
             val mergedData: MergedMangaData?,
             val showRecommendationsInOverflow: Boolean,
-            val showMergeInOverflow: Boolean,
-            val showMergeWithAnother: Boolean,
             val pagePreviewsState: PagePreviewState,
             val alwaysShowReadingProgress: Boolean,
             val previewsRowCount: Int,

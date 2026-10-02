@@ -265,7 +265,6 @@ fun LibraryBottomActionMenu(
     onDeleteClicked: () -> Unit,
     onMigrateClicked: (() -> Unit)?,
     // KMK -->
-    onMergeClicked: (() -> Unit)?,
     onSelectionUpdateClicked: (() -> Unit)?,
     // KMK <--
     // SY -->
@@ -404,12 +403,6 @@ fun LibraryBottomActionMenu(
                             onClick = onDeleteClicked,
                         )
                         // KMK -->
-                        if (onMergeClicked != null) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(SYMR.strings.merge)) },
-                                onClick = onMergeClicked,
-                            )
-                        }
                         if (onClickCleanTitles != null) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(SYMR.strings.action_clean_titles)) },

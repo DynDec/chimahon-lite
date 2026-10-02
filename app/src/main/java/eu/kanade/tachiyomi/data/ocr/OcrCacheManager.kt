@@ -42,6 +42,34 @@ class OcrCacheManager(
 ) {
     private val mutex = Mutex()
 
+    /** Preserve path-based sidecars under the stable chapter ID before its location changes. */
+    suspend fun preserveForRelink(manga: Manga, chapter: Chapter, source: Source) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val cache = when (val location = findChapterLocation(manga, chapter, source)) {
+                is ChapterLocation.Directory -> location.dir.findFile(OCR_CACHE_FILE)
+                is ChapterLocation.Cbz -> findSidecarFile(location.file)
+                null -> null
+            } ?: return@withLock
+            val data = readOcrData(cache)
+            if (data.pages.isEmpty() && data.variants.isEmpty()) return@withLock
+            val target = getInternalCacheFile(manga, chapter, source)
+            val internal = if (target.isFile) json.decodeFromString<OcrChapterData>(target.readText()) else OcrChapterData(emptyMap())
+            val combined = data.copy(
+                pages = internal.pages + data.pages,
+                variants = (internal.variants.keys + data.variants.keys).associateWith { variant ->
+                    internal.variants[variant].orEmpty() + data.variants[variant].orEmpty()
+                },
+            )
+            val temporary = java.io.File.createTempFile("relink-ocr-", ".json", target.parentFile)
+            try {
+                temporary.writeText(json.encodeToString(combined))
+                tachiyomi.core.common.storage.CoverFileStorage.replace(temporary, target)
+            } finally {
+                temporary.delete()
+            }
+        }
+    }
+
     companion object {
         private const val OCR_CACHE_FILE = ".ocr_cache.json"
         private const val OCR_SIDECAR_SUFFIX = ".ocr.json"

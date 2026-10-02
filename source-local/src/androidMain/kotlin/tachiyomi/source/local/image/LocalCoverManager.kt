@@ -38,6 +38,24 @@ actual class LocalCoverManager(
             }
     }
 
+    /** Keep the current cover, including encrypted covers, when only the location changes. */
+    actual fun copyForRelink(oldUrl: String, newUrl: String): UniFile? {
+        val original = find(oldUrl) ?: return null
+        val target = generatedCoverFile(newUrl, if (original.name?.endsWith(".cbi") == true) COVER_ARCHIVE_NAME else DEFAULT_COVER_NAME)
+        val temporary = File.createTempFile("${target.name}.", ".tmp", target.parentFile)
+        try {
+            original.openInputStream().use { input -> temporary.outputStream().use { output -> input.copyTo(output) } }
+            CoverFileStorage.replace(temporary, target)
+            generatedCoverFile(
+                newUrl,
+                if (target.extension == "cbi") DEFAULT_COVER_NAME else COVER_ARCHIVE_NAME,
+            ).takeUnless { it == target }?.let(CoverFileStorage::delete)
+            return UniFile.fromFile(target)
+        } finally {
+            temporary.delete()
+        }
+    }
+
     actual fun update(
         manga: SManga,
         inputStream: InputStream,

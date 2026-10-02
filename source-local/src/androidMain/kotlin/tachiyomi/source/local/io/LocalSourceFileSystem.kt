@@ -48,6 +48,10 @@ actual class LocalSourceFileSystem(
     actual fun getChapterFile(mangaUrl: String, chapterUrl: String): UniFile? {
         resolvePersistedUri(chapterUrl)?.let { return it }
 
+        // A missing persisted file must not resolve to different content with the same filename.
+        // Relative paths from legacy backups can still use the filename fallback below.
+        if (chapterUrl.startsWith("content://") || chapterUrl.startsWith("file://")) return null
+
         val mangaEntry = getMangaEntry(mangaUrl)
         if (mangaEntry?.isDirectory == true) {
             val chapterName = chapterUrl.substringAfterLast('/')

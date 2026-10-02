@@ -302,11 +302,6 @@ object SettingsAppearanceScreen : SearchableSettings {
                     title = stringResource(SYMR.strings.put_recommends_in_overflow),
                     subtitle = stringResource(SYMR.strings.put_recommends_in_overflow_summary),
                 ),
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = uiPreferences.mergeInOverflow(),
-                    title = stringResource(SYMR.strings.put_merge_in_overflow),
-                    subtitle = stringResource(SYMR.strings.put_merge_in_overflow_summary),
-                ),
                 Preference.PreferenceItem.SliderPreference(
                     value = previewsRowCount,
                     valueRange = 0..10,

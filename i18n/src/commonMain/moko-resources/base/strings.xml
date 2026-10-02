@@ -1790,4 +1790,21 @@
     <string name="cover_cleanup_result">Removed %1$d orphaned covers and shared storage for %2$d identical covers. Freed %3$s.</string>
     <string name="cover_cleanup_skipped">Left %1$d files unchanged because they changed during the scan, could not be accessed, or their storage does not support sharing.</string>
     <string name="cover_cleanup_error">Could not finish cover cleanup. Some files may already have been cleaned up. Please try again.</string>
+    <string name="action_relink_folder">Relink folder</string>
+    <string name="possible_duplicates_open_summary">You have entries in your library with a similar name.\n\nSelect an entry to open it or add anyway.</string>
+    <string name="relink_folder_description">Select this manga’s replacement folder. Your library entry, settings, notes, tracking, and chapter history will be kept. Files will not be moved or deleted.</string>
+    <string name="relink_folder_choose">Choose replacement folder</string>
+    <string name="relink_folder_summary">%1$d chapters matched · %2$d old chapters retained · %3$d new chapters</string>
+    <string name="relink_folder_retained_description">Matched chapters keep their progress, bookmarks, and OCR data. Missing or changed chapters keep their old records for recovery; new files start unread.</string>
+    <string name="relink_folder_unverified">The old content of %1$d matched chapters could not be checked. Reuse their page positions and OCR only if the files are unchanged.</string>
+    <string name="relink_folder_confirm_unchanged">These are the same chapter files, with unchanged content.</string>
+    <string name="relink_folder_matched">Matched chapters</string>
+    <string name="relink_folder_retained">Retained old chapters</string>
+    <string name="relink_folder_added">New chapters</string>
+    <string name="relink_folder_unavailable">Could not relink this folder. Check access to the files and try again. The existing link has been kept.</string>
+    <string name="relink_folder_already_linked">This folder already belongs to another manga entry. Choose a different folder. Both entries have been kept.</string>
+    <string name="relink_folder_same">This manga is already linked to that folder.</string>
+    <string name="relink_folder_empty">No supported chapters were found in this folder.</string>
+    <string name="relink_folder_ocr_busy">Cancel this manga’s queued or running OCR tasks before relinking its folder.</string>
+    <string name="relink_folder_changed">The files or link changed after the preview. Choose the folder again to review the new matches.</string>
 </resources>

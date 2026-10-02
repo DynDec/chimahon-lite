@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.CallMerge
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.HourglassDisabled
@@ -242,7 +241,6 @@ fun MangaActionRow(
     onEditIntervalClicked: (() -> Unit)?,
     onEditCategory: (() -> Unit)?,
     // SY -->
-    onMergeClicked: (() -> Unit)?,
     // SY <--
     // KMK -->
     status: Long,
@@ -337,14 +335,6 @@ fun MangaActionRow(
             )
         }
         // SY -->
-        if (onMergeClicked != null) {
-            MangaActionButton(
-                title = stringResource(SYMR.strings.merge),
-                icon = Icons.AutoMirrored.Outlined.CallMerge,
-                color = MaterialTheme.colorScheme.primary, // KMK: defaultActionButtonColor
-                onClick = onMergeClicked,
-            )
-        }
         // SY <--
     }
 }

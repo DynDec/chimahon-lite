@@ -98,6 +98,7 @@ fun DuplicateMangaDialog(
     onSkipAllDuplicate: () -> Unit = {},
     onSkipDuplicate: () -> Unit = {},
     stopRunning: () -> Unit = {},
+    selectToOpen: Boolean = false,
     // KMK <--
 ) {
     val sourceManager = remember { Injekt.get<SourceManager>() }
@@ -138,7 +139,7 @@ fun DuplicateMangaDialog(
             // KMK <--
 
             Text(
-                text = stringResource(MR.strings.possible_duplicates_summary),
+                text = stringResource(if (selectToOpen) MR.strings.possible_duplicates_open_summary else MR.strings.possible_duplicates_summary),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.then(horizontalPaddingModifier),
             )

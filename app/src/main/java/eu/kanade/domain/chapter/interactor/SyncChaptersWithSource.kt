@@ -10,21 +10,22 @@ import eu.kanade.tachiyomi.data.download.DownloadProvider
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.online.HttpSource
-import com.hippo.unifile.UniFile
 import exh.source.isEhBasedManga
+import tachiyomi.core.common.storage.isSameFileAs
 import tachiyomi.data.chapter.ChapterSanitizer
 import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.chapter.interactor.ShouldUpdateDbChapter
 import tachiyomi.domain.chapter.interactor.UpdateChapter
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.chapter.model.NoChaptersException
+import tachiyomi.domain.chapter.model.retainedByRelink
 import tachiyomi.domain.chapter.model.toChapterUpdate
 import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.chapter.service.ChapterRecognition
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.manga.model.Manga
-import tachiyomi.source.local.isLocal
 import tachiyomi.source.local.io.LocalSourceFileSystem
+import tachiyomi.source.local.isLocal
 import java.lang.Long.max
 import java.time.ZonedDateTime
 import java.util.TreeSet
@@ -86,7 +87,8 @@ class SyncChaptersWithSource(
 
         val newChapters = mutableListOf<Chapter>()
         val updatedChapters = mutableListOf<Chapter>()
-        val removedChapters = unmatchedDbChapters
+        // Relinking must not erase the history of files absent from the replacement folder.
+        val removedChapters = unmatchedDbChapters.filterNot { source.isLocal() && it.retainedByRelink }
 
         // Used to not set upload date of older chapters
         // to a higher value than newer chapters
@@ -147,7 +149,7 @@ class SyncChaptersWithSource(
                         chapterNumber = chapter.chapterNumber,
                         scanlator = chapter.scanlator,
                         sourceOrder = chapter.sourceOrder,
-                        memo = chapter.memo,
+                        memo = if (source.isLocal() && dbChapter.retainedByRelink) dbChapter.memo else chapter.memo,
                     )
 
                     if (chapter.dateUpload != 0L) {
@@ -275,11 +277,8 @@ class SyncChaptersWithSource(
 
         val sourceFile = localSourceFileSystem.getChapterFile(manga.url, sourceChapter.url) ?: return null
         return candidates.firstOrNull { dbChapter ->
+            if (dbChapter.retainedByRelink) return@firstOrNull false
             localSourceFileSystem.getChapterFile(manga.url, dbChapter.url)?.isSameFileAs(sourceFile) == true
         }
-    }
-
-    private fun UniFile.isSameFileAs(other: UniFile): Boolean {
-        return uri == other.uri || (filePath != null && filePath == other.filePath)
     }
 }

@@ -6,7 +6,6 @@ import eu.kanade.domain.manga.interactor.DeleteSortTag
 import eu.kanade.domain.manga.interactor.GetPagePreviews
 import eu.kanade.domain.manga.interactor.GetSortTag
 import eu.kanade.domain.manga.interactor.ReorderSortTag
-import eu.kanade.domain.manga.interactor.SmartSearchMerge
 import eu.kanade.domain.source.interactor.CreateSourceCategory
 import eu.kanade.domain.source.interactor.DeleteSourceCategory
 import eu.kanade.domain.source.interactor.GetExhSavedSearch
@@ -129,7 +128,6 @@ class SYDomainModule : InjektModule {
         addFactory { DeleteMergeById(get()) }
         addFactory { GetMergedMangaForDownloading(get()) }
         // KMK -->
-        addFactory { SmartSearchMerge(get()) }
         // KMK <--
 
         addSingletonFactory<FavoritesEntryRepository> { FavoritesEntryRepositoryImpl(get()) }
