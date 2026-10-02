@@ -334,6 +334,7 @@ private fun loadDictionaryList(context: Context) {
 }
 
 private val _isImporting = kotlinx.coroutines.flow.MutableStateFlow(false)
+private val _dictionaryImportProgress = MutableStateFlow<String?>(null)
 private val _isImportingDb = kotlinx.coroutines.flow.MutableStateFlow(false)
 
 object SettingsDictionaryScreen : SearchableSettings {
@@ -358,6 +359,7 @@ object SettingsDictionaryScreen : SearchableSettings {
         ) { uris ->
             Log.d(TAG, "importLauncher: uris=${uris.size}")
             if (uris.isEmpty()) return@rememberLauncherForActivityResult
+            if (_isImporting.value) return@rememberLauncherForActivityResult
             scope.launch {
                 _isImporting.value = true
                 val successNames = mutableListOf<String>()
@@ -1247,6 +1249,7 @@ object SettingsDictionaryScreen : SearchableSettings {
         val scope = rememberCoroutineScope()
         val dictionaryPreferences = remember { Injekt.get<DictionaryPreferences>() }
         val isImporting by _isImporting.collectAsState()
+        val importProgress by _dictionaryImportProgress.collectAsState()
 
         val rawProfiles by dictionaryPreferences.rawProfiles().collectAsState()
         val rawActiveProfileId by dictionaryPreferences.rawActiveProfileId().collectAsState()
@@ -1417,6 +1420,14 @@ object SettingsDictionaryScreen : SearchableSettings {
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_dict_imported_list),
             preferenceItems = persistentListOf(
+                recommendedDictionariesPreference(
+                    busy = _isImporting,
+                    progress = _dictionaryImportProgress,
+                    onImported = { loadDictionaryList(context) },
+                    importArchive = { archive, profile ->
+                        importDictionaryFromArchive(context, archive, profile)
+                    },
+                ),
                 Preference.PreferenceItem.CustomPreference(
                     title = stringResource(MR.strings.pref_dict_imported_list),
                     content = {
@@ -1428,7 +1439,7 @@ object SettingsDictionaryScreen : SearchableSettings {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                         Spacer(Modifier.width(16.dp))
-                                        Text("Importing dictionary... Please wait.")
+                                        Text(importProgress ?: "Importing dictionary... Please wait.")
                                     }
                                 },
                                 confirmButton = {},
@@ -1443,7 +1454,7 @@ object SettingsDictionaryScreen : SearchableSettings {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 4.dp)
-                                    .clickable {
+                                    .clickable(enabled = !isImporting) {
                                         try {
                                             importLauncher?.launch(
                                                 arrayOf(
@@ -2749,12 +2760,27 @@ private suspend fun importDictionaryFromStream(
     context: Context,
     inputStream: java.io.InputStream,
     activeProfile: chimahon.anki.AnkiProfile,
+): Pair<String, Boolean> = withContext(Dispatchers.IO) {
+    val archive = File.createTempFile("chimahon_import_", ".zip", context.cacheDir)
+    try {
+        inputStream.use { input ->
+            archive.outputStream().use { output -> input.copyTo(output) }
+        }
+        importDictionaryFromArchive(context, archive, activeProfile)
+    } finally {
+        archive.delete()
+    }
+}
+
+private suspend fun importDictionaryFromArchive(
+    context: Context,
+    archive: File,
+    activeProfile: chimahon.anki.AnkiProfile,
 ): Pair<String, Boolean> {
     return withContext(Dispatchers.IO) {
         val dictionariesDir = File(context.getExternalFilesDir(null), "dictionaries")
         Log.d(TAG, "importDictionaryFromStream: dictionariesDir=${dictionariesDir.absolutePath}")
 
-        val tempZip = File(context.cacheDir, "chimahon_import_${System.currentTimeMillis()}.zip")
         val tempImportDir = File(context.cacheDir, "dict_import_tmp_${System.currentTimeMillis()}")
 
         try {
@@ -2766,16 +2792,10 @@ private suspend fun importDictionaryFromStream(
                 )
             }
 
-            inputStream.use { input ->
-                tempZip.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-
             Log.d(TAG, "importDictionaryFromStream: calling HoshiDicts.importDictionary...")
             tempImportDir.mkdirs()
             val result = HoshiDicts.importDictionary(
-                zipPath = tempZip.absolutePath,
+                zipPath = archive.absolutePath,
                 outputDir = tempImportDir.absolutePath,
             )
             Log.d(TAG, "importDictionaryFromStream: HoshiDicts result: success=${result.success} terms=${result.termCount} freq=${result.freqCount} pitch=${result.pitchCount} kanji=${result.kanjiCount} media=${result.mediaCount}")
@@ -2836,7 +2856,8 @@ private suspend fun importDictionaryFromStream(
 
             // Add to profile order once (dict name, no type prefix)
             val prefs = Injekt.get<DictionaryPreferences>()
-            val freshProfile = prefs.profileStore.getActiveProfile()
+            val freshProfile = prefs.profileStore.getProfiles().firstOrNull { it.id == activeProfile.id }
+                ?: activeProfile
             val orderList = freshProfile.dictionaryOrder.filter { it.isNotBlank() }
             if (title !in orderList) {
                 val newOrderList = orderList + title
@@ -2865,11 +2886,12 @@ private suspend fun importDictionaryFromStream(
         } catch (e: UnsatisfiedLinkError) {
             Log.e(TAG, "importDictionaryFromStream: UnsatisfiedLinkError", e)
             Pair("Native library not loaded. Check build configuration.", false)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Throwable) {
             Log.e(TAG, "importDictionaryFromStream: exception", e)
             Pair(e.message ?: context.stringResource(MR.strings.unknown_error), false)
         } finally {
-            if (tempZip.exists()) tempZip.delete()
             if (tempImportDir.exists()) tempImportDir.deleteRecursively()
         }
     }

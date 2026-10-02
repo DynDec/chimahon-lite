@@ -302,4 +302,17 @@
     <!-- Search history -->
     <string name="pref_search_history">Search history</string>
     <string name="pref_search_history_summary">Remember recent searches across screens</string>
+    <string name="dictionary_download_recommended">Download Recommended Dictionaries</string>
+    <string name="dictionary_download_summary">Download and import dictionaries directly into the active profile</string>
+    <string name="dictionary_download_prompt">Select a dictionary to download and import. Large dictionaries may take several minutes.</string>
+    <string name="dictionary_download_no_recommended">No recommended dictionaries for this profile language. Select a Japanese or Any language profile.</string>
+    <string name="dictionary_download_fetching">Fetching download information for %1$s…</string>
+    <string name="dictionary_download_downloading">Downloading %1$s…</string>
+    <string name="dictionary_download_importing">Importing %1$s… Please wait.</string>
+    <string name="dictionary_download_success">Successfully imported %1$s into the profile.</string>
+    <string name="dictionary_download_failed">Could not download or import %1$s. Check your connection and available storage, then try again.</string>
+    <string name="dictionary_recommended_term">Term dictionary</string>
+    <string name="dictionary_recommended_names">Names dictionary</string>
+    <string name="dictionary_recommended_frequency">Frequency dictionary</string>
+    <string name="dictionary_recommended_encyclopedia">Encyclopedia dictionary</string>
 </resources>
