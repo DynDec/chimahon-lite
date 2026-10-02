@@ -14,7 +14,6 @@ import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Security
@@ -313,16 +312,6 @@ object SettingsMainScreen : Screen() {
                 screen = SettingsTrackingScreen,
             ),
         ),
-        // AM (CONNECTIONS) -->
-        MainEntry.Item(
-            Item(
-                titleRes = KMR.strings.pref_category_connections,
-                subtitleRes = KMR.strings.pref_connections_summary,
-                icon = Icons.Outlined.Link,
-                screen = SettingsConnectionScreen,
-            ),
-        ),
-        // <-- AM (CONNECTIONS)
         MainEntry.Item(
             Item(
                 titleRes = MR.strings.label_data_storage,
