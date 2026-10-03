@@ -5,6 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.i18n.stringResource
 
 @Composable
@@ -17,7 +18,7 @@ fun UpdatesDeleteConfirmationDialog(
         text = {
             Text(
                 text = stringResource(
-                    if (isManga) MR.strings.confirm_delete_chapters else MR.strings.confirm_delete_episodes,
+                    if (isManga) KMR.strings.delete_local_chapters_confirmation else MR.strings.confirm_delete_episodes,
                 ),
             )
         },

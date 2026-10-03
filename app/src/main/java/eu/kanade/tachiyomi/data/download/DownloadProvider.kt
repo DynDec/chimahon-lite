@@ -34,6 +34,7 @@ class DownloadProvider(
     // SY -->
     private val downloadPreferences: DownloadPreferences = Injekt.get(),
     // SY <--
+    private val localFileSystem: LocalSourceFileSystem = Injekt.get(),
 ) {
 
     private val downloadsDir: UniFile?
@@ -101,6 +102,15 @@ class DownloadProvider(
     fun findMangaDir(mangaTitle: String, source: Source): UniFile? {
         val sourceDir = findSourceDir(source)
         return sourceDir?.findFile(getMangaDirName(mangaTitle))
+    }
+
+    /** Local entries can be folders or standalone files, and their metadata title can differ from their path. */
+    fun findMangaEntry(manga: Manga, source: Source): UniFile? {
+        return if (source.isLocal()) {
+            localFileSystem.getMangaEntry(manga.url)
+        } else {
+            findMangaDir(manga.ogTitle, source)
+        }
     }
 
     /**

@@ -61,6 +61,7 @@ fun MangaChapterListItem(
     downloadIndicatorEnabled: Boolean,
     downloadStateProvider: () -> Download.State,
     downloadProgressProvider: () -> Int,
+    isLocal: Boolean = false,
     isOcrReady: Boolean = false,
     isOcrRunning: Boolean = false,
     chapterSwipeStartAction: LibraryPreferences.ChapterSwipeAction,
@@ -73,25 +74,27 @@ fun MangaChapterListItem(
 ) {
     // KMK -->
     val swipeBackground = MaterialTheme.colorScheme.primaryContainer
-    val swipeStart = remember(chapterSwipeStartAction, read, bookmark, downloadStateProvider()) {
+    val swipeStart = remember(chapterSwipeStartAction, read, bookmark, downloadStateProvider(), isLocal) {
         // KMK <--
         getSwipeAction(
             action = chapterSwipeStartAction,
             read = read,
             bookmark = bookmark,
             downloadState = downloadStateProvider(),
+            isLocal = isLocal,
             background = swipeBackground,
             onSwipe = { onChapterSwipe(chapterSwipeStartAction) },
         )
     }
     // KMK -->
-    val swipeEnd = remember(chapterSwipeEndAction, read, bookmark, downloadStateProvider()) {
+    val swipeEnd = remember(chapterSwipeEndAction, read, bookmark, downloadStateProvider(), isLocal) {
         // KMK <--
         getSwipeAction(
             action = chapterSwipeEndAction,
             read = read,
             bookmark = bookmark,
             downloadState = downloadStateProvider(),
+            isLocal = isLocal,
             background = swipeBackground,
             onSwipe = { onChapterSwipe(chapterSwipeEndAction) },
         )
@@ -225,6 +228,7 @@ internal fun getSwipeAction(
     read: Boolean,
     bookmark: Boolean,
     downloadState: Download.State,
+    isLocal: Boolean = false,
     background: Color,
     onSwipe: () -> Unit,
 ): me.saket.swipe.SwipeAction? {
@@ -242,7 +246,7 @@ internal fun getSwipeAction(
             onSwipe = onSwipe,
         )
         LibraryPreferences.ChapterSwipeAction.Download -> swipeAction(
-            icon = when (downloadState) {
+            icon = if (isLocal) Icons.Outlined.Delete else when (downloadState) {
                 Download.State.NOT_DOWNLOADED, Download.State.ERROR -> Icons.Outlined.Download
                 Download.State.QUEUE, Download.State.DOWNLOADING -> Icons.Outlined.FileDownloadOff
                 Download.State.DOWNLOADED -> Icons.Outlined.Delete

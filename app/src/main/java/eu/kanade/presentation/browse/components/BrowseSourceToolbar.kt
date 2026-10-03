@@ -49,8 +49,8 @@ fun BrowseSourceToolbar(
     // KMK <--
 ) {
     // Avoid capturing unstable source in actions lambda
-    val title = source?.name
     val isLocalSource = source is LocalSource
+    val title = if (isLocalSource) stringResource(KMR.strings.local_titles) else source?.name
 
     var selectingDisplayMode by remember { mutableStateOf(false) }
 

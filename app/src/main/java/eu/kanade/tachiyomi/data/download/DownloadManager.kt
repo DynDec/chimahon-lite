@@ -327,7 +327,7 @@ class DownloadManager(
                 )
                 downloader.removeFromQueue(manga)
             }
-            provider.findMangaDir(/* SY --> */ manga.ogTitle /* SY <-- */, source)?.delete()
+            provider.findMangaEntry(manga, source)?.delete()
             cache.removeManga(manga)
 
             // KMK -->

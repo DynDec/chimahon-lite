@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.components.LabeledCheckbox
 import tachiyomi.presentation.core.components.RadioItem
 import tachiyomi.presentation.core.components.SortItem
@@ -131,7 +133,7 @@ private fun ColumnScope.SortPage(
 ) {
     listOf(
         MR.strings.sort_by_number to Manga.CHAPTER_SORTING_NUMBER,
-        MR.strings.sort_by_upload_date to Manga.CHAPTER_SORTING_UPLOAD_DATE,
+        KMR.strings.sort_by_chapter_date to Manga.CHAPTER_SORTING_UPLOAD_DATE,
         MR.strings.action_sort_alpha to Manga.CHAPTER_SORTING_ALPHABET,
     ).map { (titleRes, mode) ->
         SortItem(
@@ -140,6 +142,11 @@ private fun ColumnScope.SortPage(
             onClick = { onItemSelected(mode) },
         )
     }
+    Text(
+        text = stringResource(KMR.strings.chapter_date_summary),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        style = MaterialTheme.typography.bodySmall,
+    )
 }
 
 @Composable

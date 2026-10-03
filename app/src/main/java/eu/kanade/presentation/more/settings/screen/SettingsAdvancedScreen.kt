@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.provider.Settings
-import android.webkit.WebStorage
-import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,7 +41,6 @@ import eu.kanade.tachiyomi.data.ocr.ModelDownloader
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.library.MetadataUpdateJob
 import eu.kanade.tachiyomi.data.updater.AppUpdateJob
-import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.NetworkPreferences
 import eu.kanade.tachiyomi.network.PREF_DOH_360
 import eu.kanade.tachiyomi.network.PREF_DOH_ADGUARD
@@ -64,7 +61,6 @@ import eu.kanade.tachiyomi.util.storage.DiskUtil
 import eu.kanade.tachiyomi.util.system.GLUtil
 import eu.kanade.tachiyomi.util.system.isDebugBuildType
 import eu.kanade.tachiyomi.util.system.powerManager
-import eu.kanade.tachiyomi.util.system.setDefaultSettings
 import eu.kanade.tachiyomi.util.system.toast
 import exh.debug.SettingsDebugScreen
 import exh.log.EHLogLevel
@@ -291,7 +287,6 @@ object SettingsAdvancedScreen : SearchableSettings {
         networkPreferences: NetworkPreferences,
     ): Preference.PreferenceGroup {
         val context = LocalContext.current
-        val networkHelper = remember { Injekt.get<NetworkHelper>() }
 
         val userAgentPref = networkPreferences.defaultUserAgent()
         val userAgent by userAgentPref.collectAsState()
@@ -299,35 +294,6 @@ object SettingsAdvancedScreen : SearchableSettings {
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.label_network),
             preferenceItems = persistentListOf(
-                Preference.PreferenceItem.TextPreference(
-                    title = stringResource(MR.strings.pref_clear_cookies),
-                    onClick = {
-                        networkHelper.cookieJar.removeAll()
-                        context.toast(MR.strings.cookies_cleared)
-                    },
-                ),
-                Preference.PreferenceItem.TextPreference(
-                    title = stringResource(MR.strings.pref_clear_webview_data),
-                    onClick = {
-                        try {
-                            WebView(context).run {
-                                setDefaultSettings()
-                                clearCache(true)
-                                clearFormData()
-                                clearHistory()
-                                clearSslPreferences()
-                            }
-                            WebStorage.getInstance().deleteAllData()
-                            context.applicationInfo?.dataDir?.let {
-                                File("$it/app_webview/").deleteRecursively()
-                            }
-                            context.toast(MR.strings.webview_data_deleted)
-                        } catch (e: Throwable) {
-                            logcat(LogPriority.ERROR, e)
-                            context.toast(MR.strings.cache_delete_error)
-                        }
-                    },
-                ),
                 Preference.PreferenceItem.ListPreference(
                     preference = networkPreferences.dohProvider(),
                     entries = persistentMapOf(

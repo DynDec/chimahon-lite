@@ -54,7 +54,7 @@ fun Screen.sourcesTab(
         actions = persistentListOf<AppBar.Action>().let { actions ->
             actions.add(
                 AppBar.Action(
-                    title = stringResource(MR.strings.action_global_search),
+                    title = stringResource(KMR.strings.action_search_local_titles),
                     icon = Icons.Outlined.TravelExplore,
                     onClick = { navigator.push(GlobalSearchScreen(smartSearchConfig?.origTitle ?: "")) },
                 ),

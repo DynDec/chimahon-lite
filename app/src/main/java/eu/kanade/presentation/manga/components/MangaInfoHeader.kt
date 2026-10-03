@@ -321,7 +321,7 @@ fun ExpandableMangaDescription(
                     )
                     // SY -->
                     DropdownMenuItem(
-                        text = { Text(text = stringResource(MR.strings.action_global_search)) },
+                        text = { Text(text = stringResource(KMR.strings.action_search_local_titles)) },
                         onClick = {
                             doSearch(tagSelected, true)
                             showMenu = false
@@ -593,7 +593,7 @@ private fun ColumnScope.MangaContentInfo(
             },
         )
         DropdownMenuItem(
-            text = { Text(text = stringResource(MR.strings.action_global_search)) },
+            text = { Text(text = stringResource(KMR.strings.action_search_local_titles)) },
             onClick = {
                 doSearch(tagSelected, true)
                 showMenu = false
@@ -689,54 +689,65 @@ private fun ColumnScope.MangaContentInfo(
         }
     }
 
-    Spacer(modifier = Modifier.height(2.dp))
-
-    Row(
-        modifier = Modifier.secondaryItemAlpha(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = when (status) {
-                SManga.ONGOING.toLong() -> Icons.Outlined.Schedule
-                SManga.COMPLETED.toLong() -> Icons.Outlined.DoneAll
-                SManga.LICENSED.toLong() -> Icons.Outlined.AttachMoney
-                SManga.PUBLISHING_FINISHED.toLong() -> Icons.Outlined.Done
-                SManga.CANCELLED.toLong() -> Icons.Outlined.Close
-                SManga.ON_HIATUS.toLong() -> Icons.Outlined.Pause
-                else -> Icons.Outlined.Block
-            },
-            contentDescription = null,
-            modifier = Modifier
-                .padding(end = 4.dp)
-                .size(16.dp),
+    if (
+        status in listOf(
+            SManga.ONGOING.toLong(),
+            SManga.COMPLETED.toLong(),
+            SManga.LICENSED.toLong(),
+            SManga.PUBLISHING_FINISHED.toLong(),
+            SManga.CANCELLED.toLong(),
+            SManga.ON_HIATUS.toLong(),
         )
-        ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-            Text(
-                text = when (status) {
-                    SManga.ONGOING.toLong() -> stringResource(MR.strings.ongoing)
-                    SManga.COMPLETED.toLong() -> stringResource(MR.strings.completed)
-                    SManga.LICENSED.toLong() -> stringResource(MR.strings.licensed)
-                    SManga.PUBLISHING_FINISHED.toLong() -> stringResource(MR.strings.publishing_finished)
-                    SManga.CANCELLED.toLong() -> stringResource(MR.strings.cancelled)
-                    SManga.ON_HIATUS.toLong() -> stringResource(MR.strings.on_hiatus)
-                    else -> stringResource(MR.strings.unknown)
+    ) {
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Row(
+            modifier = Modifier.secondaryItemAlpha(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = when (status) {
+                    SManga.ONGOING.toLong() -> Icons.Outlined.Schedule
+                    SManga.COMPLETED.toLong() -> Icons.Outlined.DoneAll
+                    SManga.LICENSED.toLong() -> Icons.Outlined.AttachMoney
+                    SManga.PUBLISHING_FINISHED.toLong() -> Icons.Outlined.Done
+                    SManga.CANCELLED.toLong() -> Icons.Outlined.Close
+                    SManga.ON_HIATUS.toLong() -> Icons.Outlined.Pause
+                    else -> Icons.Outlined.Block
                 },
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(end = 4.dp)
+                    .size(16.dp),
             )
-            // KMK -->
-            if (isSourceIncognito) {
-                DotSeparatorText()
-                Icon(
-                    painter = rememberVectorPainter(ImageVector.vectorResource(R.drawable.ic_glasses_with_hat_24dp)),
-                    contentDescription = stringResource(MR.strings.pref_incognito_mode),
-                    modifier = Modifier
-                        .padding(end = 4.dp)
-                        .size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+            ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+                Text(
+                    text = when (status) {
+                        SManga.ONGOING.toLong() -> stringResource(MR.strings.ongoing)
+                        SManga.COMPLETED.toLong() -> stringResource(MR.strings.completed)
+                        SManga.LICENSED.toLong() -> stringResource(MR.strings.licensed)
+                        SManga.PUBLISHING_FINISHED.toLong() -> stringResource(MR.strings.publishing_finished)
+                        SManga.CANCELLED.toLong() -> stringResource(MR.strings.cancelled)
+                        SManga.ON_HIATUS.toLong() -> stringResource(MR.strings.on_hiatus)
+                        else -> stringResource(MR.strings.unknown)
+                    },
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
                 )
+                // KMK -->
+                if (isSourceIncognito) {
+                    DotSeparatorText()
+                    Icon(
+                        painter = rememberVectorPainter(ImageVector.vectorResource(R.drawable.ic_glasses_with_hat_24dp)),
+                        contentDescription = stringResource(MR.strings.pref_incognito_mode),
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                // KMK <--
             }
-            // KMK <--
         }
     }
 }

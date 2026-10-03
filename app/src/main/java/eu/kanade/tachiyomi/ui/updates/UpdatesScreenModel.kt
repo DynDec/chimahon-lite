@@ -54,6 +54,7 @@ import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.updates.interactor.GetUpdates
 import tachiyomi.domain.updates.model.UpdatesWithRelations
 import tachiyomi.domain.updates.service.UpdatesPreferences
+import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.time.ZonedDateTime
@@ -535,6 +536,10 @@ class UpdatesScreenModel(
                 bookmarkUpdates(listOf(updateItem), !update.bookmark)
             }
             LibraryPreferences.ChapterSwipeAction.Download -> {
+                if (update.sourceId == LocalSource.ID) {
+                    showConfirmDeleteChapters(listOf(updateItem))
+                    return
+                }
                 val downloadAction = when (updateItem.downloadStateProvider()) {
                     Download.State.ERROR,
                     Download.State.NOT_DOWNLOADED,

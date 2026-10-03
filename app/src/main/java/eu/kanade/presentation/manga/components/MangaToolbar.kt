@@ -231,7 +231,7 @@ fun MangaToolbar(
                     }
                     add(
                         AppBar.OverflowAction(
-                            title = stringResource(KMR.strings.action_clear_manga),
+                            title = stringResource(KMR.strings.manage_manga_data),
                             onClick = onClearManga,
                         ),
                     )

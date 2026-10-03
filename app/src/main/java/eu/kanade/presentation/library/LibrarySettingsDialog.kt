@@ -142,7 +142,7 @@ private fun ColumnScope.FilterPage(
     )
     val filterCompleted by screenModel.libraryPreferences.filterCompleted().collectAsState()
     TriStateItem(
-        label = stringResource(MR.strings.completed),
+        label = stringResource(KMR.strings.publication_completed),
         state = filterCompleted,
         onClick = { screenModel.toggleFilter(LibraryPreferences::filterCompleted) },
     )

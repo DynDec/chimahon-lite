@@ -70,6 +70,7 @@ import tachiyomi.presentation.core.components.material.DISABLED_ALPHA
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.selectedBackground
+import tachiyomi.source.local.LocalSource
 
 internal fun LazyListScope.updatesLastUpdatedItem(
     lastUpdated: Long,
@@ -251,22 +252,24 @@ private fun UpdatesUiItem(
 
     // KMK -->
     val swipeBackground = MaterialTheme.colorScheme.primaryContainer
-    val swipeStart = remember(updateSwipeStartAction, update.read, update.bookmark, downloadStateProvider()) {
+    val swipeStart = remember(updateSwipeStartAction, update.read, update.bookmark, downloadStateProvider(), update.sourceId) {
         getSwipeAction(
             action = updateSwipeStartAction,
             read = update.read,
             bookmark = update.bookmark,
             downloadState = downloadStateProvider(),
+            isLocal = update.sourceId == LocalSource.ID,
             background = swipeBackground,
             onSwipe = { onUpdateSwipe(updateSwipeStartAction) },
         )
     }
-    val swipeEnd = remember(updateSwipeEndAction, update.read, update.bookmark, downloadStateProvider()) {
+    val swipeEnd = remember(updateSwipeEndAction, update.read, update.bookmark, downloadStateProvider(), update.sourceId) {
         getSwipeAction(
             action = updateSwipeEndAction,
             read = update.read,
             bookmark = update.bookmark,
             downloadState = downloadStateProvider(),
+            isLocal = update.sourceId == LocalSource.ID,
             background = swipeBackground,
             onSwipe = { onUpdateSwipe(updateSwipeEndAction) },
         )

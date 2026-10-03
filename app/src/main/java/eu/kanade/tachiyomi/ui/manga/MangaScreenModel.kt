@@ -1224,6 +1224,11 @@ class MangaScreenModel(
                 bookmarkChapters(listOf(chapter), !chapter.bookmark)
             }
             LibraryPreferences.ChapterSwipeAction.Download -> {
+                // Keep the persisted enum name for backups; the local UI exposes a confirmed delete action.
+                if (successState?.manga?.isLocal() == true) {
+                    showDeleteChapterDialog(listOf(chapter))
+                    return
+                }
                 val downloadAction: ChapterDownloadAction = when (chapterItem.downloadState) {
                     Download.State.ERROR,
                     Download.State.NOT_DOWNLOADED,

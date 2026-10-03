@@ -269,7 +269,15 @@ data class BrowseSourceScreen(
                                 )
                             },
                             label = {
-                                Text(text = stringResource(MR.strings.popular))
+                                Text(
+                                    text = stringResource(
+                                        if (screenModel.source is LocalSource) {
+                                            KMR.strings.all_local_titles
+                                        } else {
+                                            MR.strings.popular
+                                        },
+                                    ),
+                                )
                             },
                         )
                         if (screenModel.source.supportsLatest) {
@@ -288,7 +296,15 @@ data class BrowseSourceScreen(
                                     )
                                 },
                                 label = {
-                                    Text(text = stringResource(MR.strings.latest))
+                                    Text(
+                                        text = stringResource(
+                                            if (screenModel.source is LocalSource) {
+                                                KMR.strings.recently_modified
+                                            } else {
+                                                MR.strings.latest
+                                            },
+                                        ),
+                                    )
                                 },
                             )
                         }

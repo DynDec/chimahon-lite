@@ -3,6 +3,8 @@ package eu.kanade.presentation.more.settings.screen
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebStorage
+import android.webkit.WebView
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,7 +82,9 @@ import eu.kanade.tachiyomi.data.sync.SyncDataJob
 import eu.kanade.tachiyomi.data.sync.SyncManager
 import eu.kanade.tachiyomi.data.sync.service.GoogleDriveService
 import eu.kanade.tachiyomi.data.sync.service.GoogleDriveSyncService
+import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.util.system.DeviceUtil
+import eu.kanade.tachiyomi.util.system.setDefaultSettings
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
@@ -139,6 +143,7 @@ object SettingsDataScreen : SearchableSettings {
     override fun getPreferences(): List<Preference> {
         val backupPreferences = Injekt.get<BackupPreferences>()
         val storagePreferences = Injekt.get<StoragePreferences>()
+        var storageRefresh by remember { mutableIntStateOf(0) }
 
         val syncPreferences = remember { Injekt.get<SyncPreferences>() }
         val syncService by syncPreferences.syncService().collectAsState()
@@ -150,7 +155,8 @@ object SettingsDataScreen : SearchableSettings {
             Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.pref_manga_directory_info)),
 
             getBackupAndRestoreGroup(backupPreferences = backupPreferences),
-            getDataGroup(),
+            getDataGroup(storageRefresh),
+            getCacheGroup(onStorageChanged = { storageRefresh++ }),
             getExportGroup(),
             getDictionaryGroup(),
         ) +
@@ -382,22 +388,7 @@ object SettingsDataScreen : SearchableSettings {
     }
 
     @Composable
-    private fun getDataGroup(): Preference.PreferenceGroup {
-        val context = LocalContext.current
-        val scope = rememberCoroutineScope()
-        val libraryPreferences = remember { Injekt.get<LibraryPreferences>() }
-
-        val chapterCache = remember { Injekt.get<ChapterCache>() }
-        var cacheReadableSizeSema by remember { mutableIntStateOf(0) }
-        val cacheReadableSize = remember(cacheReadableSizeSema) { chapterCache.readableSize }
-        var storageRefresh by remember { mutableIntStateOf(0) }
-
-        // SY -->
-        val pagePreviewCache = remember { Injekt.get<PagePreviewCache>() }
-        var pagePreviewReadableSizeSema by remember { mutableIntStateOf(0) }
-        val pagePreviewReadableSize = remember(pagePreviewReadableSizeSema) { pagePreviewCache.readableSize }
-        // SY <--
-
+    private fun getDataGroup(storageRefresh: Int): Preference.PreferenceGroup {
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.pref_storage_usage),
             preferenceItems = persistentListOf(
@@ -414,9 +405,32 @@ object SettingsDataScreen : SearchableSettings {
                         },
                     )
                 },
+            ),
+        )
+    }
 
+    @Composable
+    private fun getCacheGroup(onStorageChanged: () -> Unit): Preference.PreferenceGroup {
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+        val networkHelper = remember { Injekt.get<NetworkHelper>() }
+        val libraryPreferences = remember { Injekt.get<LibraryPreferences>() }
+
+        val chapterCache = remember { Injekt.get<ChapterCache>() }
+        var cacheReadableSizeSema by remember { mutableIntStateOf(0) }
+        val cacheReadableSize = remember(cacheReadableSizeSema) { chapterCache.readableSize }
+
+        // SY -->
+        val pagePreviewCache = remember { Injekt.get<PagePreviewCache>() }
+        var pagePreviewReadableSizeSema by remember { mutableIntStateOf(0) }
+        val pagePreviewReadableSize = remember(pagePreviewReadableSizeSema) { pagePreviewCache.readableSize }
+        // SY <--
+
+        return Preference.PreferenceGroup(
+            title = stringResource(KMR.strings.cache_and_browsing_data),
+            preferenceItems = persistentListOf(
                 Preference.PreferenceItem.TextPreference(
-                    title = stringResource(MR.strings.pref_clear_chapter_cache),
+                    title = stringResource(KMR.strings.clear_legacy_chapter_cache),
                     subtitle = stringResource(MR.strings.used_cache, cacheReadableSize),
                     onClick = {
                         scope.launchNonCancellable {
@@ -425,6 +439,7 @@ object SettingsDataScreen : SearchableSettings {
                                 withUIContext {
                                     context.toast(context.stringResource(MR.strings.cache_deleted, deletedFiles))
                                     cacheReadableSizeSema++
+                                    onStorageChanged()
                                 }
                             } catch (e: Throwable) {
                                 logcat(LogPriority.ERROR, e)
@@ -433,10 +448,10 @@ object SettingsDataScreen : SearchableSettings {
                         }
                     },
                 ),
-                coverCleanupPreference(onComplete = { storageRefresh++ }),
+                coverCleanupPreference(onComplete = onStorageChanged),
                 // SY -->
                 Preference.PreferenceItem.TextPreference(
-                    title = stringResource(SYMR.strings.pref_clear_page_preview_cache),
+                    title = stringResource(KMR.strings.clear_legacy_page_preview_cache),
                     subtitle = stringResource(MR.strings.used_cache, pagePreviewReadableSize),
                     onClick = {
                         scope.launchNonCancellable {
@@ -445,6 +460,7 @@ object SettingsDataScreen : SearchableSettings {
                                 withUIContext {
                                     context.toast(context.stringResource(MR.strings.cache_deleted, deletedFiles))
                                     pagePreviewReadableSizeSema++
+                                    onStorageChanged()
                                 }
                             } catch (e: Throwable) {
                                 logcat(LogPriority.ERROR, e)
@@ -454,6 +470,36 @@ object SettingsDataScreen : SearchableSettings {
                     },
                 ),
                 // SY <--
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(MR.strings.pref_clear_cookies),
+                    subtitle = stringResource(KMR.strings.website_cookies_summary),
+                    onClick = {
+                        networkHelper.cookieJar.removeAll()
+                        context.toast(MR.strings.cookies_cleared)
+                    },
+                ),
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(MR.strings.pref_clear_webview_data),
+                    onClick = {
+                        try {
+                            WebView(context).run {
+                                setDefaultSettings()
+                                clearCache(true)
+                                clearFormData()
+                                clearHistory()
+                                clearSslPreferences()
+                            }
+                            WebStorage.getInstance().deleteAllData()
+                            context.applicationInfo?.dataDir?.let {
+                                File("$it/app_webview/").deleteRecursively()
+                            }
+                            context.toast(MR.strings.webview_data_deleted)
+                        } catch (e: Throwable) {
+                            logcat(LogPriority.ERROR, e)
+                            context.toast(MR.strings.cache_delete_error)
+                        }
+                    },
+                ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = libraryPreferences.autoClearChapterCache(),
                     title = stringResource(MR.strings.pref_auto_clear_chapter_cache),

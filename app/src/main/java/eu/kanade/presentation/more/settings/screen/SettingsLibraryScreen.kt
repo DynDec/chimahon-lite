@@ -121,7 +121,7 @@ object SettingsLibraryScreen : SearchableSettings {
                         LibraryPreferences.ChapterSwipeAction.ToggleRead to
                             stringResource(MR.strings.action_mark_as_read),
                         LibraryPreferences.ChapterSwipeAction.Download to
-                            stringResource(MR.strings.action_download),
+                            stringResource(KMR.strings.delete_local_chapter),
                     ),
                     title = stringResource(MR.strings.pref_chapter_swipe_start),
                 ),
@@ -135,7 +135,7 @@ object SettingsLibraryScreen : SearchableSettings {
                         LibraryPreferences.ChapterSwipeAction.ToggleRead to
                             stringResource(MR.strings.action_mark_as_read),
                         LibraryPreferences.ChapterSwipeAction.Download to
-                            stringResource(MR.strings.action_download),
+                            stringResource(KMR.strings.delete_local_chapter),
                     ),
                     title = stringResource(MR.strings.pref_chapter_swipe_end),
                 ),

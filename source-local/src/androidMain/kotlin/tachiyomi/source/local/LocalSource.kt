@@ -11,9 +11,12 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import eu.kanade.tachiyomi.util.lang.compareToCaseInsensitiveNaturalOrder
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import logcat.LogPriority
@@ -37,6 +40,7 @@ import tachiyomi.core.metadata.comicinfo.getComicInfo
 import tachiyomi.core.metadata.tachiyomi.MangaDetails
 import tachiyomi.domain.chapter.service.ChapterRecognition
 import tachiyomi.domain.manga.model.Manga
+import tachiyomi.domain.manga.model.matchesLocalMangaSearch
 import tachiyomi.i18n.MR
 import tachiyomi.source.local.filter.OrderBy
 import tachiyomi.source.local.image.LocalCoverManager
@@ -105,16 +109,7 @@ class LocalSource(
                         isSupportedChapter(entry)
                     }
             }
-            .filter { entry ->
-                val title = entry.localTitle()
-                if (lastModifiedLimit == 0L && query.isBlank()) {
-                    true
-                } else if (lastModifiedLimit == 0L) {
-                    title.contains(query, ignoreCase = true)
-                } else {
-                    entry.lastModified() >= lastModifiedLimit
-                }
-            }
+            .filter { entry -> lastModifiedLimit == 0L || entry.lastModified() >= lastModifiedLimit }
 
         filters.forEach { filter ->
             when (filter) {
@@ -138,23 +133,28 @@ class LocalSource(
             }
         }
 
-        val mangas = mangaEntries
-            .map { mangaEntry ->
-                async {
-                    SManga.create().apply {
-                        title = mangaEntry.localTitle()
-                        // Keep the media URI as the identity so a library entry remains valid
-                        // when the user changes the folder currently shown in Browse.
-                        url = mangaEntry.uri.toString()
-
-                        // Try to find the cover
-                        coverManager.find(url)?.let {
-                            thumbnail_url = it.uri.toString()
-                        }
+        val metadataReads = Semaphore(4)
+        val mangas = mangaEntries.map { mangaEntry ->
+            async {
+                val filenameTitle = mangaEntry.localTitle()
+                val manga = SManga.create().apply {
+                    title = filenameTitle
+                    // Preserve the URI identity across folder changes and metadata title edits.
+                    url = mangaEntry.uri.toString()
+                    coverManager.find(url)?.let { thumbnail_url = it.uri.toString() }
+                }
+                if (query.isNotBlank() && lastModifiedLimit == 0L) {
+                    if (!filenameTitle.contains(query.trim(), ignoreCase = true)) {
+                        metadataReads.withPermit { readSearchMetadata(mangaEntry, manga) }
                     }
+                    manga.takeIf {
+                        matchesLocalMangaSearch(query, filenameTitle, it.title, it.author, it.artist, it.genre)
+                    }
+                } else {
+                    manga
                 }
             }
-            .awaitAll()
+        }.awaitAll().filterNotNull()
 
         MangasPage(mangas, false)
     }
@@ -208,6 +208,47 @@ class LocalSource(
         val asyncManga = if (fetchDetails) async { getMangaDetails(manga) } else null
         val asyncChapters = if (fetchChapters) async { getChapterList(manga) } else null
         SMangaUpdate(asyncManga?.await() ?: manga, asyncChapters?.await() ?: chapters)
+    }
+
+    /** Search must not migrate metadata, create .noxml files, or extract covers into the source folder. */
+    private fun readSearchMetadata(entry: UniFile, manga: SManga) {
+        try {
+            val files = if (entry.isDirectory) entry.listFiles().orEmpty().toList() else listOf(entry)
+            val comicInfo = files.firstOrNull { it.name == COMIC_INFO_FILE }
+            val packedInfo = files.firstOrNull { it.name == COMIC_INFO_ARCHIVE }
+            val legacyInfo = files.firstOrNull { it.extension == "json" }
+            when {
+                comicInfo != null -> comicInfo.openInputStream().use { setMangaDetailsFromComicInfoFile(it, manga) }
+                packedInfo != null -> getComicInfoForChapter(packedInfo) { stream, _ ->
+                    setMangaDetailsFromComicInfoFile(stream, manga)
+                }
+                legacyInfo != null -> legacyInfo.openInputStream().use { stream ->
+                    json.decodeFromStream<MangaDetails>(stream).run {
+                        title?.let { manga.title = it }
+                        author?.let { manga.author = it }
+                        artist?.let { manga.artist = it }
+                        genre?.let { manga.genre = it.joinToString() }
+                    }
+                }
+                else -> {
+                    for (file in files.filter { isVisible(it, allowHiddenFiles()) && isSupportedChapter(it) }) {
+                        if (file.extension.equals("epub", true)) {
+                            file.epubReader(context).use { it.fillMetadata(manga, SChapter.create()) }
+                            if (!manga.author.isNullOrBlank()) break
+                        } else if (getComicInfoForChapter(file) { stream, _ ->
+                            setMangaDetailsFromComicInfoFile(stream, manga)
+                            true
+                        } == true) {
+                            break
+                        }
+                    }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e) { "Error reading local search metadata for ${manga.title}" }
+        }
     }
 
     // Manga details related

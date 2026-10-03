@@ -5,7 +5,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
-import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.i18n.stringResource
 
 @Composable
@@ -19,7 +19,7 @@ internal fun GlobalSearchItem(
         onClick = onClick,
     ) {
         Text(
-            text = stringResource(MR.strings.action_global_search_query, searchQuery),
+            text = stringResource(KMR.strings.action_search_local_titles_query, searchQuery),
             modifier = Modifier.zIndex(99f),
         )
     }

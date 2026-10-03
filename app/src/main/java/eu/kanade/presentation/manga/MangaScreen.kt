@@ -1340,6 +1340,7 @@ private fun LazyListScope.sharedChapterItems(
                     !isAnyChapterSelected && !(mergedData?.manga?.get(item.chapter.mangaId) ?: manga).isLocal(),
                     downloadStateProvider = { item.downloadState },
                     downloadProgressProvider = { item.downloadProgress },
+                    isLocal = manga.isLocal(),
                     isOcrReady = item.isOcrReady,
                     isOcrRunning = item.isOcrRunning,
                     chapterSwipeStartAction = chapterSwipeStartAction,

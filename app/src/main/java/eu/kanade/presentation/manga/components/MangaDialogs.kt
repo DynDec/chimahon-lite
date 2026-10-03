@@ -51,7 +51,7 @@ fun DeleteChaptersDialog(
             Text(text = stringResource(MR.strings.are_you_sure))
         },
         text = {
-            Text(text = stringResource(MR.strings.confirm_delete_chapters))
+            Text(text = stringResource(KMR.strings.delete_local_chapters_confirmation))
         },
     )
 }
@@ -65,8 +65,8 @@ fun ClearMangaDialog(
     var list by remember {
         mutableStateOf(
             buildList<CheckboxState.State<StringResource>> {
-                add(CheckboxState.State.None(KMR.strings.downloaded_data))
-                add(CheckboxState.State.None(KMR.strings.chapters_from_database))
+                add(CheckboxState.State.None(KMR.strings.delete_local_manga_files))
+                add(CheckboxState.State.None(KMR.strings.reset_chapter_records))
             },
         )
     }
@@ -92,7 +92,7 @@ fun ClearMangaDialog(
             }
         },
         title = {
-            Text(text = stringResource(MR.strings.action_remove))
+            Text(text = stringResource(KMR.strings.manage_manga_data))
         },
         text = {
             Column {
@@ -106,6 +106,12 @@ fun ClearMangaDialog(
                             list = mutableList.toList()
                         },
                     )
+                }
+                if (list[0].isChecked) {
+                    Text(text = stringResource(KMR.strings.local_manga_folder_delete_warning))
+                }
+                if (list[1].isChecked) {
+                    Text(text = stringResource(KMR.strings.chapter_records_reset_warning))
                 }
             }
         },

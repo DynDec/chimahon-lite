@@ -315,4 +315,25 @@
     <string name="dictionary_recommended_names">Names dictionary</string>
     <string name="dictionary_recommended_frequency">Frequency dictionary</string>
     <string name="dictionary_recommended_encyclopedia">Encyclopedia dictionary</string>
+
+    <!-- Local-only UI -->
+    <string name="action_search_local_titles">Search local titles</string>
+    <string name="local_titles">Local titles</string>
+    <string name="all_local_titles">All titles</string>
+    <string name="recently_modified">Recently modified</string>
+    <string name="publication_completed">Publication completed</string>
+    <string name="sort_by_chapter_date">Chapter date</string>
+    <string name="chapter_date_summary">Uses the date in chapter metadata when available; otherwise the file modification date.</string>
+    <string name="delete_local_chapter">Delete local chapter (confirm)</string>
+    <string name="delete_local_chapters_confirmation">Delete the selected chapter files from storage? This cannot be undone.</string>
+    <string name="manage_manga_data">Manage manga data</string>
+    <string name="delete_local_manga_files">Delete local manga files</string>
+    <string name="reset_chapter_records">Reset chapter records</string>
+    <string name="local_manga_folder_delete_warning">Deletes this manga’s local file or folder, including chapters and metadata. This cannot be undone.</string>
+    <string name="chapter_records_reset_warning">Clears saved chapter records, reading progress, and bookmarks. Local files stay on disk and can be scanned again with Refresh.</string>
+    <string name="cache_and_browsing_data">Cache and browsing data</string>
+    <string name="clear_legacy_chapter_cache">Clear legacy online chapter cache</string>
+    <string name="clear_legacy_page_preview_cache">Clear legacy page preview cache</string>
+    <string name="website_cookies_summary">Clears website cookies. Website sessions may need to sign in again.</string>
+    <string name="action_search_local_titles_query">Search local titles for \"%1$s\"</string>
 </resources>
