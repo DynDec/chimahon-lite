@@ -37,7 +37,6 @@ import eu.kanade.presentation.components.TabbedDialogPaddings
 import eu.kanade.presentation.more.settings.widget.TriStateListDialog
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.library.LibrarySettingsScreenModel
-import eu.kanade.tachiyomi.util.system.isReleaseBuildType
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.map
@@ -123,14 +122,6 @@ private fun ColumnScope.FilterPage(
     screenModel: LibrarySettingsScreenModel,
     categories: List<Category>,
 ) {
-    val filterDownloaded by screenModel.libraryPreferences.filterDownloaded().collectAsState()
-    val autoUpdateMangaRestrictions by screenModel.libraryPreferences.autoUpdateMangaRestrictions().collectAsState()
-
-    TriStateItem(
-        label = stringResource(MR.strings.label_downloaded),
-        state = filterDownloaded,
-        onClick = { screenModel.toggleFilter(LibraryPreferences::filterDownloaded) },
-    )
     val filterUnread by screenModel.libraryPreferences.filterUnread().collectAsState()
     TriStateItem(
         label = stringResource(MR.strings.action_filter_unread),
@@ -155,15 +146,6 @@ private fun ColumnScope.FilterPage(
         state = filterCompleted,
         onClick = { screenModel.toggleFilter(LibraryPreferences::filterCompleted) },
     )
-    // TODO: re-enable when custom intervals are ready for stable
-    if ((!isReleaseBuildType) && LibraryPreferences.MANGA_OUTSIDE_RELEASE_PERIOD in autoUpdateMangaRestrictions) {
-        val filterIntervalCustom by screenModel.libraryPreferences.filterIntervalCustom().collectAsState()
-        TriStateItem(
-            label = stringResource(MR.strings.action_filter_interval_custom),
-            state = filterIntervalCustom,
-            onClick = { screenModel.toggleFilter(LibraryPreferences::filterIntervalCustom) },
-        )
-    }
     // SY -->
     val filterLewd by screenModel.libraryPreferences.filterLewd().collectAsState()
     TriStateItem(
@@ -350,10 +332,6 @@ private fun ColumnScope.DisplayPage(
     }
 
     HeadingItem(MR.strings.overlay_header)
-    CheckboxItem(
-        label = stringResource(MR.strings.action_display_download_badge),
-        pref = screenModel.libraryPreferences.downloadBadge(),
-    )
     CheckboxItem(
         label = stringResource(MR.strings.action_display_unread_badge),
         pref = screenModel.libraryPreferences.unreadBadge(),

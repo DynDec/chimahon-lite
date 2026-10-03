@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -18,7 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import eu.kanade.domain.manga.model.downloadedFilter
 import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
 import kotlinx.collections.immutable.persistentListOf
@@ -35,7 +33,6 @@ import tachiyomi.presentation.core.i18n.stringResource
 fun ChapterSettingsDialog(
     onDismissRequest: () -> Unit,
     manga: Manga? = null,
-    onDownloadFilterChanged: (TriState) -> Unit,
     onUnreadFilterChanged: (TriState) -> Unit,
     onBookmarkedFilterChanged: (TriState) -> Unit,
     onSortModeChanged: (Long) -> Unit,
@@ -83,8 +80,6 @@ fun ChapterSettingsDialog(
             when (page) {
                 0 -> {
                     FilterPage(
-                        downloadFilter = manga?.downloadedFilter ?: TriState.DISABLED,
-                        onDownloadFilterChanged = onDownloadFilterChanged,
                         unreadFilter = manga?.unreadFilter ?: TriState.DISABLED,
                         onUnreadFilterChanged = onUnreadFilterChanged,
                         bookmarkedFilter = manga?.bookmarkedFilter ?: TriState.DISABLED,
@@ -111,18 +106,11 @@ fun ChapterSettingsDialog(
 
 @Composable
 private fun ColumnScope.FilterPage(
-    downloadFilter: TriState,
-    onDownloadFilterChanged: ((TriState) -> Unit)?,
     unreadFilter: TriState,
     onUnreadFilterChanged: (TriState) -> Unit,
     bookmarkedFilter: TriState,
     onBookmarkedFilterChanged: (TriState) -> Unit,
 ) {
-    TriStateItem(
-        label = stringResource(MR.strings.label_downloaded),
-        state = downloadFilter,
-        onClick = onDownloadFilterChanged,
-    )
     TriStateItem(
         label = stringResource(MR.strings.action_filter_unread),
         state = unreadFilter,

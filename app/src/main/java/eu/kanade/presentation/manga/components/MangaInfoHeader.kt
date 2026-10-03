@@ -28,10 +28,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.HourglassDisabled
-import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.PersonOutline
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Close
@@ -96,13 +93,9 @@ import eu.kanade.tachiyomi.util.system.copyToClipboard
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.MarkdownTokenTypes
 import org.intellij.markdown.ast.findChildOfType
-import tachiyomi.domain.library.service.LibraryPreferences
-import tachiyomi.domain.library.service.LibraryPreferences.Companion.MANGA_NON_COMPLETED
-import tachiyomi.domain.manga.interactor.FetchInterval
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
-import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.components.material.DISABLED_ALPHA
 import tachiyomi.presentation.core.components.material.TextButton
 import tachiyomi.presentation.core.components.material.padding
@@ -113,8 +106,6 @@ import tachiyomi.presentation.core.util.collectAsState
 import tachiyomi.presentation.core.util.secondaryItemAlpha
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 import tachiyomi.domain.manga.model.MangaCover as DomainMangaCover
 
@@ -123,8 +114,6 @@ fun MangaInfoBox(
     isTabletUi: Boolean,
     appBarPadding: Dp,
     manga: Manga,
-    sourceName: String,
-    isStubSource: Boolean,
     // KMK -->
     isSourceIncognito: Boolean,
     // KMK <--
@@ -133,7 +122,6 @@ fun MangaInfoBox(
     modifier: Modifier = Modifier,
     // KMK -->
     librarySearch: (query: String) -> Unit,
-    onSourceClick: () -> Unit,
     onCoverLoaded: (DomainMangaCover) -> Unit,
     coverRatio: MutableFloatState,
     // KMK <--
@@ -182,14 +170,12 @@ fun MangaInfoBox(
                 .alpha(0.2f),
         )
 
-        // Manga & source info
+        // Manga info
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
             if (!isTabletUi) {
                 MangaAndSourceTitlesSmall(
                     appBarPadding = appBarPadding,
                     manga = manga,
-                    sourceName = sourceName,
-                    isStubSource = isStubSource,
                     // KMK -->
                     isSourceIncognito = isSourceIncognito,
                     // KMK <--
@@ -197,7 +183,6 @@ fun MangaInfoBox(
                     doSearch = doSearch,
                     // KMK -->
                     librarySearch = librarySearch,
-                    onSourceClick = onSourceClick,
                     onCoverLoaded = onCoverLoaded,
                     coverRatio = coverRatio,
                     usePanoramaCover = usePanoramaCover,
@@ -208,8 +193,6 @@ fun MangaInfoBox(
                 MangaAndSourceTitlesLarge(
                     appBarPadding = appBarPadding,
                     manga = manga,
-                    sourceName = sourceName,
-                    isStubSource = isStubSource,
                     // KMK -->
                     isSourceIncognito = isSourceIncognito,
                     // KMK <--
@@ -217,7 +200,6 @@ fun MangaInfoBox(
                     doSearch = doSearch,
                     // KMK -->
                     librarySearch = librarySearch,
-                    onSourceClick = onSourceClick,
                     onCoverLoaded = onCoverLoaded,
                     coverRatio = coverRatio,
                     usePanoramaCover = usePanoramaCover,
@@ -232,47 +214,16 @@ fun MangaInfoBox(
 fun MangaActionRow(
     favorite: Boolean,
     trackingCount: Int,
-    nextUpdate: Instant?,
-    isUserIntervalMode: Boolean,
     onAddToLibraryClicked: () -> Unit,
     onWebViewClicked: (() -> Unit)?,
     onWebViewLongClicked: (() -> Unit)?,
     onTrackingClicked: () -> Unit,
-    onEditIntervalClicked: (() -> Unit)?,
     onEditCategory: (() -> Unit)?,
     // SY -->
     // SY <--
-    // KMK -->
-    status: Long,
-    interval: Int,
-    // KMK <--
     modifier: Modifier = Modifier,
 ) {
-    // KMK -->
-    val libraryPreferences: LibraryPreferences = Injekt.get()
-    val restrictions = libraryPreferences.autoUpdateMangaRestrictions().get()
-    val notSkipCompleted = MANGA_NON_COMPLETED !in restrictions || status != SManga.COMPLETED.toLong()
-    val selectedInterval by remember(interval) { mutableIntStateOf(if (interval < 0) -interval else 0) }
-    // KMK <--
     val defaultActionButtonColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
-
-    // TODO: show something better when using custom interval
-    val nextUpdateDays = remember(nextUpdate, selectedInterval, notSkipCompleted) {
-        return@remember if (nextUpdate != null &&
-            // KMK -->
-            notSkipCompleted
-            // KMK <--
-        ) {
-            val now = Instant.now()
-            now.until(nextUpdate, ChronoUnit.DAYS).toInt().coerceAtLeast(0)
-                // KMK -->
-                .takeIf { selectedInterval != FetchInterval.MANUAL_DISABLE }
-                ?: FetchInterval.MANUAL_DISABLE
-            // KMK <--
-        } else {
-            null
-        }
-    }
 
     Row(modifier = modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp)) {
         MangaActionButton(
@@ -285,35 +236,6 @@ fun MangaActionRow(
             color = if (favorite) MaterialTheme.colorScheme.primary else defaultActionButtonColor,
             onClick = onAddToLibraryClicked,
             onLongClick = onEditCategory,
-        )
-        MangaActionButton(
-            title = when (nextUpdateDays) {
-                null -> stringResource(MR.strings.not_applicable)
-                0 -> stringResource(MR.strings.manga_interval_expected_update_soon)
-                // KMK -->
-                FetchInterval.MANUAL_DISABLE -> stringResource(MR.strings.disabled)
-                // KMK <--
-                else -> pluralStringResource(
-                    MR.plurals.day,
-                    count = nextUpdateDays,
-                    nextUpdateDays,
-                )
-            },
-            icon = Icons.Default.HourglassEmpty
-                // KMK -->
-                .takeIf { nextUpdateDays != FetchInterval.MANUAL_DISABLE }
-                ?: Icons.Default.HourglassDisabled,
-            // KMK <--
-            color = if (isUserIntervalMode ||
-                // KMK -->
-                nextUpdateDays?.let { it <= 1 } == true
-                // KMK <--
-            ) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                defaultActionButtonColor
-            },
-            onClick = { onEditIntervalClicked?.invoke() },
         )
         MangaActionButton(
             title = if (trackingCount == 0) {
@@ -477,8 +399,6 @@ fun ExpandableMangaDescription(
 private fun MangaAndSourceTitlesLarge(
     appBarPadding: Dp,
     manga: Manga,
-    sourceName: String,
-    isStubSource: Boolean,
     // KMK -->
     isSourceIncognito: Boolean,
     // KMK <--
@@ -486,7 +406,6 @@ private fun MangaAndSourceTitlesLarge(
     doSearch: (query: String, global: Boolean) -> Unit,
     // KMK -->
     librarySearch: (query: String) -> Unit,
-    onSourceClick: () -> Unit,
     onCoverLoaded: (DomainMangaCover) -> Unit,
     coverRatio: MutableFloatState,
     usePanoramaCover: Boolean = false,
@@ -541,8 +460,6 @@ private fun MangaAndSourceTitlesLarge(
             author = manga.author,
             artist = manga.artist,
             status = manga.status,
-            sourceName = sourceName,
-            isStubSource = isStubSource,
             // KMK -->
             isSourceIncognito = isSourceIncognito,
             // KMK <--
@@ -550,7 +467,6 @@ private fun MangaAndSourceTitlesLarge(
             textAlign = TextAlign.Center,
             // KMK -->
             librarySearch = librarySearch,
-            onSourceClick = onSourceClick,
             // KMK <--
         )
     }
@@ -560,8 +476,6 @@ private fun MangaAndSourceTitlesLarge(
 private fun MangaAndSourceTitlesSmall(
     appBarPadding: Dp,
     manga: Manga,
-    sourceName: String,
-    isStubSource: Boolean,
     // KMK -->
     isSourceIncognito: Boolean,
     // KMK <--
@@ -569,7 +483,6 @@ private fun MangaAndSourceTitlesSmall(
     doSearch: (query: String, global: Boolean) -> Unit,
     // KMK -->
     librarySearch: (query: String) -> Unit,
-    onSourceClick: () -> Unit,
     onCoverLoaded: (DomainMangaCover) -> Unit,
     coverRatio: MutableFloatState,
     usePanoramaCover: Boolean = false,
@@ -636,15 +549,12 @@ private fun MangaAndSourceTitlesSmall(
                 author = manga.author,
                 artist = manga.artist,
                 status = manga.status,
-                sourceName = sourceName,
-                isStubSource = isStubSource,
                 // KMK -->
                 isSourceIncognito = isSourceIncognito,
                 // KMK <--
                 doSearch = doSearch,
                 // KMK -->
                 librarySearch = librarySearch,
-                onSourceClick = onSourceClick,
                 // KMK <--
             )
         }
@@ -658,8 +568,6 @@ private fun ColumnScope.MangaContentInfo(
     author: String?,
     artist: String?,
     status: Long,
-    sourceName: String,
-    isStubSource: Boolean,
     // KMK -->
     isSourceIncognito: Boolean,
     // KMK <--
@@ -667,7 +575,6 @@ private fun ColumnScope.MangaContentInfo(
     textAlign: TextAlign? = LocalTextStyle.current.textAlign,
     // KMK -->
     librarySearch: (query: String) -> Unit,
-    onSourceClick: () -> Unit,
     // KMK <--
 ) {
     val context = LocalContext.current
@@ -830,33 +737,6 @@ private fun ColumnScope.MangaContentInfo(
                 )
             }
             // KMK <--
-            DotSeparatorText()
-            if (isStubSource) {
-                Icon(
-                    imageVector = Icons.Filled.Warning,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .padding(end = 4.dp)
-                        .size(16.dp),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            }
-            Text(
-                text = sourceName,
-                modifier = Modifier.clickableNoIndication(
-                    // KMK -->
-                    onLongClick = {
-                        tagSelected = sourceName
-                        showMenu = true
-                    },
-                    onClick = {
-                        onSourceClick()
-                    },
-                    // KMK <--
-                ),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1,
-            )
         }
     }
 }

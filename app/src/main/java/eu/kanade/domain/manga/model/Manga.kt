@@ -20,17 +20,8 @@ val Manga.readingMode: Long
 val Manga.readerOrientation: Long
     get() = viewerFlags and ReaderOrientation.MASK.toLong()
 
-val Manga.downloadedFilter: TriState
-    get() {
-        return when (downloadedFilterRaw) {
-            Manga.CHAPTER_SHOW_DOWNLOADED -> TriState.ENABLED_IS
-            Manga.CHAPTER_SHOW_NOT_DOWNLOADED -> TriState.ENABLED_NOT
-            else -> TriState.DISABLED
-        }
-    }
 fun Manga.chaptersFiltered(): Boolean {
     return unreadFilter != TriState.DISABLED ||
-        downloadedFilter != TriState.DISABLED ||
         bookmarkedFilter != TriState.DISABLED
 }
 

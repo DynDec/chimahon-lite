@@ -6,6 +6,7 @@ val migrations: List<Migration>
     get() = listOf(
         SetupBackupCreateMigration(),
         SetupSyncDataMigration(),
+        RemoveObsoleteMangaFiltersMigration(),
         // DelegateNHentaiMigration(),
         // MergedMangaRewriteMigration(),
         // LogoutFromMALMigration(),

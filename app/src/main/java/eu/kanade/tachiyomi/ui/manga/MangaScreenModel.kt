@@ -31,7 +31,6 @@ import eu.kanade.domain.manga.interactor.GetPagePreviews
 import eu.kanade.domain.manga.interactor.UpdateManga
 import eu.kanade.domain.manga.model.PagePreview
 import eu.kanade.domain.manga.model.chaptersFiltered
-import eu.kanade.domain.manga.model.downloadedFilter
 import eu.kanade.domain.manga.model.toSManga
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.track.interactor.AddTracks
@@ -50,7 +49,6 @@ import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.DownloadProvider
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.ocr.OcrManager
-import eu.kanade.tachiyomi.data.ocr.OcrQueueItem
 import eu.kanade.tachiyomi.data.ocr.isActionable
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
@@ -69,7 +67,6 @@ import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
 import eu.kanade.tachiyomi.util.system.getBitmapOrNull
 import eu.kanade.tachiyomi.util.system.toast
-import eu.kanade.tachiyomi.util.updateLocalCoverFromSourceFetch
 import exh.debug.DebugToggles
 import exh.eh.EHentaiUpdateHelper
 import exh.log.xLogD
@@ -256,9 +253,6 @@ class MangaScreenModel(
     private var autoTrackState = trackPreferences.autoUpdateTrackOnMarkRead().get()
 
     private val skipFiltered by readerPreferences.skipFiltered().asState(screenModelScope)
-
-    val isUpdateIntervalEnabled =
-        LibraryPreferences.MANGA_OUTSIDE_RELEASE_PERIOD in libraryPreferences.autoUpdateMangaRestrictions().get()
 
     private val selectedPositions: Array<Int> = arrayOf(-1, -1) // first and last selected index in list
     private val selectedChapterIds: HashSet<Long> = HashSet()
@@ -847,27 +841,6 @@ class MangaScreenModel(
                         initialSelection = categories.mapAsCheckboxState { it.id in selection }.toImmutableList(),
                     ),
                 )
-            }
-        }
-    }
-
-    fun showSetFetchIntervalDialog() {
-        val manga = successState?.manga ?: return
-        updateSuccessState {
-            it.copy(dialog = Dialog.SetFetchInterval(manga))
-        }
-    }
-
-    fun setFetchInterval(manga: Manga, interval: Int) {
-        screenModelScope.launchIO {
-            if (
-                updateManga.awaitUpdateFetchInterval(
-                    // Custom intervals are negative
-                    manga.copy(fetchInterval = -interval),
-                )
-            ) {
-                val updatedManga = mangaRepository.getMangaById(manga.id)
-                updateSuccessState { it.copy(manga = updatedManga) }
             }
         }
     }
@@ -1699,24 +1672,6 @@ class MangaScreenModel(
     }
 
     /**
-     * Sets the download filter and requests an UI update.
-     * @param state whether to display only downloaded chapters or all chapters.
-     */
-    fun setDownloadedFilter(state: TriState) {
-        val manga = successState?.manga ?: return
-
-        val flag = when (state) {
-            TriState.DISABLED -> Manga.SHOW_ALL
-            TriState.ENABLED_IS -> Manga.CHAPTER_SHOW_DOWNLOADED
-            TriState.ENABLED_NOT -> Manga.CHAPTER_SHOW_NOT_DOWNLOADED
-        }
-
-        screenModelScope.launchNonCancellable {
-            setMangaChapterFlags.awaitSetDownloadedFilter(manga, flag)
-        }
-    }
-
-    /**
      * Sets the bookmark filter and requests an UI update.
      * @param state whether to display only bookmarked chapters or all chapters.
      */
@@ -1968,7 +1923,6 @@ class MangaScreenModel(
         ) : Dialog
         data class DeleteChapters(val chapters: List<Chapter>) : Dialog
         data class DuplicateManga(val manga: Manga, val duplicates: List<MangaWithChapterCount>) : Dialog
-        data class SetFetchInterval(val manga: Manga) : Dialog
 
         // SY -->
         data class EditMangaInfo(val manga: Manga) : Dialog
@@ -2174,14 +2128,11 @@ class MangaScreenModel(
              * @return an observable of the list of chapters filtered and sorted.
              */
             private fun List<ChapterList.Item>.applyFilters(manga: Manga): Sequence<ChapterList.Item> {
-                val isLocalManga = manga.isLocal()
                 val unreadFilter = manga.unreadFilter
-                val downloadedFilter = manga.downloadedFilter
                 val bookmarkedFilter = manga.bookmarkedFilter
                 return asSequence()
                     .filter { (chapter) -> applyFilter(unreadFilter) { !chapter.read } }
                     .filter { (chapter) -> applyFilter(bookmarkedFilter) { chapter.bookmark } }
-                    .filter { applyFilter(downloadedFilter) { it.isDownloaded || isLocalManga } }
                     .sortedWith { (chapter1), (chapter2) -> getChapterSort(manga).invoke(chapter1, chapter2) }
             }
         }

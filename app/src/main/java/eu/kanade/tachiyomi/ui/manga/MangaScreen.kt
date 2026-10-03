@@ -55,7 +55,6 @@ import eu.kanade.presentation.manga.components.ClearMangaDialog
 import eu.kanade.presentation.manga.components.ClearOcrCacheDialog
 import eu.kanade.presentation.manga.components.DeleteChaptersDialog
 import eu.kanade.presentation.manga.components.MangaCoverDialog
-import eu.kanade.presentation.manga.components.SetIntervalDialog
 import eu.kanade.presentation.more.settings.screen.SettingsEhScreen
 import eu.kanade.presentation.reader.stats.MangaStatsSheet
 import eu.kanade.presentation.theme.TachiyomiTheme
@@ -67,7 +66,6 @@ import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.isLocalOrStub
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.ui.browse.BulkFavoriteScreenModel
-import eu.kanade.tachiyomi.ui.browse.extension.ExtensionsScreen
 import eu.kanade.tachiyomi.ui.browse.extension.details.SourcePreferencesScreen
 import eu.kanade.tachiyomi.ui.browse.source.SourcesScreen
 import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceScreen
@@ -93,14 +91,12 @@ import exh.source.getMainSource
 import exh.source.isEhBasedSource
 import exh.ui.metadata.MetadataViewScreen
 import exh.ui.smartsearch.SmartSearchScreen
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import logcat.LogPriority
-import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
@@ -111,7 +107,6 @@ import tachiyomi.domain.source.model.StubSource
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
-import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.screens.LoadingScreen
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
@@ -268,7 +263,6 @@ class MangaScreen(
         MangaScreen(
             state = successState,
             snackbarHostState = screenModel.snackbarHostState,
-            nextUpdate = successState.manga.expectedNextUpdate,
             isTabletUi = isTabletUi(),
             chapterSwipeStartAction = screenModel.chapterSwipeStartAction,
             chapterSwipeEndAction = screenModel.chapterSwipeEndAction,
@@ -358,9 +352,6 @@ class MangaScreen(
             }.takeIf { isHttpSource },
             onDownloadActionClicked = screenModel::runDownloadAction.takeIf { !successState.source.isLocalOrStub() },
             onEditCategoryClicked = screenModel::showChangeCategoryDialog.takeIf { successState.manga.favorite },
-            onEditFetchIntervalClicked = screenModel::showSetFetchIntervalDialog.takeIf {
-                successState.manga.favorite
-            },
             onRelinkFolderClicked = {
                 navigator.push(RelinkFolderScreen(successState.manga.id))
             }.takeIf { successState.manga.isLocal() },
@@ -428,27 +419,6 @@ class MangaScreen(
             },
             onRelatedMangaClick = { navigator.push(MangaScreen(it.id, true)) },
             onRelatedMangaLongClick = { bulkFavoriteScreenModel.addRemoveManga(it, haptic) },
-            onSourceClick = {
-                if (successState.source !is StubSource) {
-                    // KMK -->
-                    if (successState.mergedData == null) {
-                        screenModel.source?.let { browseSource(navigator, it, screenModel.useNewSourceNavigation) }
-                    } else {
-                        mergedMangaAction(
-                            context,
-                            navigator,
-                            successState.mergedData,
-                            action = { _, nav, _, source ->
-                                source?.let { browseSource(nav, it, screenModel.useNewSourceNavigation) }
-                            },
-                            titleRes = MR.strings.browse,
-                        )
-                    }
-                    // KMK <--
-                } else {
-                    navigator.push(ExtensionsScreen(searchSource = successState.source.name))
-                }
-            },
             onCoverLoaded = {
                 if (screenModel.themeCoverBased || successState.manga.favorite) screenModel.setPaletteColor(it)
             },
@@ -514,7 +484,6 @@ class MangaScreen(
             MangaScreenModel.Dialog.SettingsSheet -> ChapterSettingsDialog(
                 onDismissRequest = onDismissRequest,
                 manga = successState.manga,
-                onDownloadFilterChanged = screenModel::setDownloadedFilter,
                 onUnreadFilterChanged = screenModel::setUnreadFilter,
                 onBookmarkedFilterChanged = screenModel::setBookmarkedFilter,
                 onSortModeChanged = screenModel::setSorting,
@@ -589,16 +558,6 @@ class MangaScreen(
                     LoadingScreen(Modifier.systemBarsPadding())
                 }
             }
-            is MangaScreenModel.Dialog.SetFetchInterval -> {
-                SetIntervalDialog(
-                    interval = dialog.manga.fetchInterval,
-                    nextUpdate = dialog.manga.expectedNextUpdate,
-                    onDismissRequest = onDismissRequest,
-                    onValueChanged = { interval: Int -> screenModel.setFetchInterval(dialog.manga, interval) }
-                        .takeIf { screenModel.isUpdateIntervalEnabled },
-                )
-            }
-            // SY -->
             is MangaScreenModel.Dialog.EditMangaInfo -> {
                 EditMangaDialog(
                     manga = dialog.manga,

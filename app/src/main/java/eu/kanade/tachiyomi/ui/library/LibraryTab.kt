@@ -39,7 +39,6 @@ import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.connections.discord.DiscordScreen
-import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.ui.category.CategoryScreen
@@ -47,7 +46,6 @@ import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
-import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
@@ -148,10 +146,7 @@ data object LibraryTab : Tab {
                     // SY <--
                     searchQuery = state.searchQuery,
                     onSearchQueryChange = screenModel::search,
-                    onInvalidateDownloadCache = { context ->
-                        Injekt.get<DownloadCache>().invalidateCache()
-                        context.toast(MR.strings.download_cache_invalidated)
-                    },
+                    onInvalidateDownloadCache = null,
                     // For scroll overlay when no tab
                     scrollBehavior = scrollBehavior.takeIf { !state.showCategoryTabs },
                 )

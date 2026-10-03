@@ -1,0 +1,5 @@
+-- Clear the retired Downloaded chapter filter (bits 3-4).
+-- Preserve read/bookmark filters, sorting, and display flags.
+UPDATE mangas
+SET chapter_flags = chapter_flags & ~24
+WHERE (chapter_flags & 24) != 0;

@@ -3,12 +3,8 @@ package eu.kanade.presentation.more.settings.screen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderBottomButton
@@ -19,15 +15,9 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.WebtoonScaleType
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.PagerConfig
 import eu.kanade.tachiyomi.util.system.hasDisplayCutout
-import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
-import kotlinx.coroutines.launch
-import logcat.LogPriority
-import tachiyomi.core.common.util.lang.launchNonCancellable
-import tachiyomi.core.common.util.lang.withUIContext
-import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.i18n.sy.SYMR
@@ -121,7 +111,6 @@ object SettingsReaderScreen : SearchableSettings {
             getNavigationGroup(readerPreferences = readerPref),
             getActionsGroup(readerPreferences = readerPref),
             // SY -->
-            getPageDownloadingGroup(readerPreferences = readerPref),
             getForkSettingsGroup(readerPreferences = readerPref),
             // SY <--
         )
@@ -586,65 +575,6 @@ object SettingsReaderScreen : SearchableSettings {
         )
     }
 
-    // SY -->
-    @Composable
-    private fun getPageDownloadingGroup(readerPreferences: ReaderPreferences): Preference.PreferenceGroup {
-        return Preference.PreferenceGroup(
-            title = stringResource(SYMR.strings.page_downloading),
-            preferenceItems = persistentListOf(
-                Preference.PreferenceItem.ListPreference(
-                    preference = readerPreferences.preloadSize(),
-                    entries = persistentMapOf(
-                        4 to stringResource(SYMR.strings.reader_preload_amount_4_pages),
-                        6 to stringResource(SYMR.strings.reader_preload_amount_6_pages),
-                        8 to stringResource(SYMR.strings.reader_preload_amount_8_pages),
-                        10 to stringResource(SYMR.strings.reader_preload_amount_10_pages),
-                        12 to stringResource(SYMR.strings.reader_preload_amount_12_pages),
-                        14 to stringResource(SYMR.strings.reader_preload_amount_14_pages),
-                        16 to stringResource(SYMR.strings.reader_preload_amount_16_pages),
-                        20 to stringResource(SYMR.strings.reader_preload_amount_20_pages),
-                    ),
-                    title = stringResource(SYMR.strings.reader_preload_amount),
-                    subtitle = stringResource(SYMR.strings.reader_preload_amount_summary),
-                ),
-                Preference.PreferenceItem.ListPreference(
-                    preference = readerPreferences.readerThreads(),
-                    title = stringResource(SYMR.strings.download_threads),
-                    subtitle = stringResource(SYMR.strings.download_threads_summary),
-                    entries = List(5) { it }.associateWith { it.toString() }.toImmutableMap(),
-                ),
-                Preference.PreferenceItem.ListPreference(
-                    preference = readerPreferences.cacheSize(),
-                    title = stringResource(SYMR.strings.reader_cache_size),
-                    subtitle = stringResource(SYMR.strings.reader_cache_size_summary),
-                    entries = persistentMapOf(
-                        "50" to "50 MB",
-                        "75" to "75 MB",
-                        "100" to "100 MB",
-                        "150" to "150 MB",
-                        "250" to "250 MB",
-                        "500" to "500 MB",
-                        "750" to "750 MB",
-                        "1000" to "1 GB",
-                        "1500" to "1.5 GB",
-                        "2000" to "2 GB",
-                        "2500" to "2.5 GB",
-                        "3000" to "3 GB",
-                        "3500" to "3.5 GB",
-                        "4000" to "4 GB",
-                        "4500" to "4.5 GB",
-                        "5000" to "5 GB",
-                    ),
-                ),
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = readerPreferences.aggressivePageLoading(),
-                    title = stringResource(SYMR.strings.aggressively_load_pages),
-                    subtitle = stringResource(SYMR.strings.aggressively_load_pages_summary),
-                ),
-            ),
-        )
-    }
-
     // Chimahon: OCR settings group
     // SY -->
     @Composable
@@ -653,11 +583,6 @@ object SettingsReaderScreen : SearchableSettings {
         return Preference.PreferenceGroup(
             title = stringResource(SYMR.strings.pref_category_fork),
             preferenceItems = persistentListOf(
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = readerPreferences.readerInstantRetry(),
-                    title = stringResource(SYMR.strings.skip_queue_on_retry),
-                    subtitle = stringResource(SYMR.strings.skip_queue_on_retry_summary),
-                ),
                 Preference.PreferenceItem.SwitchPreference(
                     preference = readerPreferences.preserveReadingPosition(),
                     title = stringResource(SYMR.strings.preserve_reading_position),

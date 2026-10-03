@@ -39,7 +39,6 @@ import eu.kanade.presentation.more.settings.screen.advanced.ClearDatabaseScreen
 import eu.kanade.presentation.more.settings.screen.debug.DebugInfoScreen
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
-import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.ocr.ModelDownloader
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.library.MetadataUpdateJob
@@ -85,7 +84,6 @@ import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.ImageUtil
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
-import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.manga.interactor.GetAllManga
 import tachiyomi.domain.manga.interactor.ResetViewerFlags
@@ -120,7 +118,6 @@ object SettingsAdvancedScreen : SearchableSettings {
         val libraryPreferences = remember { Injekt.get<LibraryPreferences>() }
         val dictionaryPreferences = remember { Injekt.get<DictionaryPreferences>() }
         // SY -->
-        val downloadPreferences = remember { Injekt.get<DownloadPreferences>() }
         val exhPreferences = remember { Injekt.get<ExhPreferences>() }
         // SY <--
 
@@ -204,7 +201,6 @@ object SettingsAdvancedScreen : SearchableSettings {
             getNetworkGroup(networkPreferences = networkPreferences),
             getLibraryGroup(libraryPreferences = libraryPreferences),
             // SY -->
-            getDownloadsGroup(downloadPreferences = downloadPreferences),
             // SY <--
             getReaderGroup(basePreferences = basePreferences),
             // SY -->
@@ -281,14 +277,6 @@ object SettingsAdvancedScreen : SearchableSettings {
         return Preference.PreferenceGroup(
             title = stringResource(MR.strings.label_data),
             preferenceItems = persistentListOf(
-                Preference.PreferenceItem.TextPreference(
-                    title = stringResource(MR.strings.pref_invalidate_download_cache),
-                    subtitle = stringResource(MR.strings.pref_invalidate_download_cache_summary),
-                    onClick = {
-                        Injekt.get<DownloadCache>().invalidateCache()
-                        context.toast(MR.strings.download_cache_invalidated)
-                    },
-                ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(MR.strings.pref_clear_database),
                     subtitle = stringResource(MR.strings.pref_clear_database_summary),
@@ -437,33 +425,11 @@ object SettingsAdvancedScreen : SearchableSettings {
                     title = stringResource(MR.strings.pref_update_library_manga_titles),
                     subtitle = stringResource(MR.strings.pref_update_library_manga_titles_summary),
                 ),
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = libraryPreferences.disallowNonAsciiFilenames(),
-                    title = stringResource(MR.strings.pref_disallow_non_ascii_filenames),
-                    subtitle = stringResource(MR.strings.pref_disallow_non_ascii_filenames_details),
-                ),
             ),
         )
     }
 
     // SY ->
-    @Composable
-    private fun getDownloadsGroup(
-        downloadPreferences: DownloadPreferences,
-    ): Preference.PreferenceGroup {
-        return Preference.PreferenceGroup(
-            title = stringResource(MR.strings.pref_category_downloads),
-            preferenceItems = persistentListOf(
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = downloadPreferences.includeChapterUrlHash(),
-                    title = stringResource(SYMR.strings.pref_include_chapter_url_hash),
-                    subtitle = stringResource(SYMR.strings.pref_include_chapter_url_hash_desc),
-                ),
-            ),
-        )
-    }
-    // <- SY
-
     @Composable
     private fun getReaderGroup(
         basePreferences: BasePreferences,

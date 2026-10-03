@@ -97,7 +97,8 @@ data class Manga(
         get() = chapterFlags and CHAPTER_UNREAD_MASK
 
     val downloadedFilterRaw: Long
-        get() = chapterFlags and CHAPTER_DOWNLOADED_MASK
+        // Ignore retired filter bits, including values restored from older backups.
+        get() = SHOW_ALL
 
     val bookmarkedFilterRaw: Long
         get() = chapterFlags and CHAPTER_BOOKMARKED_MASK

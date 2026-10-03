@@ -356,26 +356,14 @@ class ReaderViewModel @JvmOverloads constructor(
     private val chapterList by lazy {
         val manga = manga!!
         // SY -->
-        val (chapters, mangaMap) = runBlocking {
+        val chapters = runBlocking {
             if (manga.source == MERGED_SOURCE_ID) {
-                getMergedChaptersByMangaId.await(manga.id, applyFilter = true) to
-                    state.value.mergedManga
+                getMergedChaptersByMangaId.await(manga.id, applyFilter = true)
             } else {
-                getChaptersByMangaId.await(manga.id, applyFilter = true) to null
+                getChaptersByMangaId.await(manga.id, applyFilter = true)
             }
         }
-        fun isChapterDownloaded(chapter: Chapter): Boolean {
-            val chapterManga = mangaMap?.get(chapter.mangaId) ?: manga
-            return downloadManager.isChapterDownloaded(
-                chapterName = chapter.name,
-                chapterScanlator = chapter.scanlator,
-                chapterUrl = chapter.url,
-                mangaTitle = chapterManga.ogTitle,
-                sourceId = chapterManga.source,
-            )
-        }
         // SY <--
-
         val selectedChapter = chapters.find { it.id == chapterId }
             ?: error("Requested chapter of id $chapterId not found in chapter list")
 
@@ -387,16 +375,6 @@ class ReaderViewModel @JvmOverloads constructor(
                         readerPreferences.skipFiltered().get() -> {
                             (manga.unreadFilterRaw == Manga.CHAPTER_SHOW_READ && !it.read) ||
                                 (manga.unreadFilterRaw == Manga.CHAPTER_SHOW_UNREAD && it.read) ||
-                                // SY -->
-                                (
-                                    manga.downloadedFilterRaw == Manga.CHAPTER_SHOW_DOWNLOADED &&
-                                        !isChapterDownloaded(it)
-                                    ) ||
-                                (
-                                    manga.downloadedFilterRaw == Manga.CHAPTER_SHOW_NOT_DOWNLOADED &&
-                                        isChapterDownloaded(it)
-                                    ) ||
-                                // SY <--
                                 (manga.bookmarkedFilterRaw == Manga.CHAPTER_SHOW_BOOKMARKED && !it.bookmark) ||
                                 (manga.bookmarkedFilterRaw == Manga.CHAPTER_SHOW_NOT_BOOKMARKED && it.bookmark)
                         }

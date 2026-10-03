@@ -30,7 +30,6 @@ import kotlinx.collections.immutable.toImmutableMap
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.i18n.sy.SYMR
-import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
@@ -281,8 +280,6 @@ object SettingsAppearanceScreen : SearchableSettings {
     // SY -->
     @Composable
     fun getForkGroup(uiPreferences: UiPreferences): Preference.PreferenceGroup {
-        val previewsRowCount by uiPreferences.previewsRowCount().collectAsState()
-
         return Preference.PreferenceGroup(
             stringResource(SYMR.strings.pref_category_fork),
             preferenceItems = persistentListOf(
@@ -301,21 +298,6 @@ object SettingsAppearanceScreen : SearchableSettings {
                     preference = uiPreferences.recommendsInOverflow(),
                     title = stringResource(SYMR.strings.put_recommends_in_overflow),
                     subtitle = stringResource(SYMR.strings.put_recommends_in_overflow_summary),
-                ),
-                Preference.PreferenceItem.SliderPreference(
-                    value = previewsRowCount,
-                    valueRange = 0..10,
-                    title = stringResource(SYMR.strings.pref_previews_row_count),
-                    valueString = if (previewsRowCount > 0) {
-                        pluralStringResource(
-                            SYMR.plurals.row_count,
-                            previewsRowCount,
-                            previewsRowCount,
-                        )
-                    } else {
-                        stringResource(MR.strings.disabled)
-                    },
-                    onValueChanged = { uiPreferences.previewsRowCount().set(it) },
                 ),
             ),
         )
@@ -353,11 +335,6 @@ object SettingsAppearanceScreen : SearchableSettings {
                 Preference.PreferenceItem.SwitchPreference(
                     preference = uiPreferences.bottomBarLabels(),
                     title = stringResource(SYMR.strings.pref_show_bottom_bar_labels),
-                ),
-                Preference.PreferenceItem.SwitchPreference(
-                    preference = uiPreferences.useConsolidatedLibrary(),
-                    title = stringResource(SYMR.strings.pref_consolidated_library),
-                    subtitle = stringResource(SYMR.strings.pref_consolidated_library_summary),
                 ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(SYMR.strings.pref_navigation_style),

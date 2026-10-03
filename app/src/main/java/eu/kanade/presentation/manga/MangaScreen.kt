@@ -70,7 +70,6 @@ import eu.kanade.presentation.browse.RelatedMangaTitle
 import eu.kanade.presentation.components.relativeDateText
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
-import eu.kanade.presentation.manga.components.ChapterOcrIndicator
 import eu.kanade.presentation.manga.components.ExpandableMangaDescription
 import eu.kanade.presentation.manga.components.MangaActionRow
 import eu.kanade.presentation.manga.components.MangaBottomActionMenu
@@ -87,7 +86,6 @@ import eu.kanade.presentation.manga.components.SearchMetadataChips
 import eu.kanade.presentation.util.formatChapterNumber
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.source.Source
-import eu.kanade.tachiyomi.source.getNameForMangaInfo
 import eu.kanade.tachiyomi.source.isIncognitoModeEnabled
 import eu.kanade.tachiyomi.source.online.MetadataSource
 import eu.kanade.tachiyomi.source.online.all.EHentai
@@ -139,7 +137,6 @@ import kotlin.math.roundToInt
 fun MangaScreen(
     state: MangaScreenModel.State.Success,
     snackbarHostState: SnackbarHostState,
-    nextUpdate: Instant?,
     isTabletUi: Boolean,
     chapterSwipeStartAction: LibraryPreferences.ChapterSwipeAction,
     chapterSwipeEndAction: LibraryPreferences.ChapterSwipeAction,
@@ -166,7 +163,6 @@ fun MangaScreen(
     onShareClicked: (() -> Unit)?,
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
-    onEditFetchIntervalClicked: (() -> Unit)?,
     onRelinkFolderClicked: (() -> Unit)?,
     onEditNotesClicked: () -> Unit,
     // SY -->
@@ -202,7 +198,6 @@ fun MangaScreen(
     onRelatedMangaClick: (Manga) -> Unit,
     onRelatedMangaLongClick: (Manga) -> Unit,
     librarySearch: (query: String) -> Unit,
-    onSourceClick: () -> Unit,
     onCoverLoaded: (MangaCover) -> Unit,
     coverRatio: MutableFloatState,
     onPaletteScreenClick: () -> Unit,
@@ -223,7 +218,6 @@ fun MangaScreen(
         MangaScreenSmallImpl(
             state = state,
             snackbarHostState = snackbarHostState,
-            nextUpdate = nextUpdate,
             chapterSwipeStartAction = chapterSwipeStartAction,
             chapterSwipeEndAction = chapterSwipeEndAction,
             navigateUp = navigateUp,
@@ -243,7 +237,6 @@ fun MangaScreen(
             onShareClicked = onShareClicked,
             onDownloadActionClicked = onDownloadActionClicked,
             onEditCategoryClicked = onEditCategoryClicked,
-            onEditIntervalClicked = onEditFetchIntervalClicked,
             onRelinkFolderClicked = onRelinkFolderClicked,
             onEditNotesClicked = onEditNotesClicked,
             // SY -->
@@ -272,7 +265,6 @@ fun MangaScreen(
             onRelatedMangaClick = onRelatedMangaClick,
             onRelatedMangaLongClick = onRelatedMangaLongClick,
             librarySearch = librarySearch,
-            onSourceClick = onSourceClick,
             onCoverLoaded = onCoverLoaded,
             coverRatio = coverRatio,
             onPaletteScreenClick = onPaletteScreenClick,
@@ -288,7 +280,6 @@ fun MangaScreen(
             snackbarHostState = snackbarHostState,
             chapterSwipeStartAction = chapterSwipeStartAction,
             chapterSwipeEndAction = chapterSwipeEndAction,
-            nextUpdate = nextUpdate,
             navigateUp = navigateUp,
             onChapterClicked = onChapterClicked,
             onDownloadChapter = onDownloadChapter,
@@ -306,7 +297,6 @@ fun MangaScreen(
             onShareClicked = onShareClicked,
             onDownloadActionClicked = onDownloadActionClicked,
             onEditCategoryClicked = onEditCategoryClicked,
-            onEditIntervalClicked = onEditFetchIntervalClicked,
             onRelinkFolderClicked = onRelinkFolderClicked,
             onEditNotesClicked = onEditNotesClicked,
             // SY -->
@@ -335,7 +325,6 @@ fun MangaScreen(
             onRelatedMangaClick = onRelatedMangaClick,
             onRelatedMangaLongClick = onRelatedMangaLongClick,
             librarySearch = librarySearch,
-            onSourceClick = onSourceClick,
             onCoverLoaded = onCoverLoaded,
             coverRatio = coverRatio,
             onPaletteScreenClick = onPaletteScreenClick,
@@ -352,7 +341,6 @@ fun MangaScreen(
 private fun MangaScreenSmallImpl(
     state: MangaScreenModel.State.Success,
     snackbarHostState: SnackbarHostState,
-    nextUpdate: Instant?,
     chapterSwipeStartAction: LibraryPreferences.ChapterSwipeAction,
     chapterSwipeEndAction: LibraryPreferences.ChapterSwipeAction,
     navigateUp: () -> Unit,
@@ -379,7 +367,6 @@ private fun MangaScreenSmallImpl(
     onShareClicked: (() -> Unit)?,
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
-    onEditIntervalClicked: (() -> Unit)?,
     onRelinkFolderClicked: (() -> Unit)?,
     onEditNotesClicked: () -> Unit,
     // SY -->
@@ -415,7 +402,6 @@ private fun MangaScreenSmallImpl(
     onRelatedMangaClick: (Manga) -> Unit,
     onRelatedMangaLongClick: (Manga) -> Unit,
     librarySearch: (query: String) -> Unit,
-    onSourceClick: () -> Unit,
     onCoverLoaded: (MangaCover) -> Unit,
     coverRatio: MutableFloatState,
     onPaletteScreenClick: () -> Unit,
@@ -628,8 +614,6 @@ private fun MangaScreenSmallImpl(
                             isTabletUi = false,
                             appBarPadding = topPadding,
                             manga = state.manga,
-                            sourceName = remember { state.source.getNameForMangaInfo(state.mergedData?.sources) },
-                            isStubSource = remember { state.source is StubSource },
                             // KMK -->
                             isSourceIncognito = remember { state.source.isIncognitoModeEnabled() },
                             // KMK <--
@@ -637,7 +621,6 @@ private fun MangaScreenSmallImpl(
                             doSearch = onSearch,
                             // KMK -->
                             librarySearch = librarySearch,
-                            onSourceClick = onSourceClick,
                             onCoverLoaded = onCoverLoaded,
                             coverRatio = coverRatio,
                             // KMK <--
@@ -651,19 +634,14 @@ private fun MangaScreenSmallImpl(
                         MangaActionRow(
                             favorite = state.manga.favorite,
                             trackingCount = state.trackingCount,
-                            nextUpdate = nextUpdate,
-                            isUserIntervalMode = state.manga.fetchInterval < 0,
                             onAddToLibraryClicked = onAddToLibraryClicked,
                             onWebViewClicked = onWebViewClicked,
                             onWebViewLongClicked = onWebViewLongClicked,
                             onTrackingClicked = onTrackingClicked,
-                            onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
                             // SY -->
                             // SY <--
                             // KMK -->
-                            status = state.manga.status,
-                            interval = state.manga.fetchInterval,
                             // KMK <--
                         )
                     }
@@ -816,7 +794,6 @@ private fun MangaScreenSmallImpl(
 private fun MangaScreenLargeImpl(
     state: MangaScreenModel.State.Success,
     snackbarHostState: SnackbarHostState,
-    nextUpdate: Instant?,
     chapterSwipeStartAction: LibraryPreferences.ChapterSwipeAction,
     chapterSwipeEndAction: LibraryPreferences.ChapterSwipeAction,
     navigateUp: () -> Unit,
@@ -843,7 +820,6 @@ private fun MangaScreenLargeImpl(
     onShareClicked: (() -> Unit)?,
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
-    onEditIntervalClicked: (() -> Unit)?,
     onRelinkFolderClicked: (() -> Unit)?,
     onEditNotesClicked: () -> Unit,
     // SY -->
@@ -879,7 +855,6 @@ private fun MangaScreenLargeImpl(
     onRelatedMangaClick: (Manga) -> Unit,
     onRelatedMangaLongClick: (Manga) -> Unit,
     librarySearch: (query: String) -> Unit,
-    onSourceClick: () -> Unit,
     onCoverLoaded: (MangaCover) -> Unit,
     coverRatio: MutableFloatState,
     onPaletteScreenClick: () -> Unit,
@@ -1084,8 +1059,6 @@ private fun MangaScreenLargeImpl(
                             isTabletUi = true,
                             appBarPadding = contentPadding.calculateTopPadding(),
                             manga = state.manga,
-                            sourceName = remember { state.source.getNameForMangaInfo(state.mergedData?.sources) },
-                            isStubSource = remember { state.source is StubSource },
                             // KMK -->
                             isSourceIncognito = remember { state.source.isIncognitoModeEnabled() },
                             // KMK <--
@@ -1093,7 +1066,6 @@ private fun MangaScreenLargeImpl(
                             doSearch = onSearch,
                             // KMK -->
                             librarySearch = librarySearch,
-                            onSourceClick = onSourceClick,
                             onCoverLoaded = onCoverLoaded,
                             coverRatio = coverRatio,
                             // KMK <--
@@ -1101,19 +1073,14 @@ private fun MangaScreenLargeImpl(
                         MangaActionRow(
                             favorite = state.manga.favorite,
                             trackingCount = state.trackingCount,
-                            nextUpdate = nextUpdate,
-                            isUserIntervalMode = state.manga.fetchInterval < 0,
                             onAddToLibraryClicked = onAddToLibraryClicked,
                             onWebViewClicked = onWebViewClicked,
                             onWebViewLongClicked = onWebViewLongClicked,
                             onTrackingClicked = onTrackingClicked,
-                            onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
                             // SY -->
                             // SY <--
                             // KMK -->
-                            status = state.manga.status,
-                            interval = state.manga.fetchInterval,
                             // KMK <--
                         )
                         // SY -->
