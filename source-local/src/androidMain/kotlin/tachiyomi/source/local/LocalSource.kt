@@ -98,33 +98,33 @@ class LocalSource(
         // SY <--
         val hideAppManagedDirectories = fileSystem.usesDefaultBaseDirectory()
 
+        // Each manga folder is listed once and reused for the chapter check, cover and search metadata.
         var mangaEntries = fileSystem.getFilesInBaseDirectory()
             .filter { entry ->
                 isVisible(entry, allowLocalSourceHiddenFolders) &&
-                    (!hideAppManagedDirectories || !isReservedDefaultDirectory(entry)) &&
-                    if (entry.isDirectory) {
-                        fileSystem.getFilesInMangaDirectory(entry.uri.toString())
-                            .any { isVisible(it, allowLocalSourceHiddenFolders) && isSupportedChapter(it) }
-                    } else {
-                        isSupportedChapter(entry)
-                    }
+                    (!hideAppManagedDirectories || !isReservedDefaultDirectory(entry))
             }
-            .filter { entry -> lastModifiedLimit == 0L || entry.lastModified() >= lastModifiedLimit }
+            .map { entry -> ListedEntry(entry, if (entry.isDirectory) entry.listFiles().orEmpty().toList() else null) }
+            .filter { (entry, children) ->
+                children?.any { isVisible(it, allowLocalSourceHiddenFolders) && isSupportedChapter(it) }
+                    ?: isSupportedChapter(entry)
+            }
+            .filter { (entry) -> lastModifiedLimit == 0L || entry.lastModified() >= lastModifiedLimit }
 
         filters.forEach { filter ->
             when (filter) {
                 is OrderBy.Popular -> {
                     mangaEntries = if (filter.state!!.ascending) {
-                        mangaEntries.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.localTitle() })
+                        mangaEntries.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.file.localTitle() })
                     } else {
-                        mangaEntries.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.localTitle() })
+                        mangaEntries.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.file.localTitle() })
                     }
                 }
                 is OrderBy.Latest -> {
                     mangaEntries = if (filter.state!!.ascending) {
-                        mangaEntries.sortedBy(UniFile::lastModified)
+                        mangaEntries.sortedBy { it.file.lastModified() }
                     } else {
-                        mangaEntries.sortedByDescending(UniFile::lastModified)
+                        mangaEntries.sortedByDescending { it.file.lastModified() }
                     }
                 }
                 else -> {
@@ -134,18 +134,18 @@ class LocalSource(
         }
 
         val metadataReads = Semaphore(4)
-        val mangas = mangaEntries.map { mangaEntry ->
+        val mangas = mangaEntries.map { (mangaEntry, children) ->
             async {
                 val filenameTitle = mangaEntry.localTitle()
                 val manga = SManga.create().apply {
                     title = filenameTitle
                     // Preserve the URI identity across folder changes and metadata title edits.
                     url = mangaEntry.uri.toString()
-                    coverManager.find(url)?.let { thumbnail_url = it.uri.toString() }
+                    children?.let(coverManager::findIn)?.let { thumbnail_url = it.uri.toString() }
                 }
                 if (query.isNotBlank() && lastModifiedLimit == 0L) {
                     if (!filenameTitle.contains(query.trim(), ignoreCase = true)) {
-                        metadataReads.withPermit { readSearchMetadata(mangaEntry, manga) }
+                        metadataReads.withPermit { readSearchMetadata(mangaEntry, children, manga) }
                     }
                     manga.takeIf {
                         matchesLocalMangaSearch(query, filenameTitle, it.title, it.author, it.artist, it.genre)
@@ -161,6 +161,7 @@ class LocalSource(
 
     // SY -->
     fun updateMangaInfo(manga: SManga) {
+        synchronized(searchMetadataCache) { searchMetadataCache.keys.removeAll { it.startsWith("${manga.url}\n") } }
         val mangaDirFiles = fileSystem.getFilesInMangaDirectory(manga.url)
         val existingFile = mangaDirFiles
             .firstOrNull { it.name == COMIC_INFO_FILE }
@@ -210,27 +211,60 @@ class LocalSource(
         SMangaUpdate(asyncManga?.await() ?: manga, asyncChapters?.await() ?: chapters)
     }
 
+    private data class ListedEntry(val file: UniFile, val children: List<UniFile>?)
+
+    private data class SearchMetadata(val title: String, val author: String?, val artist: String?, val genre: String?)
+
+    /** Search metadata by entry URI and modification time, so repeated searches do not reopen every book. */
+    private val searchMetadataCache = object : LinkedHashMap<String, SearchMetadata>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, SearchMetadata>) = size > 1024
+    }
+
+    private enum class TopLevelMetadata { ComicInfo, ComicInfoArchive, LegacyJson }
+
+    /** Reads a manga folder's own metadata file, if any, without changing anything on disk. */
+    private fun readTopLevelMetadata(files: List<UniFile>, manga: SManga): TopLevelMetadata? {
+        files.firstOrNull { it.name == COMIC_INFO_FILE }?.let { file ->
+            file.openInputStream().use { setMangaDetailsFromComicInfoFile(it, manga) }
+            return TopLevelMetadata.ComicInfo
+        }
+        // SY -->
+        files.firstOrNull { it.name == COMIC_INFO_ARCHIVE }?.let { file ->
+            getComicInfoForChapter(file) { stream, _ -> setMangaDetailsFromComicInfoFile(stream, manga) }
+            return TopLevelMetadata.ComicInfoArchive
+        }
+        // SY <--
+        // Old custom JSON format
+        files.firstOrNull { it.extension == "json" }?.let { file ->
+            file.openInputStream().use { stream ->
+                json.decodeFromStream<MangaDetails>(stream).run {
+                    title?.let { manga.title = it }
+                    author?.let { manga.author = it }
+                    artist?.let { manga.artist = it }
+                    description?.let { manga.description = it }
+                    genre?.let { manga.genre = it.joinToString() }
+                    status?.let { manga.status = it }
+                }
+            }
+            return TopLevelMetadata.LegacyJson
+        }
+        return null
+    }
+
     /** Search must not migrate metadata, create .noxml files, or extract covers into the source folder. */
-    private fun readSearchMetadata(entry: UniFile, manga: SManga) {
+    private fun readSearchMetadata(entry: UniFile, children: List<UniFile>?, manga: SManga) {
+        val key = "${entry.uri}\n${entry.lastModified()}"
+        synchronized(searchMetadataCache) { searchMetadataCache[key] }?.let { cached ->
+            manga.title = cached.title
+            manga.author = cached.author
+            manga.artist = cached.artist
+            manga.genre = cached.genre
+            return
+        }
         try {
-            val files = if (entry.isDirectory) entry.listFiles().orEmpty().toList() else listOf(entry)
-            val comicInfo = files.firstOrNull { it.name == COMIC_INFO_FILE }
-            val packedInfo = files.firstOrNull { it.name == COMIC_INFO_ARCHIVE }
-            val legacyInfo = files.firstOrNull { it.extension == "json" }
-            when {
-                comicInfo != null -> comicInfo.openInputStream().use { setMangaDetailsFromComicInfoFile(it, manga) }
-                packedInfo != null -> getComicInfoForChapter(packedInfo) { stream, _ ->
-                    setMangaDetailsFromComicInfoFile(stream, manga)
-                }
-                legacyInfo != null -> legacyInfo.openInputStream().use { stream ->
-                    json.decodeFromStream<MangaDetails>(stream).run {
-                        title?.let { manga.title = it }
-                        author?.let { manga.author = it }
-                        artist?.let { manga.artist = it }
-                        genre?.let { manga.genre = it.joinToString() }
-                    }
-                }
-                else -> {
+            val files = children ?: listOf(entry)
+            when (readTopLevelMetadata(files, manga)) {
+                null -> {
                     for (file in files.filter { isVisible(it, allowHiddenFiles()) && isSupportedChapter(it) }) {
                         if (file.extension.equals("epub", true)) {
                             file.epubReader(context).use { it.fillMetadata(manga, SChapter.create()) }
@@ -244,7 +278,10 @@ class LocalSource(
                         }
                     }
                 }
+                else -> Unit
             }
+            val metadata = SearchMetadata(manga.title, manga.author, manga.artist, manga.genre)
+            synchronized(searchMetadataCache) { searchMetadataCache[key] = metadata }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -254,53 +291,30 @@ class LocalSource(
 
     // Manga details related
     private suspend fun getMangaDetails(manga: SManga): SManga = withIOContext {
-        coverManager.find(manga.url)?.let {
+        val mangaDir = fileSystem.getMangaDirectory(manga.url)
+        val mangaDirFiles = mangaDir?.listFiles().orEmpty().toList()
+        coverManager.findIn(mangaDirFiles)?.let {
             manga.thumbnail_url = it.uri.toString()
         }
 
         // Augment manga details based on metadata files
         try {
-            val mangaDir = fileSystem.getMangaDirectory(manga.url) ?: return@withIOContext manga
-            val mangaDirFiles = mangaDir.listFiles().orEmpty()
+            mangaDir ?: return@withIOContext manga
 
-            val comicInfoFile = mangaDirFiles
-                .firstOrNull { it.name == COMIC_INFO_FILE }
             val noXmlFile = mangaDirFiles
                 .firstOrNull { it.name == ".noxml" }
             val legacyJsonDetailsFile = mangaDirFiles
                 .firstOrNull { it.extension == "json" }
-            // SY -->
-            val comicInfoArchiveFile = mangaDirFiles
-                .firstOrNull { it.name == COMIC_INFO_ARCHIVE }
-            // SY <--
 
-            when {
-                // Top level ComicInfo.xml
-                comicInfoFile != null -> {
+            when (readTopLevelMetadata(mangaDirFiles, manga)) {
+                // Top level ComicInfo.xml, or SY's packed ComicInfo
+                TopLevelMetadata.ComicInfo, TopLevelMetadata.ComicInfoArchive -> {
                     noXmlFile?.delete()
-                    setMangaDetailsFromComicInfoFile(comicInfoFile.openInputStream(), manga)
                 }
-                // SY -->
-                comicInfoArchiveFile != null -> {
-                    noXmlFile?.delete()
-
-                    comicInfoArchiveFile.archiveReader(context).getInputStream(COMIC_INFO_FILE)
-                        ?.let { setMangaDetailsFromComicInfoFile(it, manga) }
-                }
-
-                // SY <--
 
                 // Old custom JSON format
                 // TODO: remove support for this entirely after a while
-                legacyJsonDetailsFile != null -> {
-                    json.decodeFromStream<MangaDetails>(legacyJsonDetailsFile.openInputStream()).run {
-                        title?.let { manga.title = it }
-                        author?.let { manga.author = it }
-                        artist?.let { manga.artist = it }
-                        description?.let { manga.description = it }
-                        genre?.let { manga.genre = it.joinToString() }
-                        status?.let { manga.status = it }
-                    }
+                TopLevelMetadata.LegacyJson -> {
                     // Replace with ComicInfo.xml file
                     val comicInfo = manga.getComicInfo()
                     mangaDir
@@ -309,24 +323,19 @@ class LocalSource(
                         ?.use {
                             val comicInfoString = xml.encodeToString(ComicInfo.serializer(), comicInfo)
                             it.write(comicInfoString.toByteArray())
-                            legacyJsonDetailsFile.delete()
+                            legacyJsonDetailsFile!!.delete()
                         }
                 }
 
                 // Copy ComicInfo.xml from chapter archive to top level if found
-                noXmlFile == null -> {
+                null -> if (noXmlFile == null) {
                     val chapterArchives = mangaDirFiles.filter(Archive::isSupported)
 
-                    val copiedFile = copyComicInfoFileFromChapters(chapterArchives, mangaDir)
-
                     // SY -->
-                    if (copiedFile != null && copiedFile.name != COMIC_INFO_ARCHIVE) {
-                        setMangaDetailsFromComicInfoFile(copiedFile.openInputStream(), manga)
-                    } else if (copiedFile != null && copiedFile.name == COMIC_INFO_ARCHIVE) {
-                        copiedFile.archiveReader(context).getInputStream(COMIC_INFO_FILE)
-                            ?.let { setMangaDetailsFromComicInfoFile(it, manga) }
-                    } // SY <--
-                    else {
+                    // The copy is a plain ComicInfo.xml or, for encrypted chapters, a packed one.
+                    val copiedFile = copyComicInfoFileFromChapters(chapterArchives, mangaDir)
+                    if (copiedFile == null || readTopLevelMetadata(listOf(copiedFile), manga) == null) {
+                        // SY <--
                         // Avoid re-scanning
                         mangaDir.createFile(".noxml")
                     }
@@ -407,7 +416,10 @@ class LocalSource(
 
     // Chapters
     private suspend fun getChapterList(manga: SManga): List<SChapter> = withIOContext {
-        val chapters = fileSystem.getFilesInMangaDirectory(manga.url)
+        // One listing serves both the chapters and the folder cover.
+        val mangaDirectory = fileSystem.getMangaDirectory(manga.url)
+        val mangaFiles = mangaDirectory?.listFiles()?.toList() ?: fileSystem.getFilesInMangaDirectory(manga.url)
+        val chapters = mangaFiles
             // Only keep supported formats
             .filterNot { it.name.orEmpty().startsWith('.') }
             .filter { it.isDirectory || Archive.isSupported(it) || it.extension.equals("epub", true) }
@@ -441,7 +453,7 @@ class LocalSource(
             }
 
         // A folder cover wins; otherwise point at the first chapter's first image without extracting it.
-        manga.thumbnail_url = coverManager.find(manga.url)?.uri?.toString()
+        manga.thumbnail_url = mangaDirectory?.let { coverManager.findIn(mangaFiles) }?.uri?.toString()
             ?: chapters.lastOrNull()?.let { fileSystem.getChapterFile(it.url) }?.let { chapter ->
                 manga.thumbnail_url.takeIf { coverManager.belongsTo(it, chapter) } ?: chapterCover(chapter, manga.title)
             }
@@ -452,9 +464,11 @@ class LocalSource(
 
     /** Cover for [mangaUrl] from its folder or first chapter, without parsing chapter metadata. */
     fun resolveCover(mangaUrl: String): String? {
-        coverManager.find(mangaUrl)?.let { return it.uri.toString() }
+        val mangaDirectory = fileSystem.getMangaDirectory(mangaUrl)
+        val mangaFiles = mangaDirectory?.listFiles()?.toList() ?: fileSystem.getFilesInMangaDirectory(mangaUrl)
+        mangaDirectory?.let { coverManager.findIn(mangaFiles) }?.let { return it.uri.toString() }
         val allowHidden = allowHiddenFiles()
-        return fileSystem.getFilesInMangaDirectory(mangaUrl)
+        return mangaFiles
             .filter { isVisible(it, allowHidden) && isSupportedChapter(it) }
             .minWithOrNull { a, b -> a.name.orEmpty().compareToCaseInsensitiveNaturalOrder(b.name.orEmpty()) }
             ?.let { chapterCover(it, mangaUrl) }

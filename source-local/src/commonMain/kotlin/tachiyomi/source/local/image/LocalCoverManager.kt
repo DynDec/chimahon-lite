@@ -11,6 +11,9 @@ expect class LocalCoverManager {
     /** A cover image the user placed in the manga folder, such as `cover.jpg`. */
     fun find(mangaUrl: String): UniFile?
 
+    /** [find] within a manga folder listing the caller already has. */
+    fun findIn(files: List<UniFile>): UniFile?
+
     /** A thumbnail URL for [chapter]'s first image, without reading the image itself. */
     fun forChapter(chapter: UniFile): String?
 

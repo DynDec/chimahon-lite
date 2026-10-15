@@ -52,7 +52,8 @@ class LocalMetadataSearchTest {
         every { metadata.isDirectory } returns false
         every { chapter.name } returns "01"
         every { chapter.isDirectory } returns true
-        every { covers.find(folderUrl) } returns null
+        every { covers.findIn(any()) } returns null
+        every { folder.lastModified() } returns 1L
         every { metadata.openInputStream() } answers {
             """{"title":"Metadata title","author":"藤本タツキ","artist":"Artist name"}""".byteInputStream()
         }
@@ -79,6 +80,23 @@ class LocalMetadataSearchTest {
         assertEquals(1, source.getSearchManga(1, "", FilterList()).mangas.size)
         assertEquals(1, source.getSearchManga(1, "filename", FilterList()).mangas.size)
         verify(exactly = 0) { metadata.openInputStream() }
+    }
+
+    @Test
+    fun `repeated searches reuse metadata until the entry changes`() = runTest {
+        repeat(3) { assertEquals(1, source.getSearchManga(1, "藤本", FilterList()).mangas.size) }
+        verify(exactly = 1) { metadata.openInputStream() }
+
+        every { folder.lastModified() } returns 2L
+        assertEquals(1, source.getSearchManga(1, "藤本", FilterList()).mangas.size)
+        verify(exactly = 2) { metadata.openInputStream() }
+    }
+
+    @Test
+    fun `browsing lists each manga folder once`() = runTest {
+        source.getSearchManga(1, "", FilterList())
+        verify(exactly = 1) { folder.listFiles() }
+        verify(exactly = 0) { fileSystem.getFilesInMangaDirectory(any()) }
     }
 
     @Test
