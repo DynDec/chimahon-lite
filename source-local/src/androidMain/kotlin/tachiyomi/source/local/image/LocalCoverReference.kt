@@ -8,6 +8,11 @@ object LocalCoverReference {
     private const val AUTHORITY = "archive"
     private const val FILE = "file"
     private const val ENTRY = "entry"
+    private const val VERSION = "v"
+
+    /** Bump when cover selection changes so stored references are resolved again. */
+    private const val CURRENT_VERSION = "2"
+    private val VERSION_PARAMETER = Regex("[?&]$VERSION=([^&#]*)")
 
     data class Target(val fileUri: String, val entry: String)
 
@@ -16,10 +21,15 @@ object LocalCoverReference {
         .authority(AUTHORITY)
         .appendQueryParameter(FILE, fileUri)
         .appendQueryParameter(ENTRY, entry)
+        .appendQueryParameter(VERSION, CURRENT_VERSION)
         .build()
         .toString()
 
     fun isReference(url: String?): Boolean = url?.startsWith("$SCHEME:") == true
+
+    /** References written by an older cover selection, which should be resolved again. */
+    fun isOutdated(url: String?): Boolean =
+        isReference(url) && VERSION_PARAMETER.find(url!!)?.groupValues?.get(1) != CURRENT_VERSION
 
     fun parse(url: String?): Target? {
         if (!isReference(url)) return null

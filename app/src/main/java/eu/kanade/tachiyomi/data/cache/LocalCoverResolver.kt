@@ -36,7 +36,11 @@ class LocalCoverResolver(
 ) {
     fun needsResolution(manga: Manga): Boolean =
         manga.source == LocalSource.ID &&
-            (manga.ogThumbnailUrl.isNullOrEmpty() || LocalCoverReference.isLegacyGeneratedCover(manga.ogThumbnailUrl))
+            (
+                manga.ogThumbnailUrl.isNullOrEmpty() ||
+                    LocalCoverReference.isLegacyGeneratedCover(manga.ogThumbnailUrl) ||
+                    LocalCoverReference.isOutdated(manga.ogThumbnailUrl)
+                )
 
     suspend fun resolve(manga: Manga, source: LocalSource): Boolean = withContext(dispatcher) {
         if (!needsResolution(manga)) return@withContext true

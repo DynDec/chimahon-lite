@@ -38,26 +38,19 @@ actual class LocalCoverManager(
             ?.uri?.toString()
         is Format.Epub -> format.file.epubReader(context).use { it.getCoverImage() }
             ?.let { LocalCoverReference.create(chapter.uri.toString(), it) }
-        is Format.Archive -> {
-            val files = format.file.archiveEntries(context)
-                .filter { it.isFile }
-                .sortedWith { a, b -> a.name.compareToCaseInsensitiveNaturalOrder(b.name) }
-            // Names decide almost every archive; only sniff contents when no name looks like an image.
-            (
-                files.firstOrNull { ImageUtil.isImage(it.name) }
-                    ?: files.firstOrNull { entry ->
-                        format.file.readArchiveEntry(context, entry.name)
-                            ?.let { bytes -> ImageUtil.findImageType { bytes.inputStream() } } != null
-                    }
-                )
-                ?.let { LocalCoverReference.create(chapter.uri.toString(), it.name) }
-        }
+        is Format.Archive -> LocalCoverSelection.firstImage(format.file.archiveEntries(context)) { name ->
+            ImageUtil.isImage(name) {
+                format.file.readArchiveEntry(context, name)?.inputStream() ?: ByteArray(0).inputStream()
+            }
+        }?.let { LocalCoverReference.create(chapter.uri.toString(), it) }
     }
 
     actual fun belongsTo(thumbnailUrl: String?, chapter: UniFile): Boolean {
         if (thumbnailUrl.isNullOrEmpty()) return false
         val chapterUri = chapter.uri.toString()
-        LocalCoverReference.parse(thumbnailUrl)?.let { return it.fileUri == chapterUri }
+        LocalCoverReference.parse(thumbnailUrl)?.let {
+            return it.fileUri == chapterUri && !LocalCoverReference.isOutdated(thumbnailUrl)
+        }
         // Directory chapters point at a child document or file inside the chapter.
         val rest = thumbnailUrl.removePrefix(chapterUri.trimEnd('/'))
         return chapter.isDirectory && rest != thumbnailUrl && (rest.startsWith("/") || rest.startsWith("%2F", ignoreCase = true))

@@ -32,7 +32,7 @@ class LocalCoverResolverTest {
     private val cache = mockk<CoverCache>()
     private val update = mockk<UpdateManga>()
     private val source = mockk<LocalSource>()
-    private val reference = "chimahon-cover://archive?file=content%3A%2F%2Fbook.zip&entry=001.jpg"
+    private val reference = "chimahon-cover://archive?file=content%3A%2F%2Fbook.zip&entry=001.jpg&v=2"
     private val page = byteArrayOf(1, 2, 3, 4)
     private lateinit var custom: File
 
@@ -53,6 +53,8 @@ class LocalCoverResolverTest {
         assertFalse(resolver.needsResolution(manga(null).copy(source = 1)))
         assertTrue(resolver.needsResolution(manga(null)))
         assertTrue(resolver.needsResolution(manga("file:///data/cache/local_covers/cover-abc.jpg")))
+        // References chosen by an earlier cover selection are resolved again.
+        assertTrue(resolver.needsResolution(manga(reference.removeSuffix("&v=2"))))
     }
 
     @Test
