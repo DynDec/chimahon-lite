@@ -46,8 +46,11 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
 
         findMetadataCover(packageDocument, packageHref)?.let { return it }
 
-        val pages = getPagesFromDocument(packageDocument)
-        return getImagesFromPages(pages, packageHref).firstOrNull()
+        // Stop at the first page with an image instead of parsing the whole book.
+        val basePath = getParentDirectory(packageHref)
+        return getPagesFromDocument(packageDocument).asSequence()
+            .flatMap { page -> getImagesFromPage(resolveZipPath(basePath, page)) }
+            .firstOrNull()
     }
 
     /**
