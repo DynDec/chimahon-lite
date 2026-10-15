@@ -53,6 +53,7 @@ class RelinkLocalMangaTest {
     private val source = mockk<LocalSource>()
     private val destination = directory("file:///new")
     private var newBytes = "same"
+    private val reads = mutableListOf<String>()
     private lateinit var relink: RelinkLocalManga
 
     @BeforeEach
@@ -119,6 +120,33 @@ class RelinkLocalMangaTest {
         val second = mutableListOf<MangaUpdate>()
         coVerify { mangas.update(capture(second)) }
         assertNull(second.last().thumbnailUrl)
+    }
+
+    @Test
+    fun `apply reuses unchanged fingerprints and files that cannot match are never read`() = runTest {
+        val extra = chapter.copy(id = 18, url = "file:///old/02.cbz")
+        coEvery { chapters.getChapterByMangaId(5, false) } returns listOf(chapter, extra)
+        every { fs.getChapterFile(manga.url, extra.url) } answers { file(extra.url, "only in old folder") }
+        coEvery { source.getMangaUpdate(any(), any(), false, true) } returns
+            SMangaUpdate(SManga.create(), listOf(sChapter("file:///new/01.cbz"), sChapter("file:///new/99.cbz")))
+        every { fs.getChapterFile("file:///new", "file:///new/99.cbz") } answers { file("file:///new/99.cbz", "new") }
+
+        val preview = relink.preview(5, "file:///new")
+        assertEquals(listOf("file:///old/01.cbz", "file:///new/01.cbz"), reads.sorted().reversed())
+        reads.clear()
+        relink.apply(preview, false)
+
+        assertEquals(1, preview.matchedCount)
+        assertTrue(reads.isEmpty()) { "re-read $reads" }
+    }
+
+    @Test
+    fun `same name with a different size is a new chapter without reading either file`() = runTest {
+        newBytes = "a longer replacement"
+        val preview = relink.preview(5, "file:///new")
+
+        assertEquals(0, preview.matchedCount)
+        assertTrue(reads.isEmpty())
     }
 
     @Test
@@ -255,7 +283,12 @@ class RelinkLocalMangaTest {
         every { result.uri } returns location
         every { result.name } returns url.substringAfterLast('/')
         every { result.isDirectory } returns false
-        every { result.openInputStream() } answers { content.byteInputStream() }
+        every { result.length() } returns content.length.toLong()
+        every { result.lastModified() } returns 1L
+        every { result.openInputStream() } answers {
+            reads += url
+            content.byteInputStream()
+        }
         return result
     }
     private fun sChapter(url: String) = SChapter.create().apply {

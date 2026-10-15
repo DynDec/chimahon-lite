@@ -14,6 +14,12 @@ internal object LocalFolderRelinkPlanner {
         "UTF-8",
     ).substringAfterLast('/')
 
+    /** Filenames unique in both folders: the only files whose content [plan] compares. */
+    fun candidateNames(existing: List<String>, destination: List<String>): Set<String> {
+        fun unique(urls: List<String>) = urls.groupingBy(::filename).eachCount().filterValues { it == 1 }.keys
+        return unique(existing) intersect unique(destination)
+    }
+
     fun plan(existing: List<Existing>, destination: List<File>): Plan {
         val oldByName = existing.groupBy { filename(it.file.url) }
         val newByName = destination.groupBy { filename(it.url) }

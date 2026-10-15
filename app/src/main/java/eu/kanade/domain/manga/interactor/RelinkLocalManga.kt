@@ -52,6 +52,7 @@ class RelinkLocalManga(
         internal val destination: List<Chapter>,
         internal val plan: LocalFolderRelinkPlanner.Plan,
         internal val cover: String?,
+        internal val fingerprints: Map<String, Fingerprint>,
     ) {
         val matchedCount: Int get() = plan.matches.size
         val retainedCount: Int get() = plan.retained.size
@@ -62,7 +63,12 @@ class RelinkLocalManga(
         val addedNames: List<String> get() = plan.added.map { LocalFolderRelinkPlanner.filename(it.url) }
     }
 
-    suspend fun preview(mangaId: Long, folderUrl: String): Preview = withIOContext {
+    /** Content fingerprint of a chapter file, reusable while its size and modification time are unchanged. */
+    internal data class Fingerprint(val length: Long, val lastModified: Long, val value: String)
+
+    suspend fun preview(mangaId: Long, folderUrl: String): Preview = preview(mangaId, folderUrl, emptyMap())
+
+    private suspend fun preview(mangaId: Long, folderUrl: String, known: Map<String, Fingerprint>): Preview = withIOContext {
         val manga = mangas.getMangaById(mangaId)
         if (manga.source != LocalSource.ID) fail(Error.NotLocal)
         checkOcr(mangaId)
@@ -77,10 +83,30 @@ class RelinkLocalManga(
             Chapter.create().copyFromSChapter(chapter).copy(mangaId = mangaId, sourceOrder = index.toLong())
         }
         if (destination.isEmpty()) fail(Error.EmptyFolder)
+        val newFileByUrl = destination.associate {
+            it.url to (fileSystem.getChapterFile(folderUrl, it.url) ?: fail(Error.Unavailable))
+        }
+        // Only files with the same unique name on both sides can keep their records, so only they are read.
+        val candidates = LocalFolderRelinkPlanner.candidateNames(existing.map { it.url }, destination.map { it.url })
+        val oldByName = existing.map { it.url }
+            .filter { LocalFolderRelinkPlanner.filename(it) in candidates }
+            .associate { LocalFolderRelinkPlanner.filename(it) to fileSystem.getChapterFile(manga.url, it) }
+        val newByName = newFileByUrl.filterKeys { LocalFolderRelinkPlanner.filename(it) in candidates }
+            .mapKeys { LocalFolderRelinkPlanner.filename(it.key) }
+        val fingerprints = mutableMapOf<String, Fingerprint>()
+        suspend fun fingerprintOf(file: UniFile, counterpart: UniFile?): String {
+            // Different sizes already prove different content, so neither file is read.
+            if (!file.isDirectory && counterpart != null && !counterpart.isDirectory) {
+                val length = file.length()
+                if (length != counterpart.length()) return "length:$length"
+            }
+            return reusableFingerprint(file, known)?.also { fingerprints[file.uri.toString()] = it }?.value
+                ?: fingerprint(file)
+        }
         val oldFiles = existing.map { chapter ->
-            val file = fileSystem.getChapterFile(manga.url, chapter.url)
+            val name = LocalFolderRelinkPlanner.filename(chapter.url)
             val fingerprint = try {
-                file?.let { fingerprint(it) }
+                oldByName[name]?.let { fingerprintOf(it, newByName[name]) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 null // Unreadable old files require the user's explicit unchanged-content confirmation.
@@ -88,21 +114,22 @@ class RelinkLocalManga(
             LocalFolderRelinkPlanner.Existing(chapter.id, LocalFolderRelinkPlanner.File(chapter.url, fingerprint))
         }
         val newFiles = destination.map { chapter ->
-            val file = fileSystem.getChapterFile(folderUrl, chapter.url) ?: fail(Error.Unavailable)
-            LocalFolderRelinkPlanner.File(chapter.url, fingerprint(file))
+            val name = LocalFolderRelinkPlanner.filename(chapter.url)
+            LocalFolderRelinkPlanner.File(chapter.url, newByName[name]?.let { fingerprintOf(it, oldByName[name]) })
         }
         val plan = LocalFolderRelinkPlanner.plan(oldFiles, newFiles)
         // Retained legacy paths must remain anchored to the original folder.
         if (existing.any { it.id in plan.retained && !it.url.isAbsoluteFileUrl() && fileSystem.getChapterFile(manga.url, it.url) == null }) {
             fail(Error.Unavailable)
         }
-        Preview(manga, folderUrl, directory.name.orEmpty(), existing, destination, plan, update.manga.thumbnail_url)
+        Preview(manga, folderUrl, directory.name.orEmpty(), existing, destination, plan, update.manga.thumbnail_url, fingerprints)
     }
 
     suspend fun apply(preview: Preview, confirmUnchanged: Boolean) = withIOContext {
         if (preview.unverifiedCount > 0 && !confirmUnchanged) fail(Error.ConfirmationRequired)
         // Recheck content and identities after the preview, before changing any database records.
-        val fresh = this@RelinkLocalManga.preview(preview.manga.id, preview.folderUrl)
+        // Files whose size and modification time are unchanged since the preview are not read again.
+        val fresh = this@RelinkLocalManga.preview(preview.manga.id, preview.folderUrl, preview.fingerprints)
         if (fresh.manga.url != preview.manga.url || fresh.plan != preview.plan ||
             fresh.existing.map { it.id to it.url } != preview.existing.map { it.id to it.url }
         ) {
@@ -155,15 +182,31 @@ class RelinkLocalManga(
     }
 
     private suspend fun checkDestination(manga: Manga, directory: UniFile) {
+        val target = directory.uri.toString()
+        // Resolving another entry only adds a file path comparison, which needs a path on this side.
+        // A content URI resolves to itself, so without a path the URI comparison already decides.
+        val comparePaths = directory.filePath != null
         if (mangas.getMangaBySourceId(LocalSource.ID).any { other ->
                 other.id != manga.id && (
-                    areSameFileUris(other.url, directory.uri.toString()) ||
-                        fileSystem.getMangaDirectory(other.url)?.isSameFileAs(directory) == true
+                    areSameFileUris(other.url, target) ||
+                        (
+                            (comparePaths || !other.url.startsWith("content://")) &&
+                                fileSystem.getMangaDirectory(other.url)?.isSameFileAs(directory) == true
+                            )
                     )
             }
         ) {
             fail(Error.AlreadyLinked)
         }
+    }
+
+    /** A file fingerprint, reused from [known] while the file's size and modification time are unchanged. */
+    private suspend fun reusableFingerprint(file: UniFile, known: Map<String, Fingerprint>): Fingerprint? {
+        if (file.isDirectory) return null // Directory timestamps do not change when a page is edited.
+        val length = file.length()
+        val lastModified = file.lastModified()
+        known[file.uri.toString()]?.takeIf { it.length == length && it.lastModified == lastModified }?.let { return it }
+        return Fingerprint(length, lastModified, fingerprint(file))
     }
 
     private suspend fun fingerprint(file: UniFile): String {
