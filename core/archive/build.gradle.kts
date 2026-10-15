@@ -16,4 +16,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(libs.injekt)
     // KMK <--
+
+    testImplementation(libs.bundles.test)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

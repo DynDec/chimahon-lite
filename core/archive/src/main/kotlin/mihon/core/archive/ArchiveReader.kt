@@ -19,7 +19,11 @@ class ArchiveReader(pfd: ParcelFileDescriptor) : Closeable {
     val archiveHashCode = pfd.hashCode()
 
     init {
-        checkEncryptionStatus()
+        // A ZIP central directory proves the common unencrypted case without faulting in every
+        // entry header. Encrypted archives keep the libarchive scan and its password check.
+        if (pfd.zipIndex()?.entries?.none { it.isEncrypted } != true) {
+            checkEncryptionStatus()
+        }
     }
     // SY <--
 
