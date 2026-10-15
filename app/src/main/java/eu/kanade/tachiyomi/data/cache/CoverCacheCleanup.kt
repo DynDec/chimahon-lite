@@ -4,7 +4,6 @@ import android.content.Context
 import android.system.ErrnoException
 import android.system.Os
 import androidx.core.net.toUri
-import eu.kanade.tachiyomi.util.lang.Hash
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -13,8 +12,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import tachiyomi.core.common.storage.CoverFileCleanup
 import tachiyomi.domain.manga.repository.MangaRepository
-import tachiyomi.source.local.LocalSource
-import tachiyomi.source.local.io.LocalSourceFileSystem
+import tachiyomi.source.local.image.LocalCoverReference
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
@@ -28,7 +26,8 @@ class CoverCacheCleanup(private val context: Context) {
         withContext(Dispatchers.IO) {
             val coroutineContext = currentCoroutineContext()
             val coverCache = Injekt.get<CoverCache>()
-            val localDirectory = File(context.cacheDir, "local_covers")
+            // Covers older versions extracted for local manga; new local covers are read on demand.
+            val localDirectory = File(context.cacheDir, LocalCoverReference.LEGACY_DIRECTORY)
             val directories = listOf(
                 localDirectory,
                 coverCache.cacheDir,
@@ -56,11 +55,6 @@ class CoverCacheCleanup(private val context: Context) {
             // Any database failure aborts the operation before deleting anything.
             val manga = Injekt.get<MangaRepository>().getAll()
             val referenced = buildSet {
-                fun keepLocal(url: String) {
-                    val hash = Hash.sha256(url)
-                    add(File(localDirectory, "cover-$hash.jpg"))
-                    add(File(localDirectory, "cover-$hash.cbi"))
-                }
                 fun keepThumbnail(url: String?) {
                     if (url == null) return
                     val path = when {
@@ -74,22 +68,11 @@ class CoverCacheCleanup(private val context: Context) {
                     coverCache.getCoverFile(item.thumbnailUrl)?.let(::add)
                     add(coverCache.getCustomCoverFile(item.id))
                     keepThumbnail(item.thumbnailUrl)
-                    if (item.source == LocalSource.ID) keepLocal(item.url)
+                    keepThumbnail(item.ogThumbnailUrl)
                 }
                 // A custom cover can be the only copy of a user-supplied image, including legacy
                 // entries. It may share bytes, but is never removed as an orphan by this action.
                 addAll(candidates.keys.filter { it.parentFile == coverCache.customCoverCacheDir })
-
-                val entries = Injekt.get<LocalSourceFileSystem>().getBaseDirectory()?.listFiles()
-                if (entries == null) {
-                    // Lost storage permission or an unavailable provider is not evidence of orphaning.
-                    addAll(candidates.keys.filter { it.parentFile == localDirectory })
-                } else {
-                    for (entry in entries) {
-                        keepLocal(entry.uri.toString())
-                        entry.name?.let(::keepLocal) // Legacy relative identities.
-                    }
-                }
             }
             CoverFileCleanup(::stat).clean(candidates, referenced) { coroutineContext.ensureActive() }
         }

@@ -23,12 +23,10 @@ fun UniFile.archiveEntries(context: Context): List<ArchiveEntry> = openFileDescr
 /** Reads one entry fully into memory, touching only that entry for unencrypted ZIP-based files. */
 fun UniFile.readArchiveEntry(context: Context, name: String): ByteArray? = openFileDescriptor(context, "r").use { pfd ->
     val index = pfd.zipIndex()
-    val entry = index?.find(name)
-    when {
-        index != null && entry == null -> null
-        index != null && entry!!.isReadable -> index.read(entry)
-        else -> ArchiveReader(pfd).use { reader -> reader.getInputStream(name)?.use { it.readBytes() } }
-    }
+    val entry = index?.find(name)?.takeIf { it.isReadable }
+    // Encrypted entries, other formats and names libarchive decodes differently go through libarchive.
+    entry?.let { index.read(it) }
+        ?: ArchiveReader(pfd).use { reader -> reader.getInputStream(name)?.use { it.readBytes() } }
 }
 
 internal fun ParcelFileDescriptor.zipIndex(): ZipIndex? = ZipIndex.load(statSize) { position, buffer, offset, length ->

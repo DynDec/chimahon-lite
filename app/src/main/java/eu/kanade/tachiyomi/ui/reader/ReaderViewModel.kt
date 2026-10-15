@@ -14,6 +14,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import chimahon.ocr.OcrBitmapDecoder
+import chimahon.ocr.effectiveScanResolution
+import chimahon.ocr.isOcrAllowedForLanguage
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.chapter.model.toDbChapter
 import eu.kanade.domain.manga.interactor.SetMangaViewerFlags
@@ -30,8 +32,6 @@ import eu.kanade.tachiyomi.data.database.models.toDomainChapter
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.DownloadProvider
 import eu.kanade.tachiyomi.data.download.model.Download
-import chimahon.ocr.effectiveScanResolution
-import chimahon.ocr.isOcrAllowedForLanguage
 import eu.kanade.tachiyomi.data.ocr.retryWithBackoff
 import eu.kanade.tachiyomi.data.saver.Image
 import eu.kanade.tachiyomi.data.saver.ImageSaver
@@ -80,9 +80,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.supervisorScope
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -97,13 +94,15 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.math.min
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import logcat.LogPriority
-
 import mihon.core.archive.archiveReader
 import mihon.core.archive.epubReader
+import mihon.domain.panel.repository.PanelDetectionRepository
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import tachiyomi.core.common.preference.toggle
 import tachiyomi.core.common.storage.UniFileTempFileManager
@@ -133,9 +132,8 @@ import tachiyomi.domain.manga.interactor.GetMergedMangaById
 import tachiyomi.domain.manga.interactor.GetMergedReferencesById
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
-import tachiyomi.source.local.isLocal
 import tachiyomi.source.local.io.Archive
-import mihon.domain.panel.repository.PanelDetectionRepository
+import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
@@ -143,6 +141,7 @@ import java.time.Instant
 import java.util.Collections.emptyList
 import java.util.Date
 import java.util.LinkedHashMap
+import kotlin.math.min
 
 /**
  * Presenter used by the activity to perform background operations.
@@ -1647,7 +1646,7 @@ class ReaderViewModel @JvmOverloads constructor(
 
         viewModelScope.launchNonCancellable {
             val result = try {
-                manga.editCover(Injekt.get(), stream())
+                manga.editCover(stream())
                 if (manga.isLocal() || manga.favorite) {
                     SetAsCoverResult.Success
                 } else {
@@ -1960,7 +1959,7 @@ class ReaderViewModel @JvmOverloads constructor(
             val isArchive = !chapterFile.isDirectory && (
                 chapterName.endsWith(".epub", ignoreCase = true) ||
                     Archive.isSupported(chapterFile)
-            )
+                )
             val content = readMokuroContent(chapterFile, chapterName, baseDir, isArchive)
                 ?: return@withLock null
 
@@ -2239,8 +2238,9 @@ class ReaderViewModel @JvmOverloads constructor(
                 null
             }
 
-            if (archiveContent != null)
+            if (archiveContent != null) {
                 return archiveContent
+            }
         }
 
         logcat { "Mokuro: no .mokuro file found for $chapterName (tried inside folder, inside archive and siblings)" }
@@ -2261,7 +2261,7 @@ class ReaderViewModel @JvmOverloads constructor(
         val isArchive = !chapterFile.isDirectory && (
             chapterName.endsWith(".epub", ignoreCase = true) ||
                 Archive.isSupported(chapterFile)
-        )
+            )
 
         val mokuroBaseName = if (isArchive) {
             chapterName.substringBeforeLast('.')

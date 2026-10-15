@@ -5,6 +5,7 @@ import eu.kanade.domain.chapter.model.toSChapter
 import eu.kanade.domain.manga.model.hasCustomCover
 import eu.kanade.domain.manga.model.toSManga
 import eu.kanade.tachiyomi.data.cache.CoverCache
+import eu.kanade.tachiyomi.data.cache.LocalCoverResolver
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.model.SManga
@@ -32,6 +33,9 @@ class UpdateMangaFromRemote(
     private val coverCache: CoverCache,
     private val libraryPreferences: LibraryPreferences,
     private val downloadManager: DownloadManager,
+    // Chimahon -->
+    private val localCoverResolver: LocalCoverResolver = LocalCoverResolver(),
+    // Chimahon <--
 ) {
     /**
      * @param manualFetch Default: `false`. If `true`, it will update cover's last modified date & fetchInterval.
@@ -173,6 +177,11 @@ class UpdateMangaFromRemote(
         }
 
         val thumbnailUrl = remoteManga.thumbnail_url?.takeIf { it.isNotEmpty() }
+        // Chimahon -->
+        if (localManga.isLocal() && thumbnailUrl != null && thumbnailUrl != localManga.ogThumbnailUrl) {
+            localCoverResolver.retireLegacyCover(localManga, thumbnailUrl)
+        }
+        // Chimahon <--
 
         val success = mangaRepository.update(
             MangaUpdate(

@@ -25,7 +25,7 @@ import eu.kanade.domain.track.interactor.AddTracks
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.util.ioCoroutineScope
 import eu.kanade.tachiyomi.data.cache.CoverCache
-import eu.kanade.tachiyomi.data.cache.LocalCoverRecovery
+import eu.kanade.tachiyomi.data.cache.LocalCoverResolver
 import eu.kanade.tachiyomi.extension.ExtensionManager
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.online.MetadataSource
@@ -112,7 +112,7 @@ open class BrowseSourceScreenModel(
     private val setMangaDefaultChapterFlags: SetMangaDefaultChapterFlags = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
     private val updateManga: UpdateManga = Injekt.get(),
-    private val localCoverRecovery: LocalCoverRecovery = LocalCoverRecovery(),
+    private val localCoverResolver: LocalCoverResolver = LocalCoverResolver(),
     private val addTracks: AddTracks = Injekt.get(),
     getIncognitoState: GetIncognitoState = Injekt.get(),
     // KMK -->
@@ -250,25 +250,24 @@ open class BrowseSourceScreenModel(
 
     /**
      * Local source entries can be listed before their first chapter has been read. Queue cover
-     * extraction after the entry has been inserted so the initial page stays responsive. The
-     * screen model scope owns these jobs, which also stops extraction when the browse screen is
-     * closed.
+     * resolution after the entry has been inserted so the initial page stays responsive. The
+     * screen model scope owns these jobs, which also stops them when the browse screen is closed.
      */
     private fun scheduleLocalCoverGeneration(manga: Manga) {
         val localSource = source as? LocalSource ?: return
-        if (manga.source != localSource.id) return
+        if (!localCoverResolver.needsResolution(manga)) return
 
         if (!localCoverGenerationUrls.add(manga.url)) return
 
         screenModelScope.launchIO {
             try {
-                localCoverRecovery.recover(manga, localSource)
+                localCoverResolver.resolve(manga, localSource)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                logcat(LogPriority.ERROR, e) { "Error generating local cover for ${manga.title}" }
+                logcat(LogPriority.ERROR, e) { "Error resolving local cover for ${manga.title}" }
             } finally {
-                // Deduplicate pending work, but allow a later browse to repair another cache eviction.
+                // Deduplicate pending work, but allow a later browse to retry an unavailable book.
                 localCoverGenerationUrls.remove(manga.url)
             }
         }

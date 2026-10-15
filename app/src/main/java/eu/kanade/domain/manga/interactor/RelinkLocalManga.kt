@@ -4,6 +4,7 @@ import chimahon.ocr.OcrCacheManager
 import com.hippo.unifile.UniFile
 import eu.kanade.domain.chapter.model.copyFromSChapter
 import eu.kanade.domain.manga.model.toSManga
+import eu.kanade.tachiyomi.data.cache.LocalCoverResolver
 import eu.kanade.tachiyomi.data.ocr.OcrManager
 import eu.kanade.tachiyomi.data.ocr.isActionable
 import kotlinx.coroutines.CancellationException
@@ -22,7 +23,7 @@ import tachiyomi.domain.manga.model.MangaUpdate
 import tachiyomi.domain.manga.repository.MangaRepository
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.source.local.LocalSource
-import tachiyomi.source.local.image.LocalCoverManager
+import tachiyomi.source.local.image.LocalCoverReference
 import tachiyomi.source.local.io.LocalSourceFileSystem
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -35,7 +36,7 @@ class RelinkLocalManga(
     private val handler: DatabaseHandler = Injekt.get(),
     private val sourceManager: SourceManager = Injekt.get(),
     private val fileSystem: LocalSourceFileSystem = Injekt.get(),
-    private val covers: LocalCoverManager = Injekt.get(),
+    private val coverResolver: LocalCoverResolver = LocalCoverResolver(),
     private val ocrCache: OcrCacheManager = Injekt.get(),
     private val ocrManager: OcrManager = Injekt.get(),
 ) {
@@ -49,6 +50,7 @@ class RelinkLocalManga(
         internal val existing: List<Chapter>,
         internal val destination: List<Chapter>,
         internal val plan: LocalFolderRelinkPlanner.Plan,
+        internal val cover: String?,
     ) {
         val matchedCount: Int get() = plan.matches.size
         val retainedCount: Int get() = plan.retained.size
@@ -93,7 +95,7 @@ class RelinkLocalManga(
         if (existing.any { it.id in plan.retained && !it.url.isAbsoluteFileUrl() && fileSystem.getChapterFile(manga.url, it.url) == null }) {
             fail(Error.Unavailable)
         }
-        Preview(manga, folderUrl, directory.name.orEmpty(), existing, destination, plan)
+        Preview(manga, folderUrl, directory.name.orEmpty(), existing, destination, plan, update.manga.thumbnail_url)
     }
 
     suspend fun apply(preview: Preview, confirmUnchanged: Boolean) = withIOContext {
@@ -106,8 +108,8 @@ class RelinkLocalManga(
             fail(Error.Changed)
         }
         val source = sourceManager.get(LocalSource.ID) ?: fail(Error.Unavailable)
-        val copiedCover = covers.copyForRelink(fresh.manga.url, fresh.folderUrl)
-        val oldCover = covers.find(fresh.manga.url)
+        // Keep a cover the user picked in an older version before the manga stops referencing it.
+        coverResolver.retireLegacyCover(fresh.manga, fresh.cover)
         fresh.plan.matches.forEach { match ->
             ocrCache.preserveForRelink(fresh.manga, fresh.existing.single { it.id == match.id }, source)
         }
@@ -140,7 +142,7 @@ class RelinkLocalManga(
                     MangaUpdate(
                         id = current.id,
                         url = fresh.folderUrl,
-                        thumbnailUrl = copiedCover?.uri?.toString().takeIf { current.ogThumbnailUrl == oldCover?.uri?.toString() },
+                        thumbnailUrl = fresh.cover.takeIf { current.ogThumbnailUrl.isAutomaticLocalCover() },
                     ),
                 ),
             )
@@ -195,4 +197,8 @@ class RelinkLocalManga(
     private fun fail(error: Error): Nothing = throw RelinkException(error)
 
     private fun String.isAbsoluteFileUrl(): Boolean = startsWith("content://") || startsWith("file://")
+
+    /** Covers the app derived from the old folder, as opposed to a URL the user entered. */
+    private fun String?.isAutomaticLocalCover(): Boolean =
+        this == null || LocalCoverReference.isReference(this) || isAbsoluteFileUrl()
 }

@@ -2,12 +2,9 @@ package eu.kanade.tachiyomi.util
 
 import eu.kanade.domain.manga.interactor.UpdateManga
 import eu.kanade.domain.manga.model.hasCustomCover
-import eu.kanade.domain.manga.model.toSManga
 import eu.kanade.tachiyomi.data.cache.CoverCache
-import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.model.SManga
 import tachiyomi.domain.manga.model.Manga
-import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -41,30 +38,6 @@ fun Manga.prepUpdateCover(coverCache: CoverCache, remoteManga: SManga, refreshSa
     }
 }
 
-suspend fun Manga.updateLocalCoverFromSourceFetch(
-    source: Source,
-    sourceManga: SManga,
-    updateManga: UpdateManga = Injekt.get(),
-    coverCache: CoverCache = Injekt.get(),
-) {
-    val generatedCover = sourceManga.thumbnail_url?.takeIf { it.isNotBlank() } ?: return
-    if (!source.isLocal()) return
-
-    // Local generated covers live in the app cache and may be evicted while the database
-    // still points at the same URI. Refresh the timestamp even when the URI is unchanged
-    // so Coil retries the regenerated file instead of keeping a failed result cached.
-    if (generatedCover != thumbnailUrl) coverCache.deleteFromCache(this, false)
-
-    updateManga.await(
-        tachiyomi.domain.manga.model.MangaUpdate(
-            id = id,
-            thumbnailUrl = sourceManga.thumbnail_url,
-            coverLastModified = Instant.now().toEpochMilli(),
-            initialized = true,
-        ),
-    )
-}
-
 fun Manga.removeCovers(coverCache: CoverCache = Injekt.get()): Manga {
     if (isLocal()) return this
     return if (coverCache.deleteFromCache(this, true) > 0) {
@@ -75,15 +48,13 @@ fun Manga.removeCovers(coverCache: CoverCache = Injekt.get()): Manga {
 }
 
 suspend fun Manga.editCover(
-    coverManager: LocalCoverManager,
     stream: InputStream,
     updateManga: UpdateManga = Injekt.get(),
     coverCache: CoverCache = Injekt.get(),
 ) {
-    if (isLocal()) {
-        coverManager.update(toSManga(), stream)
-        updateManga.awaitUpdateCoverLastModified(id)
-    } else if (favorite) {
+    // Local manga keep user-chosen covers in the custom cover store, like library entries;
+    // their automatic cover is read from the manga's files on demand.
+    if (isLocal() || favorite) {
         coverCache.setCustomCoverToCache(this, stream)
         updateManga.awaitUpdateCoverLastModified(id)
     }

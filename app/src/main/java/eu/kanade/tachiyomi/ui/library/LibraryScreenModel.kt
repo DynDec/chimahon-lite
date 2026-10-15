@@ -23,7 +23,7 @@ import eu.kanade.presentation.components.SEARCH_DEBOUNCE_MILLIS
 import eu.kanade.presentation.library.components.LibraryToolbarTitle
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.tachiyomi.data.cache.CoverCache
-import eu.kanade.tachiyomi.data.cache.LocalCoverRecovery
+import eu.kanade.tachiyomi.data.cache.LocalCoverResolver
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.track.TrackStatus
@@ -163,7 +163,7 @@ class LibraryScreenModel(
     syncPreferences: SyncPreferences = Injekt.get(),
     // SY <--
     // KMK -->
-    private val localCoverRecovery: LocalCoverRecovery = LocalCoverRecovery(),
+    private val localCoverResolver: LocalCoverResolver = LocalCoverResolver(),
     // KMK <--
 ) : StateScreenModel<LibraryScreenModel.State>(State()) {
 
@@ -734,7 +734,7 @@ class LibraryScreenModel(
     private fun getFavoritesFlow(): Flow<List<LibraryItem>> {
         return combine(
             getLibraryManga.subscribe().onEach { library ->
-                library.forEach { scheduleLocalCoverRecovery(it.manga) }
+                library.forEach { scheduleLocalCoverResolution(it.manga) }
             },
             getLibraryItemPreferencesFlow(),
             downloadCache.changes,
@@ -781,21 +781,21 @@ class LibraryScreenModel(
         }
     }
 
-    private fun scheduleLocalCoverRecovery(manga: Manga) {
-        if (!manga.isLocal() || !scheduledLocalCoverIds.add(manga.id)) return
+    private fun scheduleLocalCoverResolution(manga: Manga) {
+        if (!localCoverResolver.needsResolution(manga) || !scheduledLocalCoverIds.add(manga.id)) return
         screenModelScope.launchIO {
             try {
                 // Source initialization is asynchronous on cold start, including immediately after updating.
                 sourceManager.isInitialized.first { it }
                 val source = sourceManager.get(manga.source) as? LocalSource ?: return@launchIO
-                localCoverRecovery.recover(manga, source)
+                localCoverResolver.resolve(manga, source)
             } catch (e: CancellationException) {
                 scheduledLocalCoverIds.remove(manga.id)
                 throw e
             } catch (e: Exception) {
                 // Keep a failed book from retrying on every other cover's database update.
                 // Opening a new library screen or Browse can retry once storage is available again.
-                logcat(LogPriority.ERROR, e) { "Error recovering local library cover for ${manga.id}" }
+                logcat(LogPriority.ERROR, e) { "Error resolving local library cover for ${manga.id}" }
             }
         }
     }

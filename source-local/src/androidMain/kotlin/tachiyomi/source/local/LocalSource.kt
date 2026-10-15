@@ -236,9 +236,10 @@ class LocalSource(
                             file.epubReader(context).use { it.fillMetadata(manga, SChapter.create()) }
                             if (!manga.author.isNullOrBlank()) break
                         } else if (getComicInfoForChapter(file) { stream, _ ->
-                            setMangaDetailsFromComicInfoFile(stream, manga)
-                            true
-                        } == true) {
+                                setMangaDetailsFromComicInfoFile(stream, manga)
+                                true
+                            } == true
+                        ) {
                             break
                         }
                     }
@@ -439,14 +440,33 @@ class LocalSource(
                 c2.name.compareToCaseInsensitiveNaturalOrder(c1.name)
             }
 
-        // Copy the cover from the first chapter found if not available
-        if (coverManager.find(manga.url) == null) {
-            chapters.lastOrNull()?.let { chapter ->
-                updateCover(chapter, manga)
+        // A folder cover wins; otherwise point at the first chapter's first image without extracting it.
+        manga.thumbnail_url = coverManager.find(manga.url)?.uri?.toString()
+            ?: chapters.lastOrNull()?.let { fileSystem.getChapterFile(it.url) }?.let { chapter ->
+                manga.thumbnail_url.takeIf { coverManager.belongsTo(it, chapter) } ?: chapterCover(chapter, manga.title)
             }
-        }
+            ?: manga.thumbnail_url
 
         chapters
+    }
+
+    /** Cover for [mangaUrl] from its folder or first chapter, without parsing chapter metadata. */
+    fun resolveCover(mangaUrl: String): String? {
+        coverManager.find(mangaUrl)?.let { return it.uri.toString() }
+        val allowHidden = allowHiddenFiles()
+        return fileSystem.getFilesInMangaDirectory(mangaUrl)
+            .filter { isVisible(it, allowHidden) && isSupportedChapter(it) }
+            .minWithOrNull { a, b -> a.name.orEmpty().compareToCaseInsensitiveNaturalOrder(b.name.orEmpty()) }
+            ?.let { chapterCover(it, mangaUrl) }
+    }
+
+    private fun chapterCover(chapter: UniFile, label: String): String? = try {
+        coverManager.forChapter(chapter)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        logcat(LogPriority.ERROR, e) { "Error finding cover for $label" }
+        null
     }
 
     // Filters
@@ -464,49 +484,6 @@ class LocalSource(
             throw Exception(context.stringResource(MR.strings.local_invalid_format))
         } catch (e: Exception) {
             throw e
-        }
-    }
-
-    private fun updateCover(chapter: SChapter, manga: SManga): UniFile? {
-        return try {
-            when (val format = getFormat(chapter)) {
-                is Format.Directory -> {
-                    val entry = format.file.listFiles()
-                        ?.sortedWith { f1, f2 ->
-                            f1.name.orEmpty().compareToCaseInsensitiveNaturalOrder(
-                                f2.name.orEmpty(),
-                            )
-                        }
-                        ?.find {
-                            !it.isDirectory && ImageUtil.isImage(it.name) { it.openInputStream() }
-                        }
-
-                    entry?.let { coverManager.update(manga, it.openInputStream()) }
-                }
-                is Format.Archive -> {
-                    format.file.archiveReader(context).use { reader ->
-                        val entry = reader.useEntries { entries ->
-                            entries
-                                .sortedWith { f1, f2 -> f1.name.compareToCaseInsensitiveNaturalOrder(f2.name) }
-                                .find { it.isFile && ImageUtil.isImage(it.name) { reader.getInputStream(it.name)!! } }
-                        }
-
-                        entry?.let { coverManager.update(manga, reader.getInputStream(it.name)!!, reader.encrypted) }
-                    }
-                }
-                is Format.Epub -> {
-                    format.file.epubReader(context).use { epub ->
-                        val entry = epub.getCoverImage()
-
-                        entry?.let { coverManager.update(manga, epub.getInputStream(it)!!) }
-                    }
-                }
-            }
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Throwable) {
-            logcat(LogPriority.ERROR, e) { "Error updating cover for ${manga.title}" }
-            null
         }
     }
 

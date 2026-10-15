@@ -25,6 +25,7 @@ import okhttp3.CacheControl
 import okhttp3.Call
 import okhttp3.Request
 import okhttp3.Response
+import okio.Buffer
 import okio.BufferedSource
 import okio.FileSystem
 import okio.Path.Companion.toOkioPath
@@ -38,6 +39,8 @@ import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.manga.model.MangaCover
 import tachiyomi.domain.manga.model.asMangaCover
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.source.local.image.LocalCoverManager
+import tachiyomi.source.local.image.LocalCoverReference
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
@@ -98,6 +101,9 @@ class MangaCoverFetcher(
         return when (getResourceType(url)) {
             Type.File -> fileLoader(File(url.substringAfter("file://")))
             Type.URI -> fileUriLoader(url)
+            // Chimahon -->
+            Type.LocalArchive -> localArchiveLoader(url)
+            // Chimahon <--
             Type.URL -> httpLoader()
             null -> error("Invalid image")
         }
@@ -132,6 +138,20 @@ class MangaCoverFetcher(
             dataSource = DataSource.DISK,
         )
     }
+
+    // Chimahon -->
+    /** Local archive covers are read into memory on demand; nothing is written to disk. */
+    private fun localArchiveLoader(reference: String): FetchResult {
+        val bytes = Injekt.get<LocalCoverManager>().read(reference)
+            ?: throw IOException("Local cover is no longer available")
+        setRatioAndColorsInScope(mangaCover, bufferedSource = Buffer().write(bytes))
+        return SourceFetchResult(
+            source = ImageSource(source = Buffer().write(bytes), fileSystem = FileSystem.SYSTEM),
+            mimeType = "image/*",
+            dataSource = DataSource.DISK,
+        )
+    }
+    // Chimahon <--
 
     private suspend fun httpLoader(): FetchResult {
         // Only cache separately if it's a library item
@@ -326,6 +346,9 @@ class MangaCoverFetcher(
             cover.startsWith("http", true) || cover.startsWith("Custom-", true) -> Type.URL
             cover.startsWith("/") || cover.startsWith("file://") -> Type.File
             cover.startsWith("content") -> Type.URI
+            // Chimahon -->
+            LocalCoverReference.isReference(cover) -> Type.LocalArchive
+            // Chimahon <--
             else -> null
         }
     }
@@ -357,6 +380,10 @@ class MangaCoverFetcher(
         File,
         URI,
         URL,
+
+        // Chimahon -->
+        LocalArchive,
+        // Chimahon <--
     }
 
     class MangaFactory(

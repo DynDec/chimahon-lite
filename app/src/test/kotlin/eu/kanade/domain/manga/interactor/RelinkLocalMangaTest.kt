@@ -3,6 +3,7 @@ package eu.kanade.domain.manga.interactor
 import android.net.Uri
 import chimahon.ocr.OcrCacheManager
 import com.hippo.unifile.UniFile
+import eu.kanade.tachiyomi.data.cache.LocalCoverResolver
 import eu.kanade.tachiyomi.data.ocr.OcrManager
 import eu.kanade.tachiyomi.data.ocr.OcrQueueItem
 import eu.kanade.tachiyomi.data.ocr.OcrQueueStatus
@@ -16,6 +17,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -35,7 +37,6 @@ import tachiyomi.domain.manga.model.MangaUpdate
 import tachiyomi.domain.manga.repository.MangaRepository
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.source.local.LocalSource
-import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.io.LocalSourceFileSystem
 
 class RelinkLocalMangaTest {
@@ -46,7 +47,7 @@ class RelinkLocalMangaTest {
     private val handler = mockk<DatabaseHandler>()
     private val sources = mockk<SourceManager>()
     private val fs = mockk<LocalSourceFileSystem>()
-    private val covers = mockk<LocalCoverManager>()
+    private val covers = mockk<LocalCoverResolver>(relaxed = true)
     private val cache = mockk<OcrCacheManager>(relaxed = true)
     private val ocr = mockk<OcrManager>()
     private val source = mockk<LocalSource>()
@@ -67,8 +68,6 @@ class RelinkLocalMangaTest {
         every { fs.getMangaDirectory("file:///new") } returns destination
         every { fs.getChapterFile(manga.url, chapter.url) } answers { file(chapter.url, "same") }
         every { fs.getChapterFile("file:///new", "file:///new/01.cbz") } answers { file("file:///new/01.cbz", newBytes) }
-        every { covers.find(any()) } returns null
-        every { covers.copyForRelink(any(), any()) } returns null
         every { ocr.queueState } returns MutableStateFlow(emptyList())
         coEvery { source.getMangaUpdate(any(), any(), false, true) } returns SMangaUpdate(SManga.create(), listOf(sChapter("file:///new/01.cbz")))
         coEvery { handler.await<Unit>(true, any()) } coAnswers {
@@ -98,6 +97,28 @@ class RelinkLocalMangaTest {
             mangas.deleteManga(any())
             chapters.removeChaptersWithIds(any())
         }
+    }
+
+    @Test
+    fun `relink adopts the new folder's cover reference but keeps a cover URL the user entered`() = runTest {
+        val newCover = "chimahon-cover://archive?file=file%3A%2F%2F%2Fnew%2F01.cbz&entry=001.jpg"
+        coEvery { source.getMangaUpdate(any(), any(), false, true) } returns
+            SMangaUpdate(SManga.create().apply { thumbnail_url = newCover }, listOf(sChapter("file:///new/01.cbz")))
+        val generated = manga.copy(ogThumbnailUrl = "chimahon-cover://archive?file=file%3A%2F%2F%2Fold%2F01.cbz&entry=001.jpg")
+        coEvery { mangas.getMangaById(5) } returns generated
+
+        relink.apply(relink.preview(5, "file:///new"), false)
+
+        val update = slot<MangaUpdate>()
+        coVerify { mangas.update(capture(update)) }
+        assertEquals(newCover, update.captured.thumbnailUrl)
+        verify { covers.retireLegacyCover(generated, newCover) }
+
+        coEvery { mangas.getMangaById(5) } returns manga.copy(ogThumbnailUrl = "https://example.com/cover.jpg")
+        relink.apply(relink.preview(5, "file:///new"), false)
+        val second = mutableListOf<MangaUpdate>()
+        coVerify { mangas.update(capture(second)) }
+        assertNull(second.last().thumbnailUrl)
     }
 
     @Test
