@@ -44,14 +44,14 @@ class CoverFileCleanup(
         for ((file, original) in candidates) {
             checkCancelled()
             try {
-                if (!isRegularFile(file) || !unchanged(original, stat(file))) {
+                val before = stat(file)
+                if (!isRegularFile(file) || !unchanged(original, before)) {
                     skipped++
                     continue
                 }
                 if (file in referenced) {
                     retained += file
                 } else {
-                    val before = stat(file)
                     Files.delete(file.toPath())
                     if (before.links == 1L) freedBytes += before.allocatedBytes
                     removed++
@@ -118,6 +118,16 @@ class CoverFileCleanup(
         Result(removed, shared, freedBytes, skipped)
     }
 
+    private fun java.io.InputStream.readBlock(buffer: ByteArray): Int {
+        var count = 0
+        while (count < buffer.size) {
+            val read = read(buffer, count, buffer.size - count)
+            if (read == -1) break
+            count += read
+        }
+        return count
+    }
+
     private fun unchanged(before: FileState, after: FileState): Boolean =
         before.identity == after.identity && before.size == after.size && before.modified == after.modified
 
@@ -144,11 +154,12 @@ class CoverFileCleanup(
                 val b = ByteArray(DEFAULT_BUFFER_SIZE)
                 while (true) {
                     checkCancelled()
-                    val countA = left.read(a)
-                    val countB = right.read(b)
+                    // Fill both blocks: a stream may return fewer bytes than requested before its end.
+                    val countA = left.readBlock(a)
+                    val countB = right.readBlock(b)
                     if (countA != countB) return false
-                    if (countA == -1) return true
-                    if (!a.copyOf(countA).contentEquals(b.copyOf(countB))) return false
+                    if (countA == 0) return true
+                    for (i in 0 until countA) if (a[i] != b[i]) return false
                 }
             }
         }
