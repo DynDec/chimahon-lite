@@ -4,16 +4,25 @@ import android.app.Application
 import android.content.Context
 import androidx.core.net.toUri
 import eu.kanade.domain.manga.interactor.UpdateManga
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import logcat.LogPriority
 import tachiyomi.core.common.storage.CoverFileStorage
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.manga.model.MangaUpdate
+import tachiyomi.domain.manga.repository.MangaRepository
+import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.image.LocalCoverReference
@@ -22,6 +31,7 @@ import uy.kohesive.injekt.api.get
 import java.io.File
 import java.net.URI
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Points local manga at their folder or first-chapter cover, which is read on demand, and retires covers
@@ -48,6 +58,23 @@ class LocalCoverResolver(
         locks[(manga.url.hashCode() and Int.MAX_VALUE) % locks.size].withLock {
             permits.withPermit {
                 val cover = source.resolveCover(manga.url) ?: return@withPermit false
+                retireLegacyCover(manga, cover)
+                updateManga.await(
+                    MangaUpdate(id = manga.id, thumbnailUrl = cover, coverLastModified = Instant.now().toEpochMilli()),
+                )
+            }
+        }
+    }
+
+    /**
+     * Resolves a local cover again after its file failed to load, e.g. because the first chapter was renamed
+     * or a backup was restored on another device. Only updates the entry when the cover actually changed.
+     */
+    suspend fun refreshStale(manga: Manga, source: LocalSource): Boolean = withContext(dispatcher) {
+        locks[(manga.url.hashCode() and Int.MAX_VALUE) % locks.size].withLock {
+            permits.withPermit {
+                val cover = source.resolveCover(manga.url)
+                if (cover == null || cover == manga.ogThumbnailUrl) return@withPermit false
                 retireLegacyCover(manga, cover)
                 updateManga.await(
                     MangaUpdate(id = manga.id, thumbnailUrl = cover, coverLastModified = Instant.now().toEpochMilli()),
@@ -87,8 +114,28 @@ class LocalCoverResolver(
         return file.length() == bytes.size.toLong() && file.readBytes().contentEquals(bytes)
     }
 
-    private companion object {
-        val permits = Semaphore(4)
-        val locks = Array(64) { Mutex() }
+    companion object {
+        private val permits = Semaphore(4)
+        private val locks = Array(64) { Mutex() }
+        private val refreshedAfterFailure = ConcurrentHashMap.newKeySet<Long>()
+        private val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        /** Called when a local cover fails to load; retries resolution once per manga per process. */
+        fun onLoadFailed(mangaId: Long) {
+            if (!refreshedAfterFailure.add(mangaId)) return
+            refreshScope.launch {
+                try {
+                    val sourceManager = Injekt.get<SourceManager>()
+                    sourceManager.isInitialized.first { it }
+                    val source = sourceManager.get(LocalSource.ID) as? LocalSource ?: return@launch
+                    val manga = Injekt.get<MangaRepository>().getMangaById(mangaId)
+                    LocalCoverResolver().refreshStale(manga, source)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    logcat(LogPriority.ERROR, e) { "Error refreshing local cover for $mangaId" }
+                }
+            }
+        }
     }
 }

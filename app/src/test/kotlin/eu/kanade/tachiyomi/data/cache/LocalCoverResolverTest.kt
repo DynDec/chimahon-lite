@@ -80,6 +80,24 @@ class LocalCoverResolverTest {
     }
 
     @Test
+    fun `a stale cover is replaced only when resolution finds a different one`() = runTest {
+        val resolver = resolver(StandardTestDispatcher(testScheduler))
+        val moved = "chimahon-cover://archive?file=content%3A%2F%2Frenamed.zip&entry=001.jpg&v=2"
+
+        every { source.resolveCover("content://book") } returns reference
+        assertFalse(resolver.refreshStale(manga(reference), source))
+        every { source.resolveCover("content://book") } returns null
+        assertFalse(resolver.refreshStale(manga(reference), source))
+        coVerify(exactly = 0) { update.await(any()) }
+
+        every { source.resolveCover("content://book") } returns moved
+        val captured = slot<MangaUpdate>()
+        coEvery { update.await(capture(captured)) } returns true
+        assertTrue(resolver.refreshStale(manga(reference), source))
+        assertEquals(moved, captured.captured.thumbnailUrl)
+    }
+
+    @Test
     fun `legacy generated cover matching the automatic cover is deleted`() {
         val legacy = legacy("jpg", page)
 

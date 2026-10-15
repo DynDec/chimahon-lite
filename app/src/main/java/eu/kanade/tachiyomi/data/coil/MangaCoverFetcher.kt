@@ -14,6 +14,7 @@ import coil3.request.Options
 import com.hippo.unifile.UniFile
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.tachiyomi.data.cache.CoverCache
+import eu.kanade.tachiyomi.data.cache.LocalCoverResolver
 import eu.kanade.tachiyomi.data.coil.MangaCoverFetcher.Companion.USE_CUSTOM_COVER_KEY
 import eu.kanade.tachiyomi.network.await
 import eu.kanade.tachiyomi.source.online.HttpSource
@@ -39,6 +40,7 @@ import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.manga.model.MangaCover
 import tachiyomi.domain.manga.model.asMangaCover
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.image.LocalCoverReference
 import uy.kohesive.injekt.Injekt
@@ -128,10 +130,18 @@ class MangaCoverFetcher(
         // KMK -->
         setRatioAndColorsInScope(mangaCover)
         // KMK <--
-        val source = UniFile.fromUri(options.context, uri.toUri())!!
-            .openInputStream()
-            .source()
-            .buffer()
+        val source = try {
+            UniFile.fromUri(options.context, uri.toUri())!!
+                .openInputStream()
+                .source()
+                .buffer()
+        } catch (e: Exception) {
+            // Chimahon -->
+            // A local folder image can disappear when its folder is reorganized.
+            if (mangaCover.sourceId == LocalSource.ID) LocalCoverResolver.onLoadFailed(mangaCover.mangaId)
+            // Chimahon <--
+            throw e
+        }
         return SourceFetchResult(
             source = ImageSource(source = source, fileSystem = FileSystem.SYSTEM),
             mimeType = "image/*",
@@ -143,7 +153,10 @@ class MangaCoverFetcher(
     /** Local archive covers are read into memory on demand; nothing is written to disk. */
     private fun localArchiveLoader(reference: String): FetchResult {
         val bytes = Injekt.get<LocalCoverManager>().read(reference)
-            ?: throw IOException("Local cover is no longer available")
+            ?: run {
+                LocalCoverResolver.onLoadFailed(mangaCover.mangaId)
+                throw IOException("Local cover is no longer available")
+            }
         setRatioAndColorsInScope(mangaCover, bufferedSource = Buffer().write(bytes))
         return SourceFetchResult(
             source = ImageSource(source = Buffer().write(bytes), fileSystem = FileSystem.SYSTEM),
