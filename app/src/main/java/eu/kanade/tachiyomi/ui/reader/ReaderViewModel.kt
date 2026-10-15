@@ -26,7 +26,6 @@ import eu.kanade.domain.sync.SyncPreferences
 import eu.kanade.domain.track.interactor.TrackChapter
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.domain.ui.UiPreferences
-import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.reader.stats.MangaStatsEstimate
 import eu.kanade.tachiyomi.data.database.models.toDomainChapter
 import eu.kanade.tachiyomi.data.download.DownloadManager
@@ -72,6 +71,8 @@ import exh.source.getMainSource
 import exh.source.isEhBasedManga
 import exh.util.defaultReaderType
 import exh.util.mangaType
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -100,6 +101,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import logcat.LogPriority
+import mihon.core.archive.TocEntry
 import mihon.core.archive.archiveReader
 import mihon.core.archive.epubReader
 import mihon.domain.panel.repository.PanelDetectionRepository
@@ -179,7 +181,6 @@ class ReaderViewModel @JvmOverloads constructor(
     // Chimahon: OCR and dictionary
     private val ocrCacheManager: chimahon.ocr.OcrCacheManager = Injekt.get(),
     private val dictionaryPreferences: DictionaryPreferences = Injekt.get(),
-    private val ocrManager: eu.kanade.tachiyomi.data.ocr.OcrManager = uy.kohesive.injekt.Injekt.get(),
     private val localFileSystem: tachiyomi.source.local.io.LocalSourceFileSystem = Injekt.get(),
     private val application: Application = Injekt.get(),
     private val networkClient: okhttp3.OkHttpClient = Injekt.get<eu.kanade.tachiyomi.network.NetworkHelper>().client,
@@ -257,71 +258,6 @@ class ReaderViewModel @JvmOverloads constructor(
         private set
     var showMangaStats by mutableStateOf(false)
         private set
-
-    // KMK -->
-    fun handleDownloadAction(chapter: Chapter, action: ChapterDownloadAction) {
-        when (action) {
-            ChapterDownloadAction.START -> downloadChapter(chapter)
-            ChapterDownloadAction.START_NOW -> downloadManager.startDownloadNow(chapter.id)
-            ChapterDownloadAction.CANCEL -> cancelDownload(chapter.id)
-            ChapterDownloadAction.DELETE -> deleteChapter(chapter)
-            ChapterDownloadAction.OCR -> runOcrForChapter(chapter)
-            ChapterDownloadAction.DELETE_OCR -> deleteOcrForChapter(chapter)
-        }
-    }
-
-    /**
-     * @param chapter the chapter to download.
-     */
-    private fun downloadChapter(chapter: Chapter) {
-        viewModelScope.launch {
-            val manga = manga?.let {
-                if (it.source == MERGED_SOURCE_ID) {
-                    state.value.mergedManga?.get(chapter.mangaId) ?: return@launch
-                } else {
-                    it
-                }
-            } ?: return@launch
-            downloadManager.downloadChapters(manga, listOf(chapter))
-            downloadManager.startDownloads()
-        }
-    }
-
-    private fun cancelDownload(chapterId: Long) {
-        viewModelScope.launch {
-            val activeDownload = downloadManager.getQueuedDownloadOrNull(chapterId) ?: return@launch
-            downloadManager.cancelQueuedDownloads(listOf(activeDownload))
-            // TODO: updateDownloadState(activeDownload.apply { status = Download.State.NOT_DOWNLOADED })
-        }
-    }
-
-    private fun deleteChapter(chapter: Chapter) {
-        viewModelScope.launchNonCancellable {
-            try {
-                val manga = if (manga?.source == MERGED_SOURCE_ID) {
-                    state.value.mergedManga?.get(chapter.mangaId) ?: return@launchNonCancellable
-                } else {
-                    manga ?: return@launchNonCancellable
-                }
-                val source = sourceManager.get(manga.source) ?: return@launchNonCancellable
-                downloadManager.deleteChapters(
-                    listOf(chapter),
-                    manga,
-                    source,
-                    ignoreCategoryExclusion = true,
-                )
-//                // KMK -->
-//                if (source.isLocal()) {
-//                    // TODO: Refresh chapters state for Local source
-//                    fetchChaptersFromSource()
-//                }
-//                // KMK <--
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, e)
-            }
-        }
-    }
-    // KMK <--
 
     /**
      * The chapter loader for the loaded manga. It'll be null until [manga] is set.
@@ -1239,9 +1175,39 @@ class ReaderViewModel @JvmOverloads constructor(
         mutableState.update { it.copy(indexPageToShift = index) }
     }
 
-    fun openChapterListDialog() {
-        mutableState.update { it.copy(dialog = Dialog.ChapterList) }
+    // Chimahon -->
+    /**
+     * Shows the current volume's own table of contents, or the chapter list when the volume has
+     * no usable contents metadata.
+     */
+    fun openContentsDialog() {
+        val chapter = state.value.currentChapter ?: return
+        viewModelScope.launchIO {
+            val entries = chapter.pageLoader
+                ?.takeIf { !it.isRecycled }
+                ?.let { loader ->
+                    try {
+                        loader.getTableOfContents()
+                    } catch (e: Exception) {
+                        logcat(LogPriority.WARN, e) { "Failed to read contents of ${chapter.chapter.name}" }
+                        null
+                    }
+                }
+                .orEmpty()
+            mutableState.update {
+                // The volume may have changed while the contents were being read.
+                if (it.currentChapter !== chapter) return@update it
+                it.copy(
+                    dialog = if (entries.isEmpty()) {
+                        Dialog.ChapterList
+                    } else {
+                        Dialog.Contents(entries.toImmutableList())
+                    },
+                )
+            }
+        }
     }
+    // Chimahon <--
 
     fun openMangaStatsSheet() {
         showMangaStats = true
@@ -1360,20 +1326,6 @@ class ReaderViewModel @JvmOverloads constructor(
             cancelOcrScan()
         }
         return enabled
-    }
-
-    fun runOcrForChapter(chapter: Chapter) {
-        val manga = this.manga ?: return
-        viewModelScope.launch {
-            downloadManager.downloadChaptersWithOcr(manga, listOf(chapter))
-        }
-    }
-
-    fun deleteOcrForChapter(chapter: Chapter) {
-        val manga = this.manga ?: return
-        viewModelScope.launchIO {
-            ocrManager.deleteOcrForChapter(manga, chapter)
-        }
     }
 
     fun showLoadingDialog() {
@@ -2674,6 +2626,10 @@ class ReaderViewModel @JvmOverloads constructor(
         // SY -->
         data object ChapterList : Dialog
         // SY <--
+
+        // Chimahon -->
+        data class Contents(val entries: ImmutableList<TocEntry>) : Dialog
+        // Chimahon <--
 
         data class PageActions(
             val page: ReaderPage,

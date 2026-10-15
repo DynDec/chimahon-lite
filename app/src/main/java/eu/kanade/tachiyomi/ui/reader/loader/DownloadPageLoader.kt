@@ -10,7 +10,10 @@ import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
+import mihon.core.archive.TocEntry
 import mihon.core.archive.archiveReader
+import mihon.core.archive.parseComicInfoToc
+import tachiyomi.core.metadata.comicinfo.COMIC_INFO_FILE
 import tachiyomi.domain.manga.model.Manga
 import uy.kohesive.injekt.injectLazy
 
@@ -46,8 +49,30 @@ internal class DownloadPageLoader(
             getPagesFromArchive(chapterPath)
         } else {
             getPagesFromDirectory()
+                // Chimahon -->
+                .also { pages ->
+                    chapterDir = chapterPath
+                    pageCount = pages.size
+                }
+            // Chimahon <--
         }
     }
+
+    // Chimahon -->
+    private var chapterDir: UniFile? = null
+    private var pageCount = 0
+    private val directoryContents by lazy {
+        chapterDir?.listFiles()
+            ?.firstOrNull { it.isFile && it.name.equals(COMIC_INFO_FILE, ignoreCase = true) }
+            ?.openInputStream()
+            ?.use { parseComicInfoToc(it, pageCount) }
+            .orEmpty()
+    }
+
+    override fun getTableOfContents(): List<TocEntry> {
+        return archivePageLoader?.getTableOfContents() ?: directoryContents
+    }
+    // Chimahon <--
 
     override fun recycle() {
         super.recycle()

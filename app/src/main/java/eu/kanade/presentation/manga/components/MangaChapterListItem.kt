@@ -64,6 +64,9 @@ fun MangaChapterListItem(
     isLocal: Boolean = false,
     isOcrReady: Boolean = false,
     isOcrRunning: Boolean = false,
+    // Chimahon -->
+    showDownloadIndicator: Boolean = true,
+    // Chimahon <--
     chapterSwipeStartAction: LibraryPreferences.ChapterSwipeAction,
     chapterSwipeEndAction: LibraryPreferences.ChapterSwipeAction,
     onLongClick: () -> Unit,
@@ -204,15 +207,19 @@ fun MangaChapterListItem(
                 }
             }
 
-            ChapterDownloadIndicator(
-                enabled = downloadIndicatorEnabled,
-                modifier = Modifier.padding(start = 4.dp),
-                downloadStateProvider = downloadStateProvider,
-                downloadProgressProvider = downloadProgressProvider,
-                onClick = { onDownloadClick?.invoke(it) },
-                isOcrReady = isOcrReady,
-                isOcrRunning = isOcrRunning,
-            )
+            // Chimahon -->
+            if (showDownloadIndicator) {
+                ChapterDownloadIndicator(
+                    enabled = downloadIndicatorEnabled,
+                    modifier = Modifier.padding(start = 4.dp),
+                    downloadStateProvider = downloadStateProvider,
+                    downloadProgressProvider = downloadProgressProvider,
+                    onClick = { onDownloadClick?.invoke(it) },
+                    isOcrReady = isOcrReady,
+                    isOcrRunning = isOcrRunning,
+                )
+            }
+            // Chimahon <--
 
             ChapterOcrIndicator(
                 isOcrReady = isOcrReady,

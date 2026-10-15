@@ -14,6 +14,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mihon.core.archive.ArchiveReader
+import mihon.core.archive.EpubReader
+import mihon.core.archive.TocEntry
+import mihon.core.archive.getComicInfoToc
 import tachiyomi.core.common.util.system.ImageUtil
 import uy.kohesive.injekt.injectLazy
 import java.io.File
@@ -22,6 +25,12 @@ import java.io.File
  * Loader used to load a chapter from an archive file.
  */
 internal class ArchivePageLoader(private val reader: ArchiveReader) : PageLoader() {
+    // Chimahon -->
+    /** Image entry names in the order the reader shows them. */
+    private var pageEntryNames: List<String> = emptyList()
+    private var cachedPageEntryNames: List<String> = emptyList()
+    // Chimahon <--
+
     // SY -->
     private val mutex = Mutex()
     private val context: Application by injectLazy()
@@ -42,6 +51,10 @@ internal class ArchivePageLoader(private val reader: ArchiveReader) : PageLoader
                 entries
                     .filter { it.isFile && ImageUtil.isImage(it.name) { reader.getInputStream(it.name)!! } }
                     .sortedWith { f1, f2 -> f1.name.compareToCaseInsensitiveNaturalOrder(f2.name) }
+                    // Chimahon -->
+                    .toList()
+                    .also { sorted -> cachedPageEntryNames = cachedPageNames(sorted.map { it.name }) }
+                    // Chimahon <--
                     .forEach { entry ->
                         File(tmpDir, entry.name.substringAfterLast("/"))
                             .also { it.createNewFile() }
@@ -59,15 +72,63 @@ internal class ArchivePageLoader(private val reader: ArchiveReader) : PageLoader
 
     override var isLocal: Boolean = true
 
-    override suspend fun getPages(): List<ReaderPage> = reader.useEntries { entries ->
+    // Chimahon -->
+    private val contents by lazy {
+        reader.getComicInfoToc(pageEntryNames.size).ifEmpty { getEpubContents() }
+    }
+
+    override suspend fun getPages(): List<ReaderPage> = loadPages()
+
+    override fun getTableOfContents(): List<TocEntry> {
+        check(!isRecycled)
+        return contents
+    }
+
+    /**
+     * Local EPUBs are read as plain archives, so their pages follow entry names rather than the
+     * spine. Map the EPUB's own contents onto that order through each entry's image.
+     */
+    private fun getEpubContents(): List<TocEntry> {
+        if (reader.getInputStream(EPUB_CONTAINER)?.use { true } != true) return emptyList()
+        val epub = EpubReader(reader)
+        val spineImages = epub.getImagesFromPages()
+        val pageIndices = pageEntryNames.withIndex().associate { (index, name) -> name to index }
+        return epub.getTableOfContents().mapNotNull { entry ->
+            spineImages.getOrNull(entry.pageIndex)
+                ?.let(pageIndices::get)
+                ?.let { entry.copy(pageIndex = it) }
+        }
+    }
+
+    /**
+     * [DirectoryPageLoader] orders the disk cache by file name, and same-named files from
+     * different folders overwrite each other there.
+     */
+    private fun cachedPageNames(sortedNames: List<String>): List<String> {
+        return sortedNames
+            .associateBy { it.substringAfterLast('/') }
+            .entries
+            .sortedWith { e1, e2 -> e1.key.compareToCaseInsensitiveNaturalOrder(e2.key) }
+            .map { it.value }
+    }
+
+    private suspend fun loadPages(): List<ReaderPage> = reader.useEntries { entries ->
+        // Chimahon <--
         // SY -->
         if (readerPreferences.archiveReaderMode().get() == ReaderPreferences.ArchiveReaderMode.CACHE_TO_DISK) {
+            // Chimahon -->
+            pageEntryNames = cachedPageEntryNames
+            // Chimahon <--
             return DirectoryPageLoader(UniFile.fromFile(tmpDir)!!).getPages()
         }
         // SY <--
         entries
             .filter { it.isFile && ImageUtil.isImage(it.name) { reader.getInputStream(it.name)!! } }
             .sortedWith { f1, f2 -> f1.name.compareToCaseInsensitiveNaturalOrder(f2.name) }
+            // Chimahon -->
+            .toList()
+            .also { sorted -> pageEntryNames = sorted.map { it.name } }
+            // Chimahon <--
             .mapIndexed { i, entry ->
                 // SY -->
                 val imageBytesDeferred: Deferred<ByteArray>? =
@@ -108,3 +169,7 @@ internal class ArchivePageLoader(private val reader: ArchiveReader) : PageLoader
         // SY <--
     }
 }
+
+// Chimahon -->
+private const val EPUB_CONTAINER = "META-INF/container.xml"
+// Chimahon <--

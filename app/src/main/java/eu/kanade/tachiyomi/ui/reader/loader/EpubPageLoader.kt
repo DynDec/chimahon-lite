@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.ui.reader.loader
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import mihon.core.archive.EpubReader
+import mihon.core.archive.TocEntry
 
 /**
  * Loader used to load a chapter from a .epub file.
@@ -19,6 +20,15 @@ internal class EpubPageLoader(private val reader: EpubReader) : PageLoader() {
             }
         }
     }
+
+    // Chimahon -->
+    private val contents by lazy { reader.getTableOfContents() }
+
+    override fun getTableOfContents(): List<TocEntry> {
+        check(!isRecycled)
+        return contents
+    }
+    // Chimahon <--
 
     override suspend fun loadPage(page: ReaderPage) {
         check(!isRecycled)

@@ -97,7 +97,9 @@ fun ReaderAppBars(
     currentReadingMode: ReadingMode,
     dualPageSplitEnabled: Boolean,
     doublePages: Boolean,
-    onClickChapterList: () -> Unit,
+    // Chimahon -->
+    onClickContents: () -> Unit,
+    // Chimahon <--
     onClickPageLayout: () -> Unit,
     onClickShiftPage: () -> Unit,
     // SY <--
@@ -288,7 +290,9 @@ fun ReaderAppBars(
                     currentReadingMode = currentReadingMode,
                     dualPageSplitEnabled = dualPageSplitEnabled,
                     doublePages = doublePages,
-                    onClickChapterList = onClickChapterList,
+                    // Chimahon -->
+                    onClickContents = onClickContents,
+                    // Chimahon <--
                     onClickWebView = onOpenInWebView,
                     onClickBrowser = onOpenInBrowser,
                     onClickShare = onShare,

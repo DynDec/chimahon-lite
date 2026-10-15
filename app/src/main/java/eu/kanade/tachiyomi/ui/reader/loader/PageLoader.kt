@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.ui.reader.loader
 
 import androidx.annotation.CallSuper
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
+import mihon.core.archive.TocEntry
 
 /**
  * A loader used to load pages into the reader. Any open resources must be cleaned up when the
@@ -34,6 +35,14 @@ abstract class PageLoader {
      * online source is used.
      */
     open fun retryPage(page: ReaderPage) {}
+
+    // Chimahon -->
+    /**
+     * Returns the table of contents stored in the chapter's own metadata, or an empty list when it
+     * has none. Only valid after [getPages] has returned.
+     */
+    open fun getTableOfContents(): List<TocEntry> = emptyList()
+    // Chimahon <--
 
     /**
      * Recycles this loader. Implementations must override this method to clean up any active

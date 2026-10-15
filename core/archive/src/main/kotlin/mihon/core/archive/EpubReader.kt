@@ -30,11 +30,86 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
      * Returns the path of all the images found in the epub file.
      */
     fun getImagesFromPages(): List<String> {
+        // Chimahon -->
+        return spine.flatMap { it.images }
+        // Chimahon <--
+    }
+
+    // Chimahon -->
+    /**
+     * Returns the table of contents declared by the EPUB 3 navigation document, or by the EPUB 2
+     * NCX when there is no usable navigation document. Page indices follow [getImagesFromPages].
+     */
+    fun getTableOfContents(): List<TocEntry> {
+        val navEntries = getNavDocumentPath()
+            ?.let { path -> resolveTocLinks(path, parseNavToc(parseXml(path) ?: return@let null)) }
+            .orEmpty()
+        if (navEntries.isNotEmpty()) return navEntries
+
+        return getNcxPath()
+            ?.let { path -> resolveTocLinks(path, parseNcxToc(parseXml(path) ?: return@let null)) }
+            .orEmpty()
+    }
+
+    /**
+     * Spine documents with their images, parsed once and shared by page and contents lookups.
+     */
+    private val spine: List<SpineDocument> by lazy {
         val ref = getPackageHref()
         val doc = getPackageDocument(ref)
-        val pages = getPagesFromDocument(doc)
-        return getImagesFromPages(pages, ref)
+        val basePath = getParentDirectory(ref)
+        getPagesFromDocument(doc).map { page ->
+            val path = resolveZipPath(basePath, page)
+            SpineDocument(path, getImagesFromPage(path))
+        }
     }
+
+    private fun getNavDocumentPath(): String? {
+        val packageHref = getPackageHref()
+        val href = getPackageDocument(packageHref).manifestItems()
+            .firstOrNull { item -> "nav" in item.attr("properties").split(Regex("\\s+")) }
+            ?.attr("href")
+            ?: return null
+        return resolveHrefPath(getParentDirectory(packageHref), href)
+    }
+
+    private fun getNcxPath(): String? {
+        val packageHref = getPackageHref()
+        val document = getPackageDocument(packageHref)
+        val manifestItems = document.manifestItems()
+        val tocId = document.elementsByLocalName("spine").firstOrNull()?.attr("toc").orEmpty()
+        val item = manifestItems.firstOrNull { tocId.isNotEmpty() && it.attr("id") == tocId }
+            ?: manifestItems.firstOrNull { it.attr("media-type") == "application/x-dtbncx+xml" }
+            ?: return null
+        return resolveHrefPath(getParentDirectory(packageHref), item.attr("href"))
+    }
+
+    private fun resolveTocLinks(tocPath: String, links: List<TocLink>): List<TocEntry> {
+        val basePath = getParentDirectory(tocPath)
+        val resolved = links.mapNotNull { link ->
+            resolveHrefPath(basePath, link.href)?.let { link.copy(href = it) }
+        }
+        return mapTocLinks(resolved, spine)
+    }
+
+    /**
+     * Resolves a relative in-book href against [basePath]. Returns null for external links and
+     * for fragment-only links, which do not name a document.
+     */
+    private fun resolveHrefPath(basePath: String, href: String): String? {
+        if (href.contains("://") || href.startsWith("mailto:")) return null
+        val path = decodeHrefPath(href).takeIf { it.isNotEmpty() } ?: return null
+        return resolveZipPath(basePath, path)
+    }
+
+    private fun parseXml(path: String): Document? {
+        return getInputStream(path)?.use { Jsoup.parse(it, null, "", Parser.xmlParser()) }
+    }
+
+    private fun Document.manifestItems(): List<Element> {
+        return elementsByLocalName("item").filter { it.parent()?.hasLocalName("manifest") == true }
+    }
+    // Chimahon <--
 
     /**
      * Returns the cover image path declared by the package metadata, or the first image in the
@@ -88,19 +163,6 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
             .filter { it.parent()?.hasLocalName("spine") == true }
             .map { it.attr("idref") }
         return spine.mapNotNull { pages[it] }.map { it.attr("href") }
-    }
-
-    /**
-     * Returns all the images contained in every page from the epub.
-     */
-    private fun getImagesFromPages(pages: List<String>, packageHref: String): List<String> {
-        val result = mutableListOf<String>()
-        val basePath = getParentDirectory(packageHref)
-        pages.forEach { page ->
-            result += getImagesFromPage(resolveZipPath(basePath, page))
-        }
-
-        return result
     }
 
     /**
@@ -214,14 +276,6 @@ class EpubReader(private val reader: ArchiveReader) : Closeable by reader {
             "svg",
             "webp",
         )
-    }
-
-    private fun Document.elementsByLocalName(name: String): List<Element> {
-        return allElements.filter { it.hasLocalName(name) }
-    }
-
-    private fun Element.hasLocalName(name: String): Boolean {
-        return tagName().substringAfter(':').equals(name, ignoreCase = true)
     }
 
     /**

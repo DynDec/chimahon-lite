@@ -94,6 +94,7 @@ import eu.kanade.domain.connections.service.ConnectionsPreferences
 import eu.kanade.domain.manga.model.readingMode
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.reader.ChapterListDialog
+import eu.kanade.presentation.reader.ContentsDialog
 import eu.kanade.presentation.reader.DisplayRefreshHost
 import eu.kanade.presentation.reader.OrientationSelectDialog
 import eu.kanade.presentation.reader.ReaderContentOverlay
@@ -667,13 +668,23 @@ class ReaderActivity : BaseActivity() {
                             }.toImmutableList()
                         },
                         state.dateRelativeTime,
-                        // KMK -->
-                        onDownloadAction = { chapter, action ->
-                            viewModel.handleDownloadAction(chapter, action)
-                        },
-                        // KMK <--
                     )
                 }
+
+                // Chimahon -->
+                is ReaderViewModel.Dialog.Contents -> {
+                    val dialog = state.dialog as ReaderViewModel.Dialog.Contents
+                    ContentsDialog(
+                        onDismissRequest = onDismissRequest,
+                        entries = dialog.entries,
+                        currentPageIndex = state.currentPage - 1,
+                        onClickEntry = { entry ->
+                            moveToPageIndex(entry.pageIndex)
+                            onDismissRequest()
+                        },
+                    )
+                }
+                // Chimahon <--
 
                 ReaderViewModel.Dialog.AutoScrollHelp -> AlertDialog(
                     onDismissRequest = onDismissRequest,
@@ -1525,7 +1536,9 @@ class ReaderActivity : BaseActivity() {
             ),
             dualPageSplitEnabled = dualPageSplitPaged,
             doublePages = state.doublePages,
-            onClickChapterList = viewModel::openChapterListDialog,
+            // Chimahon -->
+            onClickContents = viewModel::openContentsDialog,
+            // Chimahon <--
             onClickPageLayout = {
                 if (readerPreferences.pageLayout().get() == PagerConfig.PageLayout.AUTOMATIC) {
                     (viewModel.state.value.viewer as? PagerViewer)?.config?.let { config ->
