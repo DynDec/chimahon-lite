@@ -24,6 +24,7 @@ class ChapterFilterTest {
         val downloads = mockk<DownloadManager>()
         for (flag in listOf(Manga.CHAPTER_SHOW_DOWNLOADED, Manga.CHAPTER_SHOW_NOT_DOWNLOADED)) {
             val manga = Manga.create().copy(chapterFlags = Manga.create().chapterFlags or flag)
+            assertEquals(Manga.SHOW_ALL, manga.downloadedFilterRaw)
             assertEquals(listOf(1L, 2L, 3L), chapters.applyFilters(manga, downloads, emptyMap()).map { it.id })
             assertEquals(listOf(1L, 2L, 3L), items().applyFilters(manga).map { it.id }.toList())
         }

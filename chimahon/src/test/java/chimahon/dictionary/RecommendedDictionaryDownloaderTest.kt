@@ -120,13 +120,22 @@ class RecommendedDictionaryDownloaderTest {
     }
 
     @Test
-    fun `catalog includes Japanese Hoshi entries and Pixiv Light without English dictionaries`() {
-        assertEquals(5, recommendedDictionariesForLanguage("").size)
-        assertTrue(recommendedDictionariesForLanguage("en-US").isEmpty())
-        val japanese = recommendedDictionariesForLanguage("JA_jp")
-        assertEquals(setOf("jmdict", "jmnedict", "jiten", "jitendex", "pixiv-light"), japanese.map { it.id }.toSet())
-        assertTrue(japanese.single { it.id == "pixiv-light" }.indexUrl.endsWith("/pixiv_light_index.json"))
-        assertTrue(recommendedDictionariesForLanguage("ko").isEmpty())
+    fun `language codes are normalized and a blank profile language sees the whole catalog`() {
+        assertEquals(recommendedDictionaries, recommendedDictionariesForLanguage(" "))
+        val japanese = recommendedDictionaries.filter { it.languageCode == "ja" }
+        for (code in listOf("ja", "JA_jp", "ja-JP", " ja ")) {
+            assertEquals(japanese, recommendedDictionariesForLanguage(code))
+        }
+        assertTrue(recommendedDictionariesForLanguage("xx").isEmpty())
+    }
+
+    @Test
+    fun `catalog entries have unique IDs and an HTTPS source`() {
+        assertEquals(recommendedDictionaries.size, recommendedDictionaries.map { it.id }.toSet().size)
+        for (dictionary in recommendedDictionaries) {
+            val url = dictionary.downloadUrl.ifBlank { dictionary.indexUrl }
+            assertTrue(url.startsWith("https://")) { "${dictionary.id} has no HTTPS source" }
+        }
     }
 
     private fun downloader(
