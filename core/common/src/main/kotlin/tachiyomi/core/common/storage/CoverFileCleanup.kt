@@ -1,5 +1,6 @@
 package tachiyomi.core.common.storage
 
+import eu.kanade.tachiyomi.util.lang.Hash
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -133,7 +134,7 @@ class CoverFileCleanup(
                 digest.update(buffer, 0, read)
             }
         }
-        return digest.digest().joinToString("") { "%02x".format(it) }
+        return Hash.encodeHex(digest.digest())
     }
 
     private fun equalBytes(first: File, second: File, checkCancelled: () -> Unit): Boolean {

@@ -7,6 +7,7 @@ import eu.kanade.domain.manga.model.toSManga
 import eu.kanade.tachiyomi.data.cache.LocalCoverResolver
 import eu.kanade.tachiyomi.data.ocr.OcrManager
 import eu.kanade.tachiyomi.data.ocr.isActionable
+import eu.kanade.tachiyomi.util.lang.Hash
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -191,7 +192,7 @@ class RelinkLocalManga(
         }
         digest.update(if (file.isDirectory) 1.toByte() else 0.toByte())
         read(file)
-        return digest.digest().joinToString("") { "%02x".format(it) }
+        return Hash.encodeHex(digest.digest())
     }
 
     private fun fail(error: Error): Nothing = throw RelinkException(error)

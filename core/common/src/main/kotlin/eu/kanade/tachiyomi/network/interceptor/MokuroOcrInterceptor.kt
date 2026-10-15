@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.network.interceptor
 
 import android.content.Context
+import eu.kanade.tachiyomi.util.lang.Hash
 import logcat.LogPriority
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -8,7 +9,6 @@ import okio.buffer
 import okio.source
 import tachiyomi.core.common.util.system.logcat
 import java.io.File
-import java.security.MessageDigest
 
 /**
  * Intercepts `.mokuro` responses from any source and caches the raw JSON file.
@@ -65,10 +65,6 @@ class MokuroOcrInterceptor(
             return if (cacheFile.exists()) cacheFile else null
         }
 
-        private fun String.sha256(): String {
-            val digest = MessageDigest.getInstance("SHA-256")
-            val hashBytes = digest.digest(this.toByteArray(Charsets.UTF_8))
-            return hashBytes.joinToString("") { "%02x".format(it) }
-        }
+        private fun String.sha256(): String = Hash.sha256(this)
     }
 }

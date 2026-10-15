@@ -2437,7 +2437,9 @@ class ReaderActivity : BaseActivity() {
         try {
             val bridge = chimahon.anki.AnkiDroidBridge(this)
             val hash = try {
-                java.security.MessageDigest.getInstance("SHA-1").digest(processedBytes).joinToString("") { "%02x".format(it) }.take(12)
+                eu.kanade.tachiyomi.util.lang.Hash.encodeHex(
+                    java.security.MessageDigest.getInstance("SHA-1").digest(processedBytes),
+                ).take(12)
             } catch (e: Exception) {
                 logcat(LogPriority.WARN, e) { "Failed to compute hash, using timestamp" }
                 "screenshot_${System.currentTimeMillis()}"

@@ -29,7 +29,8 @@ object Hash {
         return md5(string.toByteArray())
     }
 
-    private fun encodeHex(data: ByteArray): String {
+    /** Lowercase hex of [data], e.g. for a digest computed incrementally. */
+    fun encodeHex(data: ByteArray): String {
         val l = data.size
         val out = CharArray(l shl 1)
         var i = 0
