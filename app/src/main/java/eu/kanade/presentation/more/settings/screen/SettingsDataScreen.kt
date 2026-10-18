@@ -65,7 +65,6 @@ import eu.kanade.presentation.more.settings.screen.data.RestoreBackupScreen
 import eu.kanade.presentation.more.settings.screen.data.StorageInfo
 import eu.kanade.presentation.more.settings.screen.data.SyncSettingsSelector
 import eu.kanade.presentation.more.settings.screen.data.SyncTriggerOptionsScreen
-import eu.kanade.presentation.more.settings.screen.data.coverCleanupPreference
 import eu.kanade.presentation.more.settings.widget.BasePreferenceWidget
 import eu.kanade.presentation.more.settings.widget.EditTextPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.PrefsHorizontalPadding
@@ -448,7 +447,6 @@ object SettingsDataScreen : SearchableSettings {
                         }
                     },
                 ),
-                coverCleanupPreference(onComplete = onStorageChanged),
                 // SY -->
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(KMR.strings.clear_legacy_page_preview_cache),

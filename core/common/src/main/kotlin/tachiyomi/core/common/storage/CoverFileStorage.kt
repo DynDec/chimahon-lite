@@ -6,9 +6,12 @@ import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
-/** Cover files may share an inode after cleanup. Always replace them, never overwrite in place. */
+/**
+ * Cover files may share an inode where an earlier version's cover cleanup linked identical covers.
+ * Always replace them, never overwrite in place.
+ */
 object CoverFileStorage {
-    val lock = Any()
+    private val lock = Any()
 
     fun delete(file: File): Boolean = synchronized(lock) { file.delete() }
 

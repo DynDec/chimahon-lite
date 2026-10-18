@@ -1786,12 +1786,6 @@
     <string name="extensionRepo_settings">Extension repo</string>
     <string name="pref_disable_long_press_screenshot">Disable long-press screenshot</string>
     <string name="pref_single_tap_to_pause">Single tap to pause</string>
-    <string name="pref_cleanup_covers">Clean up cached covers</string>
-    <string name="pref_cleanup_covers_summary">Scan for orphaned and identical covers when tapped. Keep covers available for your library and browsing.</string>
-    <string name="cover_cleanup_running">Cleaning up orphaned and identical covers…</string>
-    <string name="cover_cleanup_result">Removed %1$d orphaned covers and shared storage for %2$d identical covers. Freed %3$s.</string>
-    <string name="cover_cleanup_skipped">Left %1$d files unchanged because they changed during the scan, could not be accessed, or their storage does not support sharing.</string>
-    <string name="cover_cleanup_error">Could not finish cover cleanup. Some files may already have been cleaned up. Please try again.</string>
     <string name="action_relink_folder">Relink folder</string>
     <string name="possible_duplicates_open_summary">You have entries in your library with a similar name.\n\nSelect an entry to open it or add anyway.</string>
     <string name="relink_folder_description">Select this manga’s replacement folder. Your library entry, settings, notes, tracking, and chapter history will be kept. Files will not be moved or deleted.</string>
