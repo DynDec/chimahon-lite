@@ -164,6 +164,9 @@ fun MangaScreen(
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
     onRelinkFolderClicked: (() -> Unit)?,
+    // Chimahon -->
+    onFolderLayoutClicked: (() -> Unit)?,
+    // Chimahon <--
     onEditNotesClicked: () -> Unit,
     // SY -->
     onMetadataViewerClicked: () -> Unit,
@@ -238,6 +241,9 @@ fun MangaScreen(
             onDownloadActionClicked = onDownloadActionClicked,
             onEditCategoryClicked = onEditCategoryClicked,
             onRelinkFolderClicked = onRelinkFolderClicked,
+            // Chimahon -->
+            onFolderLayoutClicked = onFolderLayoutClicked,
+            // Chimahon <--
             onEditNotesClicked = onEditNotesClicked,
             // SY -->
             onMetadataViewerClicked = onMetadataViewerClicked,
@@ -298,6 +304,9 @@ fun MangaScreen(
             onDownloadActionClicked = onDownloadActionClicked,
             onEditCategoryClicked = onEditCategoryClicked,
             onRelinkFolderClicked = onRelinkFolderClicked,
+            // Chimahon -->
+            onFolderLayoutClicked = onFolderLayoutClicked,
+            // Chimahon <--
             onEditNotesClicked = onEditNotesClicked,
             // SY -->
             onMetadataViewerClicked = onMetadataViewerClicked,
@@ -368,6 +377,9 @@ private fun MangaScreenSmallImpl(
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
     onRelinkFolderClicked: (() -> Unit)?,
+    // Chimahon -->
+    onFolderLayoutClicked: (() -> Unit)?,
+    // Chimahon <--
     onEditNotesClicked: () -> Unit,
     // SY -->
     onMetadataViewerClicked: () -> Unit,
@@ -477,6 +489,9 @@ private fun MangaScreenSmallImpl(
                 onClickEditCategory = onEditCategoryClicked,
                 onClickRefresh = onRefresh,
                 onClickRelinkFolder = onRelinkFolderClicked,
+                // Chimahon -->
+                onClickFolderLayout = onFolderLayoutClicked,
+                // Chimahon <--
                 onClickEditNotes = onEditNotesClicked,
                 // SY -->
                 onClickEditInfo = onEditInfoClicked.takeIf { state.manga.favorite },
@@ -821,6 +836,9 @@ private fun MangaScreenLargeImpl(
     onDownloadActionClicked: ((DownloadAction) -> Unit)?,
     onEditCategoryClicked: (() -> Unit)?,
     onRelinkFolderClicked: (() -> Unit)?,
+    // Chimahon -->
+    onFolderLayoutClicked: (() -> Unit)?,
+    // Chimahon <--
     onEditNotesClicked: () -> Unit,
     // SY -->
     onMetadataViewerClicked: () -> Unit,
@@ -921,6 +939,9 @@ private fun MangaScreenLargeImpl(
                 onClickEditCategory = onEditCategoryClicked,
                 onClickRefresh = onRefresh,
                 onClickRelinkFolder = onRelinkFolderClicked,
+                // Chimahon -->
+                onClickFolderLayout = onFolderLayoutClicked,
+                // Chimahon <--
                 onClickEditNotes = onEditNotesClicked,
                 onCancelActionMode = { onAllChapterSelected(false) },
                 // SY -->

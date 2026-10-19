@@ -47,6 +47,9 @@ fun MangaToolbar(
     onClickEditCategory: (() -> Unit)?,
     onClickRefresh: () -> Unit,
     onClickRelinkFolder: (() -> Unit)?,
+    // Chimahon -->
+    onClickFolderLayout: (() -> Unit)?,
+    // Chimahon <--
     onClickEditNotes: () -> Unit,
     // SY -->
     onClickEditInfo: (() -> Unit)?,
@@ -178,6 +181,16 @@ fun MangaToolbar(
                             ),
                         )
                     }
+                    // Chimahon -->
+                    if (onClickFolderLayout != null) {
+                        add(
+                            AppBar.OverflowAction(
+                                title = stringResource(MR.strings.action_folder_layout),
+                                onClick = onClickFolderLayout,
+                            ),
+                        )
+                    }
+                    // Chimahon <--
                     if (onClickShare != null) {
                         add(
                             AppBar.OverflowAction(

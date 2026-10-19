@@ -221,3 +221,44 @@ fun DictionaryProfileDialog(
         },
     )
 }
+
+// Chimahon -->
+@Composable
+fun FolderLayoutDialog(
+    folderName: String,
+    isCollection: Boolean,
+    onDismissRequest: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text(text = stringResource(MR.strings.action_cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onDismissRequest()
+                    onConfirm()
+                },
+            ) {
+                Text(text = stringResource(MR.strings.action_ok))
+            }
+        },
+        title = {
+            val title = if (isCollection) MR.strings.folder_layout_merge_title else MR.strings.folder_layout_split_title
+            Text(text = stringResource(title, folderName))
+        },
+        text = {
+            val summary = if (isCollection) {
+                MR.strings.folder_layout_merge_summary
+            } else {
+                MR.strings.folder_layout_split_summary
+            }
+            Text(text = stringResource(summary, folderName))
+        },
+    )
+}
+// Chimahon <--

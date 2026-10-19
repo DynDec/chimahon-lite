@@ -46,6 +46,7 @@ import tachiyomi.source.local.filter.OrderBy
 import tachiyomi.source.local.image.LocalCoverManager
 import tachiyomi.source.local.io.Archive
 import tachiyomi.source.local.io.Format
+import tachiyomi.source.local.io.LocalFolderLayout
 import tachiyomi.source.local.io.LocalSourceFileSystem
 import tachiyomi.source.local.metadata.fillMetadata
 import uy.kohesive.injekt.injectLazy
@@ -105,6 +106,9 @@ class LocalSource(
                     (!hideAppManagedDirectories || !isReservedDefaultDirectory(entry))
             }
             .map { entry -> ListedEntry(entry, if (entry.isDirectory) entry.listFiles().orEmpty().toList() else null) }
+            // Chimahon -->
+            .flatMap { expandCollection(it, allowLocalSourceHiddenFolders) }
+            // Chimahon <--
             .filter { (entry, children) ->
                 children?.any { isVisible(it, allowLocalSourceHiddenFolders) && isSupportedChapter(it) }
                     ?: isSupportedChapter(entry)
@@ -212,6 +216,74 @@ class LocalSource(
     }
 
     private data class ListedEntry(val file: UniFile, val children: List<UniFile>?)
+
+    // Chimahon -->
+    /** Collection layouts by folder URI and modification time, so browsing does not list a chapter of each series. */
+    private val collectionLayoutCache = object : LinkedHashMap<String, Boolean>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>) = size > 1024
+    }
+
+    /** [listed] itself, or each series and loose book in it when it is a collection such as a publisher folder. */
+    private fun expandCollection(listed: ListedEntry, allowHiddenFiles: Boolean): List<ListedEntry> {
+        val children = listed.children ?: return listOf(listed)
+        val probed = HashMap<String, List<UniFile>>()
+        if (!isCollection(listed.file, children, allowHiddenFiles, probed)) return listOf(listed)
+        return children
+            .filter { isVisible(it, allowHiddenFiles) && isSupportedChapter(it) }
+            .map { entry ->
+                val entryChildren = if (entry.isDirectory) {
+                    probed[entry.uri.toString()] ?: entry.listFiles().orEmpty().toList()
+                } else {
+                    null
+                }
+                ListedEntry(entry, entryChildren)
+            }
+    }
+
+    /** Subfolder listings made while deciding are kept in [probed] for the expansion to reuse. */
+    private fun isCollection(
+        folder: UniFile,
+        children: List<UniFile>,
+        allowHiddenFiles: Boolean,
+        probed: MutableMap<String, List<UniFile>> = HashMap(),
+    ): Boolean {
+        LocalFolderLayout.decideFromOwnFiles(children, allowHiddenFiles)?.let { return it }
+        val key = "${folder.uri}\n${folder.lastModified()}\n$allowHiddenFiles"
+        synchronized(collectionLayoutCache) { collectionLayoutCache[key] }?.let { return it }
+        val isCollection = LocalFolderLayout.decideFromSubfolders(children, allowHiddenFiles) { subfolder ->
+            subfolder.listFiles().orEmpty().toList().also { probed[subfolder.uri.toString()] = it }
+        }
+        synchronized(collectionLayoutCache) { collectionLayoutCache[key] = isCollection }
+        return isCollection
+    }
+
+    /** The top-level folder that decides how [mangaUrl] is listed: its own folder or the collection holding it. */
+    data class FolderLayout(val folder: UniFile, val isCollection: Boolean)
+
+    fun getFolderLayout(mangaUrl: String): FolderLayout? {
+        val allowHidden = allowHiddenFiles()
+        val folder = fileSystem.getFilesInBaseDirectory()
+            .filter { it.isDirectory && isVisible(it, allowHidden) }
+            .let { folders ->
+                folders.firstOrNull { it.uri.toString() == mangaUrl }
+                    ?: folders.firstOrNull { LocalFolderLayout.isChildUri(mangaUrl, it.uri.toString()) }
+            }
+            ?: return null
+        return FolderLayout(folder, isCollection(folder, folder.listFiles().orEmpty().toList(), allowHidden))
+    }
+
+    /** Lists [folder]'s subfolders as separate series, or [folder] as one series, by writing a marker file. */
+    fun setFolderLayout(folder: UniFile, isCollection: Boolean): Boolean {
+        val (keep, remove) = if (isCollection) {
+            LocalFolderLayout.COLLECTION_MARKER to LocalFolderLayout.SERIES_MARKER
+        } else {
+            LocalFolderLayout.SERIES_MARKER to LocalFolderLayout.COLLECTION_MARKER
+        }
+        synchronized(collectionLayoutCache) { collectionLayoutCache.clear() }
+        folder.findFile(remove)?.delete()
+        return folder.findFile(keep) != null || folder.createFile(keep) != null
+    }
+    // Chimahon <--
 
     private data class SearchMetadata(val title: String, val author: String?, val artist: String?, val genre: String?)
 

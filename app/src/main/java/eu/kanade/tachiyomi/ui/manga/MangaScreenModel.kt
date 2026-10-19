@@ -1941,6 +1941,10 @@ class MangaScreenModel(
 
         data class SetDictionaryProfile(val manga: Manga) : Dialog
 
+        // Chimahon -->
+        data class FolderLayout(val layout: LocalSource.FolderLayout) : Dialog
+        // Chimahon <--
+
         data object SettingsSheet : Dialog
         data object TrackSheet : Dialog
         data object FullCover : Dialog
@@ -2000,6 +2004,37 @@ class MangaScreenModel(
         updateSuccessState { it.copy(dialog = Dialog.ClearOcrCache) }
     }
     // KMK <--
+
+    // Chimahon -->
+    fun showFolderLayoutDialog() {
+        val manga = successState?.manga ?: return
+        val source = sourceManager.get(LocalSource.ID) as? LocalSource ?: return
+        screenModelScope.launchIO {
+            val layout = source.getFolderLayout(manga.url)
+            if (layout == null) {
+                withUIContext { context.toast(MR.strings.folder_layout_unavailable) }
+                return@launchIO
+            }
+            updateSuccessState { it.copy(dialog = Dialog.FolderLayout(layout)) }
+        }
+    }
+
+    /** Switches [layout]'s folder between one series and a collection of series. */
+    fun toggleFolderLayout(layout: LocalSource.FolderLayout) {
+        val source = sourceManager.get(LocalSource.ID) as? LocalSource ?: return
+        screenModelScope.launchIO {
+            val saved = try {
+                source.setFolderLayout(layout.folder, isCollection = !layout.isCollection)
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR, e)
+                false
+            }
+            withUIContext {
+                context.toast(if (saved) MR.strings.folder_layout_saved else MR.strings.folder_layout_failed)
+            }
+        }
+    }
+    // Chimahon <--
 
     fun showSetDictionaryProfileDialog() {
         updateSuccessState { it.copy(dialog = Dialog.SetDictionaryProfile(it.manga)) }

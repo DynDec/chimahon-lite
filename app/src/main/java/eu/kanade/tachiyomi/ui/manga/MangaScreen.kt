@@ -54,6 +54,7 @@ import eu.kanade.presentation.manga.MangaScreen
 import eu.kanade.presentation.manga.components.ClearMangaDialog
 import eu.kanade.presentation.manga.components.ClearOcrCacheDialog
 import eu.kanade.presentation.manga.components.DeleteChaptersDialog
+import eu.kanade.presentation.manga.components.FolderLayoutDialog
 import eu.kanade.presentation.manga.components.MangaCoverDialog
 import eu.kanade.presentation.more.settings.screen.SettingsEhScreen
 import eu.kanade.presentation.reader.stats.MangaStatsSheet
@@ -355,6 +356,9 @@ class MangaScreen(
             onRelinkFolderClicked = {
                 navigator.push(RelinkFolderScreen(successState.manga.id))
             }.takeIf { successState.manga.isLocal() },
+            // Chimahon -->
+            onFolderLayoutClicked = screenModel::showFolderLayoutDialog.takeIf { successState.manga.isLocal() },
+            // Chimahon <--
             // SY -->
             previewsRowCount = successState.previewsRowCount,
             onMetadataViewerClicked = {
@@ -600,6 +604,17 @@ class MangaScreen(
                 )
             }
             // KMK <--
+
+            // Chimahon -->
+            is MangaScreenModel.Dialog.FolderLayout -> {
+                FolderLayoutDialog(
+                    folderName = dialog.layout.folder.name.orEmpty(),
+                    isCollection = dialog.layout.isCollection,
+                    onDismissRequest = screenModel::dismissDialog,
+                    onConfirm = { screenModel.toggleFolderLayout(dialog.layout) },
+                )
+            }
+            // Chimahon <--
 
             is MangaScreenModel.Dialog.SetDictionaryProfile -> {
                 val prefs = remember { Injekt.get<eu.kanade.tachiyomi.ui.dictionary.DictionaryPreferences>() }
