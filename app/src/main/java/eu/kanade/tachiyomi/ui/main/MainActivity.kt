@@ -52,6 +52,7 @@ import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.connections.service.ConnectionsPreferences
+import eu.kanade.domain.manga.interactor.SyncLocalLibrary
 import eu.kanade.domain.source.interactor.GetIncognitoState
 import eu.kanade.domain.sync.SyncPreferences
 import eu.kanade.presentation.components.AppStateBanners
@@ -94,6 +95,7 @@ import eu.kanade.tachiyomi.util.system.updaterEnabled
 import eu.kanade.tachiyomi.util.view.setComposeContent
 import exh.debug.DebugToggles
 import exh.log.DebugModeOverlay
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -415,6 +417,19 @@ class MainActivity : BaseActivity() {
                 chapterCache.clear()
             }
         }
+
+        // Chimahon -->
+        if (isLaunch) {
+            lifecycleScope.launchIO {
+                try {
+                    SyncLocalLibrary().await()
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    logcat(LogPriority.ERROR, e) { "Local library sync failed" }
+                }
+            }
+        }
+        // Chimahon <--
     }
 
     // KMK -->

@@ -17,4 +17,14 @@ class StoragePreferences(
     fun mangaDirectory() = preferenceStore.getString(Preference.appStateKey("manga_dir"), "")
 
     fun showEpisodeFileSize() = preferenceStore.getBoolean(Preference.appStateKey("show_episode_file_size"), false)
+
+    // Chimahon -->
+    // Local folder URLs the library sync has seen listed. A listed folder outside this set is new and is added.
+    fun localLibraryKnownFolders() =
+        preferenceStore.getStringSet(Preference.appStateKey("local_library_known"), emptySet())
+
+    // Local folder URLs the library sync took out because they stopped being listed, to add back when they return.
+    fun localLibraryMissingFolders() =
+        preferenceStore.getStringSet(Preference.appStateKey("local_library_missing"), emptySet())
+    // Chimahon <--
 }

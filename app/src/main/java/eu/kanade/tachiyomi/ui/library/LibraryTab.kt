@@ -27,6 +27,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
+import eu.kanade.domain.manga.interactor.SyncLocalLibrary
 import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.library.DeleteLibraryMangaDialog
 import eu.kanade.presentation.library.LibrarySettingsDialog
@@ -46,14 +47,17 @@ import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import logcat.LogPriority
 import mihon.feature.trackadd.TrackAddScreen
 import mihon.feature.trackadd.components.TrackAddTrackerPicker
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.library.model.LibraryManga
 import tachiyomi.domain.manga.model.Manga
@@ -106,7 +110,28 @@ data object LibraryTab : Tab {
         var showTrackerPicker by remember { mutableStateOf(false) }
         var selectedMangaIdsForTracker by remember { mutableStateOf<List<Long>>(emptyList()) }
 
-        val onClickRefresh: (Category?) -> Boolean = { true }
+        // Chimahon -->
+        val onClickRefresh: (Category?) -> Boolean = {
+            scope.launchIO {
+                val message = try {
+                    when (val result = SyncLocalLibrary().await()) {
+                        null -> context.stringResource(MR.strings.local_library_unavailable)
+                        else -> if (result.added == 0 && result.removed == 0) {
+                            context.stringResource(MR.strings.local_library_up_to_date)
+                        } else {
+                            context.stringResource(MR.strings.local_library_synced, result.added, result.removed)
+                        }
+                    }
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    logcat(LogPriority.ERROR, e) { "Local library sync failed" }
+                    context.stringResource(MR.strings.local_library_sync_failed)
+                }
+                snackbarHostState.showSnackbar(message)
+            }
+            true
+        }
+        // Chimahon <--
 
         Scaffold(
             topBar = { scrollBehavior ->

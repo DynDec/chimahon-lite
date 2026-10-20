@@ -1808,7 +1808,11 @@
     <string name="folder_layout_split_summary">Each subfolder of “%1$s” will be listed as its own manga. Files will not be moved.</string>
     <string name="folder_layout_merge_title">Keep “%1$s” as one series?</string>
     <string name="folder_layout_merge_summary">“%1$s” will be listed as one manga, with its subfolders as chapters. Files will not be moved.</string>
-    <string name="folder_layout_saved">Folder layout saved. Refresh Browse to see the change.</string>
+    <string name="folder_layout_saved">Folder layout saved. Pull down on the library to apply it.</string>
     <string name="folder_layout_failed">Could not save the folder layout. Check access to the folder and try again.</string>
     <string name="folder_layout_unavailable">This manga’s folder was not found in the manga folder.</string>
+    <string name="local_library_synced">Library updated: %1$d added, %2$d removed</string>
+    <string name="local_library_up_to_date">Library is up to date</string>
+    <string name="local_library_unavailable">The manga folder cannot be read. Check folder access in Data and storage settings.</string>
+    <string name="local_library_sync_failed">Could not update the library from the manga folder.</string>
 </resources>
