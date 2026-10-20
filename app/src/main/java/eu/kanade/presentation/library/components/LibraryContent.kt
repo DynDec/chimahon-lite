@@ -43,6 +43,9 @@ fun LibraryContent(
     onToggleSelection: (Category, LibraryManga) -> Unit,
     onToggleRangeSelection: (Category, LibraryManga) -> Unit,
     onRefresh: () -> Boolean,
+    // Chimahon -->
+    isSyncing: Boolean = false,
+    // Chimahon <--
     onGlobalSearchClicked: (() -> Unit)?,
     getItemCountForCategory: (Category) -> Int?,
     getDisplayMode: (Int) -> PreferenceMutableState<LibraryDisplayMode>,
@@ -101,7 +104,9 @@ fun LibraryContent(
         }
 
         PullRefresh(
-            refreshing = isRefreshing,
+            // Chimahon -->
+            refreshing = isRefreshing || isSyncing,
+            // Chimahon <--
             enabled = selection.isEmpty(),
             onRefresh = {
                 val started = onRefresh()

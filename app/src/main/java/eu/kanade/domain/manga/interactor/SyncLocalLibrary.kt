@@ -47,10 +47,16 @@ class SyncLocalLibrary(
 ) {
     data class Result(val added: Int, val removed: Int)
 
-    /** Null when the manga folder cannot be read, in which case the library is left unchanged. */
-    suspend fun await(): Result? = mutex.withLock { withIOContext { sync() } }
+    /**
+     * Null when the manga folder cannot be read, in which case the library is left unchanged. [onApplied] runs once
+     * the library has changed, before the chapters of added manga are listed.
+     */
+    suspend fun await(onApplied: suspend (Result) -> Unit = {}): Result? = mutex.withLock {
+        withIOContext { sync(onApplied) }
+    }
 
-    private suspend fun sync(): Result? {
+    private suspend fun sync(onApplied: suspend (Result) -> Unit): Result? {
+        val start = System.nanoTime()
         sourceManager.isInitialized.first { it }
         val source = sourceManager.get(LocalSource.ID) as? LocalSource ?: return null
         // An unreadable folder lists nothing, which must not empty the library.
@@ -58,6 +64,7 @@ class SyncLocalLibrary(
         val baseUrl = baseDirectory.uri.toString()
 
         val listed = source.getPopularManga(1).mangas.associateBy { it.url }
+        val listedAt = System.nanoTime()
         val rows = mangas.getMangaBySourceId(LocalSource.ID)
         val rowsByUrl = rows.associateBy { it.url }
 
@@ -114,6 +121,12 @@ class SyncLocalLibrary(
             missingPreference.set(missing - listed.keys - added.map { it.url }.toSet() + toRemove.map { it.url })
             added
         }
+        val result = Result(added = added.size, removed = toRemove.size)
+        logcat(LogPriority.INFO) {
+            "Local library sync: listed ${listed.size} in ${elapsedMs(start, listedAt)} ms, " +
+                "added ${result.added} and removed ${result.removed} in ${elapsedMs(start)} ms"
+        }
+        onApplied(result)
 
         for (manga in added) {
             val restored = manga.url in missing
@@ -129,8 +142,13 @@ class SyncLocalLibrary(
                 logcat(LogPriority.ERROR, e) { "Could not list chapters for ${manga.title}" }
             }
         }
-        return Result(added = added.size, removed = toRemove.size)
+        if (added.isNotEmpty()) {
+            logcat(LogPriority.INFO) { "Local library sync: listed chapters of ${added.size} in ${elapsedMs(start)} ms" }
+        }
+        return result
     }
+
+    private fun elapsedMs(start: Long, end: Long = System.nanoTime()) = (end - start) / 1_000_000
 
     /** Whether [url] is a manga below the current manga folder. Legacy folder names are relative to it. */
     private fun isInFolder(url: String, baseUrl: String): Boolean {

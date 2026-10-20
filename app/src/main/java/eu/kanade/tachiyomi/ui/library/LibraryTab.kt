@@ -111,25 +111,36 @@ data object LibraryTab : Tab {
         var selectedMangaIdsForTracker by remember { mutableStateOf<List<Long>>(emptyList()) }
 
         // Chimahon -->
+        var isSyncing by remember { mutableStateOf(false) }
         val onClickRefresh: (Category?) -> Boolean = {
-            scope.launchIO {
-                val message = try {
-                    when (val result = SyncLocalLibrary().await()) {
-                        null -> context.stringResource(MR.strings.local_library_unavailable)
-                        else -> if (result.added == 0 && result.removed == 0) {
-                            context.stringResource(MR.strings.local_library_up_to_date)
-                        } else {
-                            context.stringResource(MR.strings.local_library_synced, result.added, result.removed)
+            if (!isSyncing) {
+                isSyncing = true
+                scope.launchIO {
+                    try {
+                        // The spinner stops once the library has changed; chapters of added manga are listed after.
+                        val result = SyncLocalLibrary().await { result ->
+                            isSyncing = false
+                            val message = if (result.added == 0 && result.removed == 0) {
+                                context.stringResource(MR.strings.local_library_up_to_date)
+                            } else {
+                                context.stringResource(MR.strings.local_library_synced, result.added, result.removed)
+                            }
+                            scope.launch { snackbarHostState.showSnackbar(message) }
                         }
+                        if (result == null) {
+                            snackbarHostState.showSnackbar(context.stringResource(MR.strings.local_library_unavailable))
+                        }
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        logcat(LogPriority.ERROR, e) { "Local library sync failed" }
+                        snackbarHostState.showSnackbar(context.stringResource(MR.strings.local_library_sync_failed))
+                    } finally {
+                        isSyncing = false
                     }
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    logcat(LogPriority.ERROR, e) { "Local library sync failed" }
-                    context.stringResource(MR.strings.local_library_sync_failed)
                 }
-                snackbarHostState.showSnackbar(message)
             }
-            true
+            // The library shows its own progress through isSyncing.
+            false
         }
         // Chimahon <--
 
@@ -252,6 +263,9 @@ data object LibraryTab : Tab {
                             screenModel.toggleRangeSelection(category, manga)
                         },
                         onRefresh = { onClickRefresh(state.activeCategory) },
+                        // Chimahon -->
+                        isSyncing = isSyncing,
+                        // Chimahon <--
                         onGlobalSearchClicked = null,
                         getItemCountForCategory = { state.getItemCountForCategory(it) },
                         getDisplayMode = { screenModel.getDisplayMode() },
