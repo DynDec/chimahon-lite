@@ -1,18 +1,29 @@
 package tachiyomi.source.local.io
 
+import android.app.Application
+import com.hippo.unifile.ListedDocumentFile
 import com.hippo.unifile.UniFile
 import tachiyomi.domain.storage.service.StorageManager
+import uy.kohesive.injekt.injectLazy
 
 actual class LocalSourceFileSystem(
     private val storageManager: StorageManager,
 ) {
+
+    // Chimahon -->
+    private val context: Application by injectLazy()
+    // Chimahon <--
 
     actual fun getBaseDirectory(): UniFile? {
         return storageManager.getLocalSourceDirectory()
     }
 
     actual fun getFilesInBaseDirectory(): List<UniFile> {
-        return getBaseDirectory()?.listFiles().orEmpty().toList()
+        val baseDirectory = getBaseDirectory() ?: return emptyList()
+        // Chimahon -->
+        // Listed documents keep their type and modification time, and list their own folders the same way.
+        return (ListedDocumentFile.listFiles(context, baseDirectory) ?: baseDirectory.listFiles()).orEmpty().toList()
+        // Chimahon <--
     }
 
     actual fun getMangaEntry(url: String): UniFile? {
