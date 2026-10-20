@@ -62,6 +62,18 @@ object LocalFolderLayout {
         return false
     }
 
+    /**
+     * Whether listing the folder as a collection would list any series: a subfolder must hold chapters. Subfolders
+     * of pages are chapters themselves, and a collection lists nothing for them.
+     */
+    fun hasSeries(children: List<UniFile>, allowHiddenFiles: Boolean, listFiles: (UniFile) -> List<UniFile>): Boolean {
+        return children
+            .filter { it.isDirectory && isVisible(it, allowHiddenFiles) }
+            .any { subfolder ->
+                listFiles(subfolder).any { isVisible(it, allowHiddenFiles) && (it.isDirectory || isChapterFile(it)) }
+            }
+    }
+
     /** The marker in [children] that overrides detection, if any. */
     fun marker(children: List<UniFile>): String? {
         val names = children.mapNotNullTo(HashSet()) { it.name }

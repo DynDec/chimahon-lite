@@ -119,6 +119,7 @@ class LocalFolderLayoutTest {
         val layout = source.getFolderLayout("$ROOT/Publisher%2FSeries")!!
         assertEquals("Publisher", layout.folder.name)
         assertTrue(layout.isCollection)
+        assertTrue(layout.canSplit)
 
         every { publisher.findFile(LocalFolderLayout.COLLECTION_MARKER) } returns marker
         every { publisher.findFile(LocalFolderLayout.SERIES_MARKER) } returns null
@@ -127,6 +128,17 @@ class LocalFolderLayoutTest {
         assertTrue(source.setFolderLayout(publisher, isCollection = false))
         verify { marker.delete() }
         verify { publisher.createFile(LocalFolderLayout.SERIES_MARKER) }
+    }
+
+    @Test
+    fun `a series of page folders cannot be split and a collection marker does not hide it`() {
+        base(dir("Series", dir("Vol 1", file("001.jpg")), dir("Vol 2", file("001.jpg"))))
+        val layout = source.getFolderLayout("$ROOT/Series")!!
+        assertFalse(layout.isCollection)
+        assertFalse(layout.canSplit)
+
+        base(dir("Series", file(LocalFolderLayout.COLLECTION_MARKER), dir("Vol 1", file("001.jpg"))))
+        runTest { assertEquals(listOf("Series"), browse()) }
     }
 
     @Test

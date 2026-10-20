@@ -610,6 +610,7 @@ class MangaScreen(
                 FolderLayoutDialog(
                     folderName = dialog.layout.folder.name.orEmpty(),
                     isCollection = dialog.layout.isCollection,
+                    canSplit = dialog.layout.canSplit,
                     onDismissRequest = screenModel::dismissDialog,
                     onConfirm = { screenModel.toggleFolderLayout(dialog.layout) },
                 )

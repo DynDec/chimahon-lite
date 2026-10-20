@@ -227,9 +227,23 @@ fun DictionaryProfileDialog(
 fun FolderLayoutDialog(
     folderName: String,
     isCollection: Boolean,
+    canSplit: Boolean,
     onDismissRequest: () -> Unit,
     onConfirm: () -> Unit,
 ) {
+    if (!isCollection && !canSplit) {
+        AlertDialog(
+            onDismissRequest = onDismissRequest,
+            confirmButton = {
+                TextButton(onClick = onDismissRequest) {
+                    Text(text = stringResource(MR.strings.action_ok))
+                }
+            },
+            title = { Text(text = stringResource(MR.strings.folder_layout_cannot_split_title, folderName)) },
+            text = { Text(text = stringResource(MR.strings.folder_layout_cannot_split_summary, folderName)) },
+        )
+        return
+    }
     AlertDialog(
         onDismissRequest = onDismissRequest,
         dismissButton = {

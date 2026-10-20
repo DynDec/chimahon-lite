@@ -1808,6 +1808,8 @@
     <string name="folder_layout_split_summary">Each subfolder of “%1$s” will be listed as its own manga. Files will not be moved.</string>
     <string name="folder_layout_merge_title">Keep “%1$s” as one series?</string>
     <string name="folder_layout_merge_summary">“%1$s” will be listed as one manga, with its subfolders as chapters. Files will not be moved.</string>
+    <string name="folder_layout_cannot_split_title">“%1$s” cannot be split</string>
+    <string name="folder_layout_cannot_split_summary">Its subfolders hold pages, so each one is a chapter of “%1$s”. A folder can only be split when its subfolders hold chapters: folders of pages, archives, or epubs.</string>
     <string name="folder_layout_saved">Folder layout saved. Pull down on the library to apply it.</string>
     <string name="folder_layout_failed">Could not save the folder layout. Check access to the folder and try again.</string>
     <string name="folder_layout_unavailable">This manga’s folder was not found in the manga folder.</string>

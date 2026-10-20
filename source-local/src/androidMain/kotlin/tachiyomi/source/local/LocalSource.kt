@@ -228,7 +228,7 @@ class LocalSource(
         val children = listed.children ?: return listOf(listed)
         val probed = HashMap<String, List<UniFile>>()
         if (!isCollection(listed.file, children, allowHiddenFiles, probed)) return listOf(listed)
-        return children
+        val series = children
             .filter { isVisible(it, allowHiddenFiles) && isSupportedChapter(it) }
             .map { entry ->
                 val entryChildren = if (entry.isDirectory) {
@@ -238,6 +238,11 @@ class LocalSource(
                 }
                 ListedEntry(entry, entryChildren)
             }
+        // A collection marker on a folder of chapter folders would otherwise hide the folder entirely.
+        val hasSeries = series.any { (entry, entryChildren) ->
+            entryChildren?.any { isVisible(it, allowHiddenFiles) && isSupportedChapter(it) } ?: isSupportedChapter(entry)
+        }
+        return if (hasSeries) series else listOf(listed)
     }
 
     /** Subfolder listings made while deciding are kept in [probed] for the expansion to reuse. */
@@ -257,8 +262,11 @@ class LocalSource(
         return isCollection
     }
 
-    /** The top-level folder that decides how [mangaUrl] is listed: its own folder or the collection holding it. */
-    data class FolderLayout(val folder: UniFile, val isCollection: Boolean)
+    /**
+     * The top-level folder that decides how [mangaUrl] is listed: its own folder or the collection holding it.
+     * [canSplit] is false when listing it as a collection would list no series.
+     */
+    data class FolderLayout(val folder: UniFile, val isCollection: Boolean, val canSplit: Boolean)
 
     fun getFolderLayout(mangaUrl: String): FolderLayout? {
         val allowHidden = allowHiddenFiles()
@@ -269,7 +277,11 @@ class LocalSource(
                     ?: folders.firstOrNull { LocalFolderLayout.isChildUri(mangaUrl, it.uri.toString()) }
             }
             ?: return null
-        return FolderLayout(folder, isCollection(folder, folder.listFiles().orEmpty().toList(), allowHidden))
+        val children = folder.listFiles().orEmpty().toList()
+        val isCollection = isCollection(folder, children, allowHidden)
+        val canSplit = isCollection ||
+            LocalFolderLayout.hasSeries(children, allowHidden) { it.listFiles().orEmpty().toList() }
+        return FolderLayout(folder, isCollection, canSplit)
     }
 
     /** Lists [folder]'s subfolders as separate series, or [folder] as one series, by writing a marker file. */
