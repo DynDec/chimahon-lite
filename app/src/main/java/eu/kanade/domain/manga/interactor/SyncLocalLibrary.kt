@@ -9,6 +9,7 @@ import logcat.LogPriority
 import mihon.domain.manga.model.toDomainManga
 import mihon.domain.source.interactor.UpdateMangaFromRemote
 import tachiyomi.core.common.storage.areSameFileUris
+import tachiyomi.core.common.storage.isFileUriInside
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.core.common.util.system.logcat
@@ -19,6 +20,7 @@ import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.manga.model.MangaUpdate
 import tachiyomi.domain.manga.repository.MangaRepository
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.io.LocalSourceFileSystem
@@ -28,8 +30,9 @@ import java.time.Instant
 
 /**
  * Keeps the library in step with the local manga folder. Newly listed folders are added, and folders that are no
- * longer listed are taken out and added back when they return. Manga the user removed stay removed. Database rows
- * and reading history are never deleted.
+ * longer listed are taken out and added back when they return. Manga the user removed stay removed. Manga from
+ * other manga folders, such as one chosen before, are left in the library. Database rows and reading history are
+ * never deleted.
  */
 class SyncLocalLibrary(
     private val mangas: MangaRepository = Injekt.get(),
@@ -37,6 +40,7 @@ class SyncLocalLibrary(
     private val sourceManager: SourceManager = Injekt.get(),
     private val fileSystem: LocalSourceFileSystem = Injekt.get(),
     private val storagePreferences: StoragePreferences = Injekt.get(),
+    private val storageManager: StorageManager = Injekt.get(),
     private val networkToLocalManga: NetworkToLocalManga = Injekt.get(),
     private val setMangaDefaultChapterFlags: SetMangaDefaultChapterFlags = Injekt.get(),
     private val updateMangaFromRemote: UpdateMangaFromRemote = Injekt.get(),
@@ -50,7 +54,8 @@ class SyncLocalLibrary(
         sourceManager.isInitialized.first { it }
         val source = sourceManager.get(LocalSource.ID) as? LocalSource ?: return null
         // An unreadable folder lists nothing, which must not empty the library.
-        if (fileSystem.getBaseDirectory()?.canRead() != true) return null
+        val baseDirectory = fileSystem.getBaseDirectory()?.takeIf { it.canRead() } ?: return null
+        val baseUrl = baseDirectory.uri.toString()
 
         val listed = source.getPopularManga(1).mangas.associateBy { it.url }
         val rows = mangas.getMangaBySourceId(LocalSource.ID)
@@ -66,7 +71,10 @@ class SyncLocalLibrary(
         val toRemove = mutableListOf<Manga>()
         for (manga in rows.filter { it.favorite }) {
             val url = listedUrlOf(manga.url, listed)
-            if (url != null) favoriteUrls += url else toRemove += manga
+            when {
+                url != null -> favoriteUrls += url
+                isInFolder(manga.url, baseUrl) -> toRemove += manga
+            }
         }
 
         val toInsert = mutableListOf<SManga>()
@@ -87,6 +95,11 @@ class SyncLocalLibrary(
             if (!add) continue
             if (row == null) toInsert += manga else toAdd += row
         }
+        // Taken out while their manga folder was chosen, or when another was chosen before this check existed.
+        for (url in missing) {
+            val row = rowsByUrl[url]?.takeIf { !it.favorite && it.url !in listed } ?: continue
+            if (!isInFolder(url, baseUrl) && storageManager.getFileFromUri(url)?.exists() == true) toAdd += row
+        }
 
         // The library and the remembered folders must change together, or a later sync would read a half-applied
         // change as the user removing manga.
@@ -98,7 +111,7 @@ class SyncLocalLibrary(
             )
             mangas.updateAll(toRemove.map { MangaUpdate(id = it.id, favorite = false) })
             knownPreference.set(known + listed.keys)
-            missingPreference.set(missing - listed.keys + toRemove.map { it.url })
+            missingPreference.set(missing - listed.keys - added.map { it.url }.toSet() + toRemove.map { it.url })
             added
         }
 
@@ -117,6 +130,12 @@ class SyncLocalLibrary(
             }
         }
         return Result(added = added.size, removed = toRemove.size)
+    }
+
+    /** Whether [url] is a manga below the current manga folder. Legacy folder names are relative to it. */
+    private fun isInFolder(url: String, baseUrl: String): Boolean {
+        if (!url.startsWith("content://") && !url.startsWith("file://")) return true
+        return isFileUriInside(url, baseUrl)
     }
 
     /** The listed URL [url] refers to, also for document URIs spelled differently and legacy folder names. */

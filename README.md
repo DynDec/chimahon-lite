@@ -15,7 +15,7 @@ Chimahon Lite is a focused fork of Chimahon. It keeps the manga library, reader,
 
 - The Browse tab opens the local manga source directly.
 - Choose or replace the manga folder from Browse’s folder action or Data & storage settings.
-- Each immediate subfolder is a manga. When the app starts and when you pull down on the library, new folders are added to the library and removed folders are taken out of it; their database rows and reading history are kept, and they come back if the folder returns. Manga you remove from the library yourself stay removed.
+- Each immediate subfolder is a manga. When the app starts and when you pull down on the library, new folders are added to the library and removed folders are taken out of it; their database rows and reading history are kept, and they come back if the folder returns. Manga you remove from the library yourself stay removed, and manga from a previously chosen folder stay in the library when you choose another.
 - A subfolder with no images or metadata of its own whose subfolders hold chapters, such as `Publisher/Series/Ch`, is a collection: each of its subfolders and loose books is listed as a manga. A manga’s **Folder layout** action switches its folder between one series and a collection by writing a `.series` or `.collection` marker file.
 - The app-owned `local` directory remains the fallback when no folder has been selected.
 

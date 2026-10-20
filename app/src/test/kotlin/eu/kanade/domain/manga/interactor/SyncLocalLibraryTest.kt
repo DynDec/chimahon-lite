@@ -1,5 +1,6 @@
 package eu.kanade.domain.manga.interactor
 
+import android.net.Uri
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.SManga
@@ -12,11 +13,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import mihon.domain.source.interactor.UpdateMangaFromRemote
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import tachiyomi.core.common.preference.InMemoryPreferenceStore.InMemoryPreference
+import tachiyomi.core.common.storage.isFileUriInside
 import tachiyomi.domain.chapter.interactor.SetMangaDefaultChapterFlags
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.chapter.repository.ChapterRepository
@@ -28,6 +32,7 @@ import tachiyomi.domain.manga.model.MangaUpdate
 import tachiyomi.domain.manga.repository.CustomMangaRepository
 import tachiyomi.domain.manga.repository.MangaRepository
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.io.LocalSourceFileSystem
@@ -42,6 +47,7 @@ class SyncLocalLibraryTest {
     private val fileSystem = mockk<LocalSourceFileSystem>()
     private val baseDirectory = mockk<UniFile>()
     private val storagePreferences = mockk<StoragePreferences>()
+    private val storageManager = mockk<StorageManager>()
     private val networkToLocalManga = mockk<NetworkToLocalManga>()
     private val updateMangaFromRemote = mockk<UpdateMangaFromRemote>()
     private val known = InMemoryPreference<Set<String>>("known", null, emptySet())
@@ -58,6 +64,7 @@ class SyncLocalLibraryTest {
         sourceManager = sourceManager,
         fileSystem = fileSystem,
         storagePreferences = storagePreferences,
+        storageManager = storageManager,
         networkToLocalManga = networkToLocalManga,
         setMangaDefaultChapterFlags = mockk<SetMangaDefaultChapterFlags>(relaxed = true),
         updateMangaFromRemote = updateMangaFromRemote,
@@ -69,6 +76,9 @@ class SyncLocalLibraryTest {
         every { sourceManager.get(LocalSource.ID) } returns source
         every { fileSystem.getBaseDirectory() } returns baseDirectory
         every { baseDirectory.canRead() } returns true
+        val baseUri = mockk<Uri>()
+        every { baseUri.toString() } returns "$TREE/tree/primary%3ANew"
+        every { baseDirectory.uri } returns baseUri
         every { fileSystem.getMangaEntry(any()) } returns null
         every { storagePreferences.localLibraryKnownFolders() } returns known
         every { storagePreferences.localLibraryMissingFolders() } returns missing
@@ -163,7 +173,37 @@ class SyncLocalLibraryTest {
         assertEquals(setOf(stored), favorites())
     }
 
+    @Test
+    fun `choosing another manga folder keeps the manga from the earlier one`() = runTest {
+        val kept = row("$TREE/tree/primary%3AOld/document/primary%3AOld%2FA", favorite = true)
+        val back = row("$TREE/tree/primary%3AOld/document/primary%3AOld%2FB")
+        val deleted = row("$TREE/tree/primary%3AOld/document/primary%3AOld%2FC")
+        val inNew = row("$TREE/tree/primary%3ANew/document/primary%3ANew%2FD", favorite = true)
+        known.set(setOf(kept.url, back.url, deleted.url, inNew.url))
+        missing.set(setOf(back.url, deleted.url))
+        every { storageManager.getFileFromUri(back.url) } returns mockk { every { exists() } returns true }
+        every { storageManager.getFileFromUri(deleted.url) } returns mockk { every { exists() } returns false }
+        listed = emptyList()
+
+        assertEquals(SyncLocalLibrary.Result(added = 1, removed = 1), sync.await())
+
+        assertEquals(setOf(kept.url, back.url), favorites())
+        assertEquals(setOf(deleted.url, inNew.url), missing.get())
+    }
+
+    @Test
+    fun `folder containment follows document ids and file paths`() {
+        assertTrue(isFileUriInside("$TREE/tree/primary%3AM/document/primary%3AM%2FP%2FS", "$TREE/tree/primary%3AM"))
+        assertTrue(isFileUriInside("$TREE/tree/primary%3A/document/primary%3AM", "$TREE/tree/primary%3A"))
+        assertTrue(isFileUriInside("file:///sdcard/M/S", "file:///sdcard/M/"))
+        assertFalse(isFileUriInside("$TREE/tree/primary%3AM2/document/primary%3AM2%2FS", "$TREE/tree/primary%3AM"))
+        assertFalse(isFileUriInside("$TREE/tree/primary%3AM", "$TREE/tree/primary%3AM"))
+        assertFalse(isFileUriInside("file:///sdcard/M2/S", "file:///sdcard/M"))
+    }
+
     companion object {
+        private const val TREE = "content://com.android.externalstorage.documents"
+
         @JvmStatic
         @BeforeAll
         fun registerCustomInfo() {
