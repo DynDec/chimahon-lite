@@ -199,6 +199,14 @@ class ReaderViewModel @JvmOverloads constructor(
 
     private val ocrCacheMutex = Mutex()
     private val chapterProgressMutex = Mutex()
+
+    // Chimahon -->
+    /** Chapters that reached their last page in this session and were unread before it. */
+    private val chaptersCompletedInSession = mutableSetOf<Long>()
+
+    /** Whether the last selected page was shown together with an extra page (dual-page spread). */
+    private var selectedPageHasExtraPage = false
+    // Chimahon <--
     private val ocrCache = LinkedHashMap<OcrCacheKey, List<eu.kanade.tachiyomi.ui.reader.viewer.OcrTextBlock>>()
     private val ocrInFlight =
         mutableMapOf<OcrCacheKey, Deferred<List<eu.kanade.tachiyomi.ui.reader.viewer.OcrTextBlock>>>()
@@ -713,6 +721,10 @@ class ReaderViewModel @JvmOverloads constructor(
         val selectedChapter = page.chapter
         val pages = selectedChapter.pages ?: return
 
+        // Chimahon -->
+        selectedPageHasExtraPage = hasExtraPage
+        // Chimahon <--
+
         // Save last page read and mark as read if needed
         viewModelScope.launchNonCancellable {
             chapterProgressMutex.withLock {
@@ -862,6 +874,11 @@ class ReaderViewModel @JvmOverloads constructor(
                 (hasExtraPage && readerChapter.pages?.lastIndex?.minus(1) == page.index)
                 // SY <--
             ) {
+                // Chimahon -->
+                if (!readerChapter.chapter.read) {
+                    chaptersCompletedInSession += readerChapter.chapter.id!!
+                }
+                // Chimahon <--
                 updateChapterProgressOnComplete(readerChapter)
 
                 // SY -->
@@ -870,6 +887,12 @@ class ReaderViewModel @JvmOverloads constructor(
                     SyncDataJob.startNow(Injekt.get<Application>())
                 }
                 // SY <--
+                // Chimahon -->
+            } else if (chaptersCompletedInSession.remove(readerChapter.chapter.id!!)) {
+                // Paging back from the end of a chapter finished in this session means it isn't finished
+                // yet, so keep it unread and let History resume here instead of at the next chapter.
+                readerChapter.chapter.read = false
+                // Chimahon <--
             }
 
             updateChapter.await(
@@ -899,7 +922,7 @@ class ReaderViewModel @JvmOverloads constructor(
         if (page is InsertPage) return
 
         chapterProgressMutex.withLock {
-            updateChapterProgress(page.chapter, page, hasExtraPage = false)
+            updateChapterProgress(page.chapter, page, hasExtraPage = /* Chimahon */ selectedPageHasExtraPage)
         }
     }
 
