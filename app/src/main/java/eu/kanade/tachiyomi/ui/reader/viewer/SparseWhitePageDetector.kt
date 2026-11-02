@@ -1,11 +1,16 @@
 package eu.kanade.tachiyomi.ui.reader.viewer
 
-/** Conservative, language-independent detection of mostly empty chapter-transition pages. */
+/**
+ * Conservative, language-independent detection of mostly empty chapter-transition pages.
+ *
+ * A page is sparse when all its non-white content fits in a quarter of the page. Ink density is
+ * deliberately not considered: bold title logos and small doodles on transition pages are dense
+ * within their bounds, yet cropping to them would discard the white page around them.
+ */
 internal object SparseWhitePageDetector {
     fun isSparse(pixels: IntArray, width: Int, height: Int): Boolean {
         require(width > 0 && height > 0 && pixels.size.toLong() == width.toLong() * height)
 
-        var foregroundCount = 0
         var left = width
         var top = height
         var right = -1
@@ -18,20 +23,18 @@ internal object SparseWhitePageDetector {
                 val green = compositeOnWhite((pixel ushr 8) and 0xff, alpha)
                 val blue = compositeOnWhite(pixel and 0xff, alpha)
                 if (red >= 235 && green >= 235 && blue >= 235) continue
+                if (x in left..right && y in top..bottom) continue
 
-                foregroundCount++
-                // More than 3% foreground cannot be a sparse white page.
-                if (foregroundCount.toLong() * 100 > pixels.size.toLong() * 3) return false
                 left = minOf(left, x)
                 top = minOf(top, y)
                 right = maxOf(right, x)
                 bottom = maxOf(bottom, y)
+                // The bounds only grow, so a page is rejected as soon as they exceed a quarter.
+                val boundsArea = (right - left + 1).toLong() * (bottom - top + 1)
+                if (boundsArea * 4 > pixels.size) return false
             }
         }
-
-        if (foregroundCount == 0) return true
-        val boundsArea = (right - left + 1).toLong() * (bottom - top + 1)
-        return boundsArea * 4 <= pixels.size
+        return true
     }
 
     private fun compositeOnWhite(channel: Int, alpha: Int): Int =

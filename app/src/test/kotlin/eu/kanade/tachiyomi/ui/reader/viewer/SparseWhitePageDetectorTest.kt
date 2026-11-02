@@ -25,11 +25,11 @@ class SparseWhitePageDetectorTest {
     }
 
     @Test
-    fun `three percent foreground is included but any more is excluded`() {
-        val pixels = page().apply { fillRect(20, 20, 20, 15) }
-        assertTrue(isSparse(pixels))
-        pixels[35 * 100 + 20] = BLACK
-        assertFalse(isSparse(pixels))
+    fun `dense compact logos and doodles are sparse`() {
+        // A solid title logo in a corner: 6% ink, all of it inside its own bounds.
+        assertTrue(isSparse(page().apply { fillRect(2, 80, 40, 15) }))
+        // A doodle filling exactly a quarter of the page.
+        assertTrue(isSparse(page().apply { fillRect(50, 50, 50, 50) }))
     }
 
     @Test
