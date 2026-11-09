@@ -38,8 +38,14 @@ android {
     buildTypes {
         val debug by getting {
             applicationIdSuffix = ".dev"
-            versionNameSuffix = "-${getCommitCount()}"
             isPseudoLocalesEnabled = true
+            // Chimahon -->
+            // Build stamps that change per build or per commit would recompile and re-dex the app every time.
+            versionNameSuffix = "-debug"
+            buildConfigField("String", "COMMIT_COUNT", "\"0\"")
+            buildConfigField("String", "COMMIT_SHA", "\"local\"")
+            buildConfigField("String", "BUILD_TIME", "\"1970-01-01T00:00:00Z\"")
+            // Chimahon <--
             buildConfigField("boolean", "UPDATER_ENABLED", "false")
         }
         val release by getting {
@@ -77,7 +83,7 @@ android {
 
             applicationIdSuffix = ".beta"
 
-            versionNameSuffix = debug.versionNameSuffix
+            versionNameSuffix = "-${getCommitCount()}"
             signingConfig = debug.signingConfig
 
             matchingFallbacks.addAll(commonMatchingFallbacks)
@@ -90,7 +96,7 @@ android {
 
             isDebuggable = false
             isProfileable = true
-            versionNameSuffix = "${debug.versionNameSuffix}-benchmark"
+            versionNameSuffix = "-${getCommitCount()}-benchmark"
             applicationIdSuffix = ".benchmark"
 
             signingConfig = debug.signingConfig
