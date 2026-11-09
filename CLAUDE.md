@@ -43,6 +43,7 @@ The `chimahon` module needs the `chimahon/src/main/cpp/hoshidicts` git submodule
 ## Conventions
 
 - Always commit your changes when a task is done, unless told not to.
+- Assume the user knows common UI and design patterns. Don't add labels, captions or helper text that explain what a control does or what an element represents. Name buttons and titles after the action, not the state or the implementation: "Add folder" is right, "Add folder (files are read in place, never copied)" is wrong.
 - **Fork markers**: changes to upstream-derived files are fenced with comments like `// KMK -->` / `// KMK <--`, `// SY -->` / `// SY <--`, and `// Chimahon -->` / `// Chimahon <--`. Wrap new Chimahon-specific edits inside existing upstream files the same way to keep future merges tractable.
 - DI uses Injekt (`Injekt.get()`, `injectLazy()`); UI is Jetpack Compose with Voyager navigation.
 - Preference/data migrations go in `app/src/main/java/mihon/core/migration/migrations/` and must be registered in `Migrations.kt`.
