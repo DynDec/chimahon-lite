@@ -20,14 +20,18 @@ class PageBookmarkThumbnails(context: Context) {
 
     fun save(chapterId: Long, pageIndex: Int, stream: () -> InputStream) {
         try {
+            // Archive page streams ignore the offset and length of partial reads, which overruns
+            // BitmapFactory's native buffer when it decodes them directly. Read them whole instead.
+            val bytes = stream().use { it.readBytes() }
+
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            stream().use { BitmapFactory.decodeStream(it, null, bounds) }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
             if (bounds.outWidth <= 0) return
 
             var sampleSize = 1
             while (bounds.outWidth / (sampleSize * 2) >= THUMBNAIL_WIDTH) sampleSize *= 2
             val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-            val bitmap = stream().use { BitmapFactory.decodeStream(it, null, options) } ?: return
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) ?: return
 
             dir.mkdirs()
             file(chapterId, pageIndex).outputStream().use {
