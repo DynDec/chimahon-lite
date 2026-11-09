@@ -34,6 +34,10 @@ enum class MangaScreenItem {
     CHAPTER_HEADER,
     CHAPTER,
 
+    // Chimahon -->
+    CHAPTER_GRID_ROW,
+    // Chimahon <--
+
     // KMK -->
     RELATED_MANGAS,
     // KMK <--

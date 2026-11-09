@@ -437,6 +437,9 @@ class MangaScreen(
                 onBookmarkedFilterChanged = screenModel::setBookmarkedFilter,
                 onSortModeChanged = screenModel::setSorting,
                 onDisplayModeChanged = screenModel::setDisplayMode,
+                // Chimahon -->
+                onLayoutChanged = screenModel::setChapterLayout,
+                // Chimahon <--
                 onSetAsDefault = screenModel::setCurrentSettingsAsDefault,
                 onResetToDefault = screenModel::resetToDefaultSettings,
             )

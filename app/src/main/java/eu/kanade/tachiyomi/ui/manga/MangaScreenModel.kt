@@ -1611,6 +1611,16 @@ class MangaScreenModel(
         }
     }
 
+    // Chimahon -->
+    fun setChapterLayout(layout: Long) {
+        val manga = successState?.manga ?: return
+
+        screenModelScope.launchNonCancellable {
+            setMangaChapterFlags.awaitSetLayout(manga, layout)
+        }
+    }
+    // Chimahon <--
+
     /**
      * Sets the sorting method and requests an UI update.
      * @param sort the sorting mode.
@@ -2009,6 +2019,12 @@ class MangaScreenModel(
             val isAnySelected by lazy {
                 chapters.fastAny { it.selected }
             }
+
+            // Chimahon -->
+            val showChapterGrid by lazy {
+                ChapterLayout.isGrid(manga, chapters.map { it.chapter.name })
+            }
+            // Chimahon <--
 
             val chapterListItems by lazy {
                 if (hideMissingChapters) {

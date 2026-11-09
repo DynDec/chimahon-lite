@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.Public
@@ -125,6 +126,9 @@ fun MangaInfoBox(
     onCoverLoaded: (DomainMangaCover) -> Unit,
     coverRatio: MutableFloatState,
     // KMK <--
+    // Chimahon -->
+    showCover: Boolean = true,
+    // Chimahon <--
 ) {
     // KMK -->
     val usePanoramaCover by Injekt.get<UiPreferences>().usePanoramaCoverMangaInfo().collectAsState()
@@ -188,6 +192,9 @@ fun MangaInfoBox(
                     usePanoramaCover = usePanoramaCover,
                     topAlignCover = topAlignCover,
                     // KMK <--
+                    // Chimahon -->
+                    showCover = showCover,
+                    // Chimahon <--
                 )
             } else {
                 MangaAndSourceTitlesLarge(
@@ -222,6 +229,10 @@ fun MangaActionRow(
     // SY -->
     // SY <--
     modifier: Modifier = Modifier,
+    // Chimahon -->
+    hasNotes: Boolean = false,
+    onNotesClicked: (() -> Unit)? = null,
+    // Chimahon <--
 ) {
     val defaultActionButtonColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
 
@@ -258,6 +269,16 @@ fun MangaActionRow(
         }
         // SY -->
         // SY <--
+        // Chimahon -->
+        if (onNotesClicked != null) {
+            MangaActionButton(
+                title = stringResource(MR.strings.action_notes),
+                icon = Icons.Outlined.EditNote,
+                color = if (hasNotes) MaterialTheme.colorScheme.primary else defaultActionButtonColor,
+                onClick = onNotesClicked,
+            )
+        }
+        // Chimahon <--
     }
 }
 
@@ -488,6 +509,9 @@ private fun MangaAndSourceTitlesSmall(
     usePanoramaCover: Boolean = false,
     topAlignCover: Boolean = false,
     // KMK <--
+    // Chimahon -->
+    showCover: Boolean = true,
+    // Chimahon <--
 ) {
     Row(
         modifier = Modifier
@@ -497,7 +521,9 @@ private fun MangaAndSourceTitlesSmall(
         verticalAlignment = if (topAlignCover) Alignment.Top else Alignment.CenterVertically,
     ) {
         // KMK -->
-        if (usePanoramaCover && coverRatio.floatValue <= RatioSwitchToPanorama) {
+        if (/* Chimahon --> */ !showCover /* Chimahon <-- */) {
+            // The chapter grid shows every volume's cover.
+        } else if (usePanoramaCover && coverRatio.floatValue <= RatioSwitchToPanorama) {
             MangaCover.Panorama(
                 modifier = Modifier
                     .sizeIn(maxHeight = 100.dp)

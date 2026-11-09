@@ -6,6 +6,8 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
@@ -57,6 +59,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastMap
@@ -66,9 +69,9 @@ import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.components.relativeDateText
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
-import eu.kanade.presentation.manga.components.ExpandableMangaDescription
 import eu.kanade.presentation.manga.components.MangaActionRow
 import eu.kanade.presentation.manga.components.MangaBottomActionMenu
+import eu.kanade.presentation.manga.components.MangaChapterGridItem
 import eu.kanade.presentation.manga.components.MangaChapterListItem
 import eu.kanade.presentation.manga.components.MangaInfoBox
 import eu.kanade.presentation.manga.components.MangaInfoButtons
@@ -76,8 +79,8 @@ import eu.kanade.presentation.manga.components.MangaToolbar
 import eu.kanade.presentation.manga.components.MissingChapterCountListItem
 import eu.kanade.presentation.manga.components.PagePreviewItems
 import eu.kanade.presentation.manga.components.PagePreviews
-import eu.kanade.presentation.manga.components.SearchMetadataChips
 import eu.kanade.presentation.util.formatChapterNumber
+import eu.kanade.tachiyomi.data.coil.ChapterCover
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.isIncognitoModeEnabled
@@ -88,6 +91,7 @@ import eu.kanade.tachiyomi.source.online.all.MangaDex
 import eu.kanade.tachiyomi.source.online.all.NHentai
 import eu.kanade.tachiyomi.source.online.all.Pururin
 import eu.kanade.tachiyomi.source.online.english.EightMuses
+import eu.kanade.tachiyomi.ui.manga.ChapterLayout
 import eu.kanade.tachiyomi.ui.manga.ChapterList
 import eu.kanade.tachiyomi.ui.manga.MangaScreenModel
 import eu.kanade.tachiyomi.ui.manga.MergedMangaData
@@ -577,8 +581,14 @@ private fun MangaScreenSmallImpl(
                 topContentPadding = topPadding,
                 endContentPadding = contentPadding.calculateEndPadding(layoutDirection),
             ) {
+                // Chimahon -->
+                var listWidth by remember { mutableIntStateOf(0) }
+                val gridColumns = chapterGridColumns(listWidth)
+                // Chimahon <--
                 LazyColumn(
-                    modifier = Modifier.fillMaxHeight(),
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .onSizeChanged { listWidth = it.width },
                     state = chapterListState,
                     contentPadding = PaddingValues(
                         start = contentPadding.calculateStartPadding(layoutDirection),
@@ -604,6 +614,9 @@ private fun MangaScreenSmallImpl(
                             onCoverLoaded = onCoverLoaded,
                             coverRatio = coverRatio,
                             // KMK <--
+                            // Chimahon -->
+                            showCover = !state.showChapterGrid,
+                            // Chimahon <--
                         )
                     }
 
@@ -623,6 +636,10 @@ private fun MangaScreenSmallImpl(
                             // SY <--
                             // KMK -->
                             // KMK <--
+                            // Chimahon -->
+                            hasNotes = state.manga.notes.isNotBlank(),
+                            onNotesClicked = onEditNotesClicked,
+                            // Chimahon <--
                         )
                     }
 
@@ -641,27 +658,6 @@ private fun MangaScreenSmallImpl(
                         }
                     }
                     // SY <--
-
-                    item(
-                        key = MangaScreenItem.DESCRIPTION_WITH_TAG,
-                        contentType = MangaScreenItem.DESCRIPTION_WITH_TAG,
-                    ) {
-                        ExpandableMangaDescription(
-                            defaultExpandState = state.isFromSource && !state.manga.favorite,
-                            description = state.manga.description,
-                            tagsProvider = { state.manga.genre },
-                            notes = state.manga.notes,
-                            onTagSearch = onTagSearch,
-                            onCopyTagToClipboard = onCopyTagToClipboard,
-                            onEditNotes = onEditNotesClicked,
-                            // SY -->
-                            doSearch = onSearch,
-                            searchMetadataChips = remember(state.meta, state.source.id, state.manga.genre) {
-                                SearchMetadataChips(state.meta, state.source.id, state.manga.genre)
-                            },
-                            // SY <--
-                        )
-                    }
 
                     // SY -->
                     if (!state.showRecommendationsInOverflow) {
@@ -700,8 +696,26 @@ private fun MangaScreenSmallImpl(
                             chapterCount = chapters.size,
                             missingChapterCount = missingChapterCount,
                             onClick = onFilterClicked,
+                            // Chimahon -->
+                            isVolumes = state.showChapterGrid,
+                            readCount = remember(chapters) { chapters.count { it.chapter.read } },
+                            // Chimahon <--
                         )
                     }
+
+                    // Chimahon -->
+                    if (state.showChapterGrid) {
+                        sharedChapterGridItems(
+                            manga = state.manga,
+                            chapters = chapters,
+                            columns = gridColumns,
+                            isAnyChapterSelected = isAnySelected,
+                            onChapterClicked = onChapterClicked,
+                            onChapterSelected = onChapterSelected,
+                        )
+                        return@LazyColumn
+                    }
+                    // Chimahon <--
 
                     sharedChapterItems(
                         manga = state.manga,
@@ -1009,6 +1023,10 @@ private fun MangaScreenLargeImpl(
                             // SY <--
                             // KMK -->
                             // KMK <--
+                            // Chimahon -->
+                            hasNotes = state.manga.notes.isNotBlank(),
+                            onNotesClicked = onEditNotesClicked,
+                            // Chimahon <--
                         )
                         // SY -->
                         metadataDescription?.invoke(
@@ -1018,21 +1036,6 @@ private fun MangaScreenLargeImpl(
                             onSearch(it, false)
                         }
                         // SY <--
-                        ExpandableMangaDescription(
-                            defaultExpandState = true,
-                            description = state.manga.description,
-                            tagsProvider = { state.manga.genre },
-                            notes = state.manga.notes,
-                            onTagSearch = onTagSearch,
-                            onCopyTagToClipboard = onCopyTagToClipboard,
-                            onEditNotes = onEditNotesClicked,
-                            // SY -->
-                            doSearch = onSearch,
-                            searchMetadataChips = remember(state.meta, state.source.id, state.manga.genre) {
-                                SearchMetadataChips(state.meta, state.source.id, state.manga.genre)
-                            },
-                            // SY <--
-                        )
                         // SY -->
                         if (!state.showRecommendationsInOverflow) {
                             MangaInfoButtons(
@@ -1056,8 +1059,14 @@ private fun MangaScreenLargeImpl(
                         listState = chapterListState,
                         topContentPadding = contentPadding.calculateTopPadding(),
                     ) {
+                        // Chimahon -->
+                        var listWidth by remember { mutableIntStateOf(0) }
+                        val gridColumns = chapterGridColumns(listWidth)
+                        // Chimahon <--
                         LazyColumn(
-                            modifier = Modifier.fillMaxHeight(),
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .onSizeChanged { listWidth = it.width },
                             state = chapterListState,
                             contentPadding = PaddingValues(
                                 top = contentPadding.calculateTopPadding(),
@@ -1076,8 +1085,26 @@ private fun MangaScreenLargeImpl(
                                     chapterCount = chapters.size,
                                     missingChapterCount = missingChapterCount,
                                     onClick = onFilterButtonClicked,
+                                    // Chimahon -->
+                                    isVolumes = state.showChapterGrid,
+                                    readCount = remember(chapters) { chapters.count { it.chapter.read } },
+                                    // Chimahon <--
                                 )
                             }
+
+                            // Chimahon -->
+                            if (state.showChapterGrid) {
+                                sharedChapterGridItems(
+                                    manga = state.manga,
+                                    chapters = chapters,
+                                    columns = gridColumns,
+                                    isAnyChapterSelected = isAnySelected,
+                                    onChapterClicked = onChapterClicked,
+                                    onChapterSelected = onChapterSelected,
+                                )
+                                return@LazyColumn
+                            }
+                            // Chimahon <--
 
                             sharedChapterItems(
                                 manga = state.manga,
@@ -1252,6 +1279,76 @@ private fun LazyListScope.sharedChapterItems(
         }
     }
 }
+
+// Chimahon -->
+private val ChapterGridMinCellWidth = 112.dp
+private const val ChapterGridMinColumns = 3
+
+@Composable
+private fun chapterGridColumns(listWidth: Int): Int {
+    val density = LocalDensity.current
+    return remember(listWidth, density) {
+        with(density) { (listWidth.toDp() / ChapterGridMinCellWidth).toInt() }.coerceAtLeast(ChapterGridMinColumns)
+    }
+}
+
+/** Chapters as rows of covers. Rows rather than a lazy grid keep the list state the toolbar and scroller use. */
+private fun LazyListScope.sharedChapterGridItems(
+    manga: Manga,
+    chapters: List<ChapterList.Item>,
+    columns: Int,
+    isAnyChapterSelected: Boolean,
+    onChapterClicked: (Chapter) -> Unit,
+    onChapterSelected: (ChapterList.Item, Boolean, Boolean) -> Unit,
+) {
+    items(
+        items = chapters.chunked(columns),
+        key = { row -> "chapter-row-${row.first().id}" },
+        contentType = { MangaScreenItem.CHAPTER_GRID_ROW },
+    ) { row ->
+        val haptic = LocalHapticFeedback.current
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+        ) {
+            row.forEach { item ->
+                MangaChapterGridItem(
+                    cover = ChapterCover(item.chapter.url, item.chapter.dateUpload),
+                    title = if (manga.displayMode == Manga.CHAPTER_DISPLAY_NUMBER) {
+                        formatChapterNumber(item.chapter.chapterNumber)
+                    } else {
+                        remember(manga.title, item.chapter.name) {
+                            ChapterLayout.volumeLabel(manga.title, item.chapter.name)
+                        }
+                    },
+                    read = item.chapter.read,
+                    bookmark = item.chapter.bookmark,
+                    selected = item.selected,
+                    isOcrReady = item.isOcrReady,
+                    isOcrRunning = item.isOcrRunning,
+                    onClick = {
+                        onChapterItemClick(
+                            chapterItem = item,
+                            isAnyChapterSelected = isAnyChapterSelected,
+                            onToggleSelection = { onChapterSelected(item, !item.selected, false) },
+                            onChapterClicked = onChapterClicked,
+                        )
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onChapterSelected(item, !item.selected, true)
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            repeat(columns - row.size) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+// Chimahon <--
 
 private fun onChapterItemClick(
     chapterItem: ChapterList.Item,

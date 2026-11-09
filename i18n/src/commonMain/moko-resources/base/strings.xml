@@ -1820,6 +1820,8 @@
     <string name="local_library_sync_failed">Could not update the library from the manga folder.</string>
     <string name="local_library_folders_unreadable">Some library folders cannot be read</string>
     <string name="library_folders">Library folders</string>
+    <string name="chapter_layout_grid">Grid</string>
+    <string name="volumes_read">%1$d of %2$d read</string>
     <string name="library_folders_add">Add folder</string>
     <string name="library_folder_exists">This folder is already a library folder</string>
     <string name="library_folder_unreadable">Cannot be read</string>

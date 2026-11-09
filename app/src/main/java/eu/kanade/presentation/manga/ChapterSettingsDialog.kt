@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +40,9 @@ fun ChapterSettingsDialog(
     onBookmarkedFilterChanged: (TriState) -> Unit,
     onSortModeChanged: (Long) -> Unit,
     onDisplayModeChanged: (Long) -> Unit,
+    // Chimahon -->
+    onLayoutChanged: (Long) -> Unit,
+    // Chimahon <--
     onSetAsDefault: (applyToExistingManga: Boolean) -> Unit,
     onResetToDefault: () -> Unit,
 ) {
@@ -99,6 +103,10 @@ fun ChapterSettingsDialog(
                     DisplayPage(
                         displayMode = manga?.displayMode ?: 0,
                         onItemSelected = onDisplayModeChanged,
+                        // Chimahon -->
+                        layout = manga?.chapterLayout ?: Manga.CHAPTER_LAYOUT_AUTO,
+                        onLayoutSelected = onLayoutChanged,
+                        // Chimahon <--
                     )
                 }
             }
@@ -153,7 +161,25 @@ private fun ColumnScope.SortPage(
 private fun ColumnScope.DisplayPage(
     displayMode: Long,
     onItemSelected: (Long) -> Unit,
+    // Chimahon -->
+    layout: Long,
+    onLayoutSelected: (Long) -> Unit,
+    // Chimahon <--
 ) {
+    // Chimahon -->
+    listOf(
+        MR.strings.label_auto to Manga.CHAPTER_LAYOUT_AUTO,
+        MR.strings.chapter_layout_grid to Manga.CHAPTER_LAYOUT_GRID,
+        MR.strings.action_display_list to Manga.CHAPTER_LAYOUT_LIST,
+    ).map { (titleRes, mode) ->
+        RadioItem(
+            label = stringResource(titleRes),
+            selected = layout == mode,
+            onClick = { onLayoutSelected(mode) },
+        )
+    }
+    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+    // Chimahon <--
     listOf(
         MR.strings.show_title to Manga.CHAPTER_DISPLAY_NAME,
         MR.strings.show_chapter_number to Manga.CHAPTER_DISPLAY_NUMBER,

@@ -44,6 +44,17 @@ class SetMangaChapterFlags(
         )
     }
 
+    // Chimahon -->
+    suspend fun awaitSetLayout(manga: Manga, flag: Long): Boolean {
+        return mangaRepository.update(
+            MangaUpdate(
+                id = manga.id,
+                chapterFlags = manga.chapterFlags.setFlag(flag, Manga.CHAPTER_LAYOUT_MASK),
+            ),
+        )
+    }
+    // Chimahon <--
+
     suspend fun awaitSetSortingModeOrFlipOrder(manga: Manga, flag: Long): Boolean {
         val newFlags = manga.chapterFlags.let {
             if (manga.sorting == flag) {

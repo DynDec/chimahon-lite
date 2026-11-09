@@ -26,6 +26,10 @@ fun ChapterHeader(
     missingChapterCount: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    // Chimahon -->
+    isVolumes: Boolean = false,
+    readCount: Int = 0,
+    // Chimahon <--
 ) {
     Row(
         // KMK <--
@@ -47,6 +51,10 @@ fun ChapterHeader(
             Text(
                 text = if (chapterCount == null) {
                     stringResource(MR.strings.chapters)
+                    // Chimahon -->
+                } else if (isVolumes) {
+                    pluralStringResource(MR.plurals.manga_num_volumes, count = chapterCount, chapterCount)
+                    // Chimahon <--
                 } else {
                     pluralStringResource(MR.plurals.manga_num_chapters, count = chapterCount, chapterCount)
                 },
@@ -54,6 +62,19 @@ fun ChapterHeader(
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
+            // Chimahon -->
+            if (isVolumes) {
+                if (readCount > 0 && chapterCount != null) {
+                    Text(
+                        text = stringResource(MR.strings.volumes_read, readCount, chapterCount),
+                        maxLines = 1,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = SECONDARY_ALPHA),
+                    )
+                }
+                return@Column
+            }
+            // Chimahon <--
             MissingChaptersWarning(missingChapterCount)
         }
     }

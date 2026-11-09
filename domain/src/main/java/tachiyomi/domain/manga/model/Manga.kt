@@ -93,6 +93,11 @@ data class Manga(
     val displayMode: Long
         get() = chapterFlags and CHAPTER_DISPLAY_MASK
 
+    // Chimahon -->
+    val chapterLayout: Long
+        get() = chapterFlags and CHAPTER_LAYOUT_MASK
+    // Chimahon <--
+
     val unreadFilterRaw: Long
         get() = chapterFlags and CHAPTER_UNREAD_MASK
 
@@ -151,6 +156,13 @@ data class Manga(
         const val CHAPTER_DISPLAY_NAME = 0x00000000L
         const val CHAPTER_DISPLAY_NUMBER = 0x00100000L
         const val CHAPTER_DISPLAY_MASK = 0x00100000L
+
+        // Chimahon -->
+        const val CHAPTER_LAYOUT_AUTO = 0x00000000L
+        const val CHAPTER_LAYOUT_GRID = 0x00200000L
+        const val CHAPTER_LAYOUT_LIST = 0x00400000L
+        const val CHAPTER_LAYOUT_MASK = 0x00600000L
+        // Chimahon <--
 
         fun create() = Manga(
             id = -1L,

@@ -47,6 +47,8 @@ import eu.kanade.tachiyomi.crash.CrashActivity
 import eu.kanade.tachiyomi.crash.GlobalExceptionHandler
 import eu.kanade.tachiyomi.data.coil.BufferedSourceFetcher
 import eu.kanade.tachiyomi.data.coil.MangaCoverFetcher
+import eu.kanade.tachiyomi.data.coil.ChapterCoverFetcher
+import eu.kanade.tachiyomi.data.coil.ChapterCoverKeyer
 import eu.kanade.tachiyomi.data.coil.MangaCoverKeyer
 import eu.kanade.tachiyomi.data.coil.MangaCoverMetadata
 import eu.kanade.tachiyomi.data.coil.MangaKeyer
@@ -253,6 +255,10 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 // Keyer
                 add(MangaCoverKeyer())
                 add(MangaKeyer())
+                // Chimahon -->
+                add(ChapterCoverKeyer())
+                add(ChapterCoverFetcher.Factory())
+                // Chimahon <--
                 // SY -->
                 add(PagePreviewKeyer())
                 add(PagePreviewFetcher.Factory(callFactoryLazy))
