@@ -25,9 +25,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,15 +36,20 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import eu.kanade.presentation.components.AdaptiveSheet
 import eu.kanade.tachiyomi.ui.reader.bookmark.PageBookmarkGroup
+import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import kotlinx.collections.immutable.ImmutableList
 import tachiyomi.domain.chapter.model.PageBookmark
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.TabText
 import tachiyomi.presentation.core.i18n.stringResource
+import tachiyomi.presentation.core.util.collectAsState
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import java.io.File
 
 /**
  * Sheet showing [content], with the page bookmarks in a second tab when [bookmarksTab] is given.
+ * It reopens on the tab that was last shown.
  */
 @Composable
 fun ReaderListSheet(
@@ -61,7 +64,8 @@ fun ReaderListSheet(
             return@AdaptiveSheet
         }
 
-        var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+        val selectedTabPreference = remember { Injekt.get<ReaderPreferences>().listSheetTab() }
+        val selectedTab by selectedTabPreference.collectAsState()
         Column {
             PrimaryTabRow(
                 selectedTabIndex = selectedTab,
@@ -71,7 +75,7 @@ fun ReaderListSheet(
                 listOf(title, stringResource(MR.strings.bookmarks)).forEachIndexed { index, tabTitle ->
                     Tab(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick = { selectedTabPreference.set(index) },
                         text = { TabText(text = tabTitle) },
                         unselectedContentColor = MaterialTheme.colorScheme.onSurface,
                     )

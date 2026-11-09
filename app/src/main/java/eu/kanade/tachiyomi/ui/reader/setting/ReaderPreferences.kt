@@ -114,6 +114,9 @@ class ReaderPreferences(
     // KMK <--
 
     // Chimahon -->
+    /** Tab last shown in the contents/chapter sheet: 0 for the list itself, 1 for bookmarks. */
+    fun listSheetTab() = preferenceStore.getInt(Preference.appStateKey("reader_list_sheet_tab"), 0)
+
     fun ocrOverlayEnabled() = preferenceStore.getBoolean("reader_ocr_overlay_enabled", false)
 
     fun ocrSource(mangaId: Long) = preferenceStore.getEnum(
