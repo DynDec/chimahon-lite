@@ -44,6 +44,7 @@ import mihon.domain.source.interactor.UpdateMangaFromRemote
 import mihon.domain.upcoming.interactor.GetUpcomingManga
 import tachiyomi.data.category.CategoryRepositoryImpl
 import tachiyomi.data.chapter.ChapterRepositoryImpl
+import tachiyomi.data.chapter.PageBookmarkRepositoryImpl
 import tachiyomi.data.history.HistoryRepositoryImpl
 import tachiyomi.data.history.SearchHistoryRepositoryImpl
 import tachiyomi.data.manga.MangaRepositoryImpl
@@ -72,6 +73,7 @@ import tachiyomi.domain.chapter.interactor.SetMangaDefaultChapterFlags
 import tachiyomi.domain.chapter.interactor.ShouldUpdateDbChapter
 import tachiyomi.domain.chapter.interactor.UpdateChapter
 import tachiyomi.domain.chapter.repository.ChapterRepository
+import tachiyomi.domain.chapter.repository.PageBookmarkRepository
 import tachiyomi.domain.history.interactor.ClearSearchHistory
 import tachiyomi.domain.history.interactor.DeleteSearchHistory
 import tachiyomi.domain.history.interactor.GetAllHistory
@@ -180,6 +182,9 @@ class DomainModule : InjektModule {
         addFactory { SyncChapterProgressWithTrack(get(), get(), get()) }
 
         addSingletonFactory<ChapterRepository> { ChapterRepositoryImpl(get()) }
+        // Chimahon -->
+        addSingletonFactory<PageBookmarkRepository> { PageBookmarkRepositoryImpl(get()) }
+        // Chimahon <--
         addFactory { GetChapter(get()) }
         addFactory { GetChaptersByMangaId(get()) }
         addFactory { GetBookmarkedChaptersByMangaId(get(), get(), get()) }

@@ -42,6 +42,8 @@ import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.source.online.MetadataSource
 import eu.kanade.tachiyomi.source.online.all.MergedSource
 import eu.kanade.tachiyomi.ui.dictionary.DictionaryPreferences
+import eu.kanade.tachiyomi.ui.reader.bookmark.PageBookmarkGroup
+import eu.kanade.tachiyomi.ui.reader.bookmark.PageBookmarkThumbnails
 import eu.kanade.tachiyomi.ui.reader.chapter.ReaderChapterItem
 import eu.kanade.tachiyomi.ui.reader.loader.ChapterLoader
 import eu.kanade.tachiyomi.ui.reader.loader.DownloadPageLoader
@@ -72,6 +74,7 @@ import exh.source.isEhBasedManga
 import exh.util.defaultReaderType
 import exh.util.mangaType
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
@@ -120,6 +123,8 @@ import tachiyomi.domain.chapter.interactor.GetMergedChaptersByMangaId
 import tachiyomi.domain.chapter.interactor.UpdateChapter
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.chapter.model.ChapterUpdate
+import tachiyomi.domain.chapter.model.PageBookmark
+import tachiyomi.domain.chapter.repository.PageBookmarkRepository
 import tachiyomi.domain.chapter.service.getChapterSort
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.history.interactor.GetNextChapters
@@ -183,6 +188,7 @@ class ReaderViewModel @JvmOverloads constructor(
     private val dictionaryPreferences: DictionaryPreferences = Injekt.get(),
     private val localFileSystem: tachiyomi.source.local.io.LocalSourceFileSystem = Injekt.get(),
     private val application: Application = Injekt.get(),
+    private val pageBookmarkRepository: PageBookmarkRepository = Injekt.get(),
     private val networkClient: okhttp3.OkHttpClient = Injekt.get<eu.kanade.tachiyomi.network.NetworkHelper>().client,
 ) : ViewModel() {
 
@@ -480,6 +486,13 @@ class ReaderViewModel @JvmOverloads constructor(
                             // SY <--
                         )
                     }
+                    // Chimahon -->
+                    pageBookmarkRepository.subscribeByMangaId(manga.id)
+                        .onEach { bookmarks ->
+                            mutableState.update { it.copy(pageBookmarks = bookmarks.toImmutableList()) }
+                        }
+                        .launchIn(viewModelScope)
+                    // Chimahon <--
                     if (chapterId == -1L) chapterId = initialChapterId
 
                     val context = Injekt.get<Application>()
@@ -577,7 +590,6 @@ class ReaderViewModel @JvmOverloads constructor(
                 chapterToDownload = cancelQueuedDownloads(newChapters.currChapter)
                 it.copy(
                     viewerChapters = newChapters,
-                    bookmarked = newChapters.currChapter.chapter.bookmark,
                 )
             }
         }
@@ -625,7 +637,7 @@ class ReaderViewModel @JvmOverloads constructor(
     /**
      * Called when the user is going to load the prev/next chapter through the toolbar buttons.
      */
-    private suspend fun loadAdjacent(chapter: ReaderChapter) {
+    private suspend fun loadAdjacent(chapter: ReaderChapter /* Chimahon --> */, page: Int? = null/* Chimahon <-- */) {
         val loader = loader ?: return
 
         logcat { "Loading adjacent ${chapter.chapter.url}" }
@@ -633,7 +645,7 @@ class ReaderViewModel @JvmOverloads constructor(
         mutableState.update { it.copy(isLoadingAdjacentChapter = true) }
         try {
             withIOContext {
-                loadChapter(loader, chapter)
+                loadChapter(loader, chapter /* Chimahon --> */, page/* Chimahon <-- */)
             }
         } catch (e: Throwable) {
             if (e is CancellationException) {
@@ -1032,29 +1044,77 @@ class ReaderViewModel @JvmOverloads constructor(
         }
     }
 
+    // Chimahon -->
+    private val pageBookmarkThumbnails by lazy { PageBookmarkThumbnails(application) }
+
     /**
-     * Bookmarks the currently active chapter.
+     * Bookmarks the page being read, or removes its bookmark.
      */
-    fun toggleChapterBookmark() {
-        val chapter = getCurrentChapter()?.chapter ?: return
-        val bookmarked = !chapter.bookmark
-        chapter.bookmark = bookmarked
+    fun togglePageBookmark() {
+        val readerChapter = getCurrentChapter() ?: return
+        val chapterId = readerChapter.chapter.id ?: return
+        val pageIndex = state.value.currentPage - 1
+        if (pageIndex < 0) return
+
+        val existing = state.value.pageBookmarks
+            .firstOrNull { it.chapterId == chapterId && it.pageIndex == pageIndex }
+        if (existing != null) {
+            removePageBookmark(existing)
+            return
+        }
 
         viewModelScope.launchNonCancellable {
-            updateChapter.await(
-                ChapterUpdate(
-                    id = chapter.id!!,
-                    bookmark = bookmarked,
-                ),
-            )
-        }
-
-        mutableState.update {
-            it.copy(
-                bookmarked = bookmarked,
-            )
+            // Saved first so the preview is there when the bookmark shows up in the list.
+            readerChapter.pages?.getOrNull(pageIndex)?.stream?.let {
+                pageBookmarkThumbnails.save(chapterId, pageIndex, it)
+            }
+            pageBookmarkRepository.insert(chapterId, pageIndex)
+            readerChapter.chapter.bookmark = true
         }
     }
+
+    fun removePageBookmark(bookmark: PageBookmark) {
+        val chapterStillBookmarked = state.value.pageBookmarks
+            .any { it.chapterId == bookmark.chapterId && it.pageIndex != bookmark.pageIndex }
+        viewModelScope.launchNonCancellable {
+            pageBookmarkRepository.delete(bookmark.chapterId, bookmark.pageIndex)
+            pageBookmarkThumbnails.delete(bookmark.chapterId, bookmark.pageIndex)
+            chapterList.find { it.chapter.id == bookmark.chapterId }?.chapter?.bookmark = chapterStillBookmarked
+        }
+    }
+
+    fun getPageBookmarkThumbnail(bookmark: PageBookmark): File {
+        return pageBookmarkThumbnails.file(bookmark.chapterId, bookmark.pageIndex)
+    }
+
+    /**
+     * Groups [bookmarks] by chapter, in reading order. Bookmarks of chapters hidden by the chapter
+     * filters are left out, as the reader can't open those chapters.
+     */
+    fun getPageBookmarkGroups(bookmarks: List<PageBookmark>): ImmutableList<PageBookmarkGroup> {
+        if (bookmarks.isEmpty()) return persistentListOf()
+        val bookmarksByChapterId = bookmarks.groupBy { it.chapterId }
+        return chapterList
+            .mapNotNull { readerChapter ->
+                val chapterId = readerChapter.chapter.id ?: return@mapNotNull null
+                val chapterBookmarks = bookmarksByChapterId[chapterId] ?: return@mapNotNull null
+                PageBookmarkGroup(chapterId, readerChapter.chapter.name, chapterBookmarks.toImmutableList())
+            }
+            .toImmutableList()
+    }
+
+    /**
+     * Makes the chapter of [bookmark] the active one, opened at the bookmarked page. Returns
+     * whether that chapter is now active.
+     */
+    suspend fun loadPageBookmarkChapter(bookmark: PageBookmark): Boolean {
+        if (getCurrentChapter()?.chapter?.id == bookmark.chapterId) return true
+        val chapter = chapterList.firstOrNull { it.chapter.id == bookmark.chapterId } ?: return false
+        chapter.requestedPage = bookmark.pageIndex
+        loadAdjacent(chapter, bookmark.pageIndex)
+        return getCurrentChapter() === chapter
+    }
+    // Chimahon <--
 
     // SY -->
     fun toggleBookmark(chapterId: Long, bookmarked: Boolean) {
@@ -2602,7 +2662,9 @@ class ReaderViewModel @JvmOverloads constructor(
     data class State(
         val manga: Manga? = null,
         val viewerChapters: ViewerChapters? = null,
-        val bookmarked: Boolean = false,
+        // Chimahon -->
+        val pageBookmarks: ImmutableList<PageBookmark> = persistentListOf(),
+        // Chimahon <--
         val isLoadingAdjacentChapter: Boolean = false,
         val currentPage: Int = -1,
 
@@ -2638,6 +2700,19 @@ class ReaderViewModel @JvmOverloads constructor(
 
         val totalPages: Int
             get() = currentChapter?.pages?.size ?: -1
+
+        // Chimahon -->
+        /** Bookmarked page indexes of the current chapter. */
+        val bookmarkedPages: List<Int>
+            get() {
+                val chapterId = currentChapter?.chapter?.id ?: return emptyList()
+                return pageBookmarks.filter { it.chapterId == chapterId }.map { it.pageIndex }
+            }
+
+        /** Whether the page being read is bookmarked. */
+        val bookmarked: Boolean
+            get() = (currentPage - 1) in bookmarkedPages
+        // Chimahon <--
     }
 
     sealed interface Dialog {

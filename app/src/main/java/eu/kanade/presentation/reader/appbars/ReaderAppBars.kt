@@ -33,7 +33,9 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.R2LPagerViewer
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.presentation.core.components.material.padding
 
 private val readerBarsSlideAnimationSpec = tween<IntOffset>(200)
@@ -111,6 +113,7 @@ fun ReaderAppBars(
     mokuroAvailable: Boolean = false,
     onToggleOcr: (() -> Unit)? = null,
     onSelectOcrSource: (ReaderOcrSource) -> Unit = {},
+    bookmarkedPages: ImmutableList<Int> = persistentListOf(),
     // Chimahon <--
 ) {
     val isRtl = viewer is R2LPagerViewer
@@ -200,6 +203,9 @@ fun ReaderAppBars(
                         currentPage = currentPage,
                         totalPages = totalPages,
                         onPageIndexChange = onPageIndexChange,
+                        // Chimahon -->
+                        bookmarkedPages = bookmarkedPages,
+                        // Chimahon <--
                         // SY -->
                         isVerticalSlider = true,
                         currentPageText = currentPageText,
@@ -234,6 +240,9 @@ fun ReaderAppBars(
                         currentPage = currentPage,
                         totalPages = totalPages,
                         onPageIndexChange = onPageIndexChange,
+                        // Chimahon -->
+                        bookmarkedPages = bookmarkedPages,
+                        // Chimahon <--
                         // SY -->
                         isVerticalSlider = true,
                         currentPageText = currentPageText,
@@ -265,6 +274,9 @@ fun ReaderAppBars(
                         currentPage = currentPage,
                         totalPages = totalPages,
                         onPageIndexChange = onPageIndexChange,
+                        // Chimahon -->
+                        bookmarkedPages = bookmarkedPages,
+                        // Chimahon <--
                         // SY -->
                         isVerticalSlider = false,
                         currentPageText = currentPageText,

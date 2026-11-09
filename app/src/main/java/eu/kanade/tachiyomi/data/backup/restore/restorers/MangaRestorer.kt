@@ -204,7 +204,28 @@ class MangaRestorer(
 
         insertNewChapters(newChapters)
         updateExistingChapters(existingChapters)
+        // Chimahon -->
+        restorePageBookmarks(manga, backupChapters)
+        // Chimahon <--
     }
+
+    // Chimahon -->
+    private suspend fun restorePageBookmarks(manga: Manga, backupChapters: List<BackupChapter>) {
+        val bookmarkedChapters = backupChapters.filter { it.pageBookmarks.isNotEmpty() }
+        if (bookmarkedChapters.isEmpty()) return
+
+        val chapterIdsByUrl = getChaptersByMangaId.await(manga.id).associate { it.url to it.id }
+        val now = System.currentTimeMillis()
+        handler.await(true) {
+            bookmarkedChapters.forEach { backupChapter ->
+                val chapterId = chapterIdsByUrl[backupChapter.url] ?: return@forEach
+                backupChapter.pageBookmarks.forEach { pageIndex ->
+                    page_bookmarksQueries.insert(chapterId, pageIndex.toLong(), now)
+                }
+            }
+        }
+    }
+    // Chimahon <--
 
     private fun updateChapterBasedOnSyncState(chapter: Chapter, dbChapter: Chapter): Chapter {
         return if (isSync) {

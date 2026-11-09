@@ -26,6 +26,9 @@ class BackupChapter(
     @ProtoNumber(11) var lastModifiedAt: Long = 0,
     @ProtoNumber(12) var version: Long = 0,
     @ProtoNumber(13) var memo: ByteArray = JsonObjectEmptyBytes,
+    // Chimahon -->
+    @ProtoNumber(800) var pageBookmarks: List<Int> = emptyList(),
+    // Chimahon <--
 ) {
     fun toChapterImpl(): Chapter {
         return Chapter.create().copy(

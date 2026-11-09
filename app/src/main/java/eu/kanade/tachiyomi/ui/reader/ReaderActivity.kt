@@ -95,6 +95,7 @@ import eu.kanade.domain.manga.model.readingMode
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.reader.ChapterListDialog
 import eu.kanade.presentation.reader.ContentsDialog
+import eu.kanade.presentation.reader.PageBookmarkList
 import eu.kanade.presentation.reader.DisplayRefreshHost
 import eu.kanade.presentation.reader.OrientationSelectDialog
 import eu.kanade.presentation.reader.ReaderContentOverlay
@@ -181,6 +182,7 @@ import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.UrlUtils
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.chapter.model.PageBookmark
 import tachiyomi.domain.manga.model.MangaCover
 import tachiyomi.domain.manga.model.asMangaCover
 import tachiyomi.domain.source.service.SourceManager
@@ -649,6 +651,9 @@ class ReaderActivity : BaseActivity() {
                     var chapters by remember {
                         mutableStateOf(viewModel.getChapters().toImmutableList())
                     }
+                    // Chimahon -->
+                    val bookmarksTab = pageBookmarksTab(state, onDismissRequest)
+                    // Chimahon <--
                     ChapterListDialog(
                         onDismissRequest = onDismissRequest,
                         screenModel = settingsScreenModel,
@@ -668,6 +673,9 @@ class ReaderActivity : BaseActivity() {
                             }.toImmutableList()
                         },
                         state.dateRelativeTime,
+                        // Chimahon -->
+                        bookmarksTab = bookmarksTab,
+                        // Chimahon <--
                     )
                 }
 
@@ -682,6 +690,7 @@ class ReaderActivity : BaseActivity() {
                             moveToPageIndex(entry.pageIndex)
                             onDismissRequest()
                         },
+                        bookmarksTab = pageBookmarksTab(state, onDismissRequest),
                     )
                 }
                 // Chimahon <--
@@ -1421,6 +1430,39 @@ class ReaderActivity : BaseActivity() {
         }
     }
 
+    // Chimahon -->
+    /** The bookmarks tab of the contents and chapter sheets, or null while nothing is bookmarked. */
+    @Composable
+    private fun pageBookmarksTab(
+        state: ReaderViewModel.State,
+        onDismissRequest: () -> Unit,
+    ): (@Composable () -> Unit)? {
+        val groups = remember(state.pageBookmarks) { viewModel.getPageBookmarkGroups(state.pageBookmarks) }
+        if (groups.isEmpty()) return null
+        return {
+            PageBookmarkList(
+                groups = groups,
+                currentChapterId = state.currentChapter?.chapter?.id,
+                currentPageIndex = state.currentPage - 1,
+                thumbnail = viewModel::getPageBookmarkThumbnail,
+                onClickBookmark = {
+                    openPageBookmark(it)
+                    onDismissRequest()
+                },
+                onRemoveBookmark = viewModel::removePageBookmark,
+            )
+        }
+    }
+
+    private fun openPageBookmark(bookmark: PageBookmark) {
+        lifecycleScope.launch {
+            if (viewModel.loadPageBookmarkChapter(bookmark)) {
+                moveToPageIndex(bookmark.pageIndex)
+            }
+        }
+    }
+    // Chimahon <--
+
     @Composable
     fun AppBars(state: ReaderViewModel.State) {
         if (!ifSourcesLoaded()) {
@@ -1476,7 +1518,12 @@ class ReaderActivity : BaseActivity() {
             navigateUp = onBackPressedDispatcher::onBackPressed,
             onClickTopAppBar = ::openMangaScreen,
             bookmarked = state.bookmarked,
-            onToggleBookmarked = viewModel::toggleChapterBookmark,
+            // Chimahon -->
+            onToggleBookmarked = viewModel::togglePageBookmark,
+            bookmarkedPages = remember(state.pageBookmarks, state.currentChapter) {
+                state.bookmarkedPages.toImmutableList()
+            },
+            // Chimahon <--
             onOpenInWebView = ::openChapterInWebView.takeIf { isHttpSource },
             onOpenInBrowser = ::openChapterInBrowser.takeIf { isHttpSource },
             onShare = ::shareChapter.takeIf { isHttpSource },

@@ -11,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import eu.kanade.presentation.components.AdaptiveSheet
 import eu.kanade.presentation.manga.components.MangaChapterListItem
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.ui.reader.chapter.ReaderChapterItem
@@ -22,6 +21,8 @@ import exh.source.isEhBasedManga
 import kotlinx.collections.immutable.ImmutableList
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.library.service.LibraryPreferences
+import tachiyomi.i18n.MR
+import tachiyomi.presentation.core.i18n.stringResource
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -35,14 +36,21 @@ fun ChapterListDialog(
     onClickChapter: (Chapter) -> Unit,
     onBookmark: (Chapter) -> Unit,
     dateRelativeTime: Boolean,
+    // Chimahon -->
+    bookmarksTab: (@Composable () -> Unit)? = null,
+    // Chimahon <--
 ) {
     val manga by screenModel.mangaFlow.collectAsState()
     val context = LocalContext.current
     val state = rememberLazyListState(chapters.indexOfFirst { it.isCurrent }.coerceAtLeast(0))
 
-    AdaptiveSheet(
+    // Chimahon -->
+    ReaderListSheet(
         onDismissRequest = onDismissRequest,
+        title = stringResource(MR.strings.chapters),
+        bookmarksTab = bookmarksTab,
     ) {
+        // Chimahon <--
         LazyColumn(
             state = state,
             modifier = Modifier.heightIn(min = 200.dp, max = 500.dp),

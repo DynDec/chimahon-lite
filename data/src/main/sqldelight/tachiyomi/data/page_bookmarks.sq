@@ -1,0 +1,48 @@
+CREATE TABLE page_bookmarks(
+    chapter_id INTEGER NOT NULL,
+    page_index INTEGER NOT NULL,
+    date_added INTEGER NOT NULL,
+    PRIMARY KEY (chapter_id, page_index),
+    FOREIGN KEY(chapter_id) REFERENCES chapters (_id)
+    ON DELETE CASCADE
+);
+
+-- A chapter counts as bookmarked while it has at least one bookmarked page.
+CREATE TRIGGER page_bookmarks_flag_chapter
+AFTER INSERT ON page_bookmarks
+BEGIN
+    UPDATE chapters
+    SET bookmark = 1
+    WHERE _id = new.chapter_id AND bookmark = 0;
+END;
+
+CREATE TRIGGER page_bookmarks_unflag_chapter
+AFTER DELETE ON page_bookmarks
+BEGIN
+    UPDATE chapters
+    SET bookmark = 0
+    WHERE _id = old.chapter_id AND bookmark = 1
+    AND NOT EXISTS (SELECT 1 FROM page_bookmarks WHERE chapter_id = old.chapter_id);
+END;
+
+getByMangaId:
+SELECT PB.chapter_id, PB.page_index, PB.date_added
+FROM page_bookmarks PB
+JOIN chapters C ON C._id = PB.chapter_id
+WHERE C.manga_id = :mangaId
+ORDER BY PB.chapter_id, PB.page_index;
+
+getWithChapterUrlByMangaId:
+SELECT C.url, PB.page_index
+FROM page_bookmarks PB
+JOIN chapters C ON C._id = PB.chapter_id
+WHERE C.manga_id = :mangaId
+ORDER BY PB.page_index;
+
+insert:
+INSERT OR IGNORE INTO page_bookmarks(chapter_id, page_index, date_added)
+VALUES (:chapterId, :pageIndex, :dateAdded);
+
+delete:
+DELETE FROM page_bookmarks
+WHERE chapter_id = :chapterId AND page_index = :pageIndex;

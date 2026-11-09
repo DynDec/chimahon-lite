@@ -18,9 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import eu.kanade.presentation.components.AdaptiveSheet
 import kotlinx.collections.immutable.ImmutableList
 import mihon.core.archive.TocEntry
+import tachiyomi.i18n.MR
+import tachiyomi.presentation.core.i18n.stringResource
 
 /**
  * Lists the current volume's own table of contents. The entry containing [currentPageIndex] is
@@ -32,12 +33,15 @@ fun ContentsDialog(
     entries: ImmutableList<TocEntry>,
     currentPageIndex: Int,
     onClickEntry: (TocEntry) -> Unit,
+    bookmarksTab: (@Composable () -> Unit)? = null,
 ) {
     val currentEntryIndex = entries.indexOfLast { it.pageIndex <= currentPageIndex }
     val state = rememberLazyListState(currentEntryIndex.coerceAtLeast(0))
 
-    AdaptiveSheet(
+    ReaderListSheet(
         onDismissRequest = onDismissRequest,
+        title = stringResource(MR.strings.contents),
+        bookmarksTab = bookmarksTab,
     ) {
         LazyColumn(
             state = state,

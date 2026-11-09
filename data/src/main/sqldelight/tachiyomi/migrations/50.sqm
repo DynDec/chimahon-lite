@@ -1,0 +1,25 @@
+CREATE TABLE page_bookmarks(
+    chapter_id INTEGER NOT NULL,
+    page_index INTEGER NOT NULL,
+    date_added INTEGER NOT NULL,
+    PRIMARY KEY (chapter_id, page_index),
+    FOREIGN KEY(chapter_id) REFERENCES chapters (_id)
+    ON DELETE CASCADE
+);
+
+CREATE TRIGGER page_bookmarks_flag_chapter
+AFTER INSERT ON page_bookmarks
+BEGIN
+    UPDATE chapters
+    SET bookmark = 1
+    WHERE _id = new.chapter_id AND bookmark = 0;
+END;
+
+CREATE TRIGGER page_bookmarks_unflag_chapter
+AFTER DELETE ON page_bookmarks
+BEGIN
+    UPDATE chapters
+    SET bookmark = 0
+    WHERE _id = old.chapter_id AND bookmark = 1
+    AND NOT EXISTS (SELECT 1 FROM page_bookmarks WHERE chapter_id = old.chapter_id);
+END;

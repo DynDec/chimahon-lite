@@ -31,7 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -45,6 +47,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.presentation.util.isTabletUi
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.Slider
 import tachiyomi.presentation.core.i18n.stringResource
@@ -63,6 +67,9 @@ fun ChapterNavigator(
     // SY <--
     totalPages: Int,
     onPageIndexChange: (Int) -> Unit,
+    // Chimahon -->
+    bookmarkedPages: ImmutableList<Int> = persistentListOf(),
+    // Chimahon <--
 ) {
     // SY -->
     if (isVerticalSlider) {
@@ -75,6 +82,9 @@ fun ChapterNavigator(
             currentPageText = currentPageText,
             totalPages = totalPages,
             onPageIndexChange = onPageIndexChange,
+            // Chimahon -->
+            bookmarkedPages = bookmarkedPages,
+            // Chimahon <--
         )
         return
     }
@@ -96,6 +106,9 @@ fun ChapterNavigator(
         // KMK <--
     )
     val textColor = MaterialTheme.colorScheme.onSurface
+    // Chimahon -->
+    val bookmarkColor = MaterialTheme.colorScheme.primary
+    // Chimahon <--
 
     // We explicitly handle direction based on the reader viewer rather than the system direction
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -151,7 +164,10 @@ fun ChapterNavigator(
                         Slider(
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(horizontal = 8.dp),
+                                .padding(horizontal = 8.dp)
+                                // Chimahon -->
+                                .bookmarkMarks(bookmarkedPages, totalPages, bookmarkColor),
+                            // Chimahon <--
                             value = currentPage,
                             valueRange = 1..totalPages,
                             onValueChange = f@{
@@ -201,6 +217,9 @@ fun ChapterNavigatorVert(
     // SY <--
     totalPages: Int,
     onPageIndexChange: (Int) -> Unit,
+    // Chimahon -->
+    bookmarkedPages: ImmutableList<Int> = persistentListOf(),
+    // Chimahon <--
 ) {
     val isTabletUi = isTabletUi()
     val verticalPadding = if (isTabletUi) 24.dp else 8.dp
@@ -225,6 +244,9 @@ fun ChapterNavigatorVert(
             // KMK <--
         )
         val textColor = MaterialTheme.colorScheme.onSurface
+        // Chimahon -->
+        val bookmarkColor = MaterialTheme.colorScheme.primary
+        // Chimahon <--
 
         FilledIconButton(
             enabled = enabledPrevious,
@@ -283,7 +305,10 @@ fun ChapterNavigatorVert(
                                 placeable.place(0, -placeable.height)
                             }
                         }
-                        .weight(1f),
+                        .weight(1f)
+                        // Chimahon -->
+                        .bookmarkMarks(bookmarkedPages, totalPages, bookmarkColor),
+                    // Chimahon <--
                     value = currentPage,
                     valueRange = 1..totalPages,
                     onValueChange = f@{
@@ -317,6 +342,32 @@ fun ChapterNavigatorVert(
         }
     }
 }
+
+// Chimahon -->
+/**
+ * Draws a dot beside the slider track at each bookmarked page. Positions follow the Material 3
+ * slider, whose thumb centre travels the slider's width less half a thumb at either end.
+ */
+private fun Modifier.bookmarkMarks(pages: ImmutableList<Int>, totalPages: Int, color: Color): Modifier {
+    if (pages.isEmpty() || totalPages < 2) return this
+    return drawWithContent {
+        drawContent()
+        val inset = SliderThumbWidth.toPx() / 2
+        val trackWidth = size.width - inset * 2
+        pages.forEach { pageIndex ->
+            val fraction = (pageIndex.toFloat() / (totalPages - 1)).coerceIn(0f, 1f)
+            val directed = if (layoutDirection == LayoutDirection.Rtl) 1f - fraction else fraction
+            drawCircle(
+                color = color,
+                radius = 2.5.dp.toPx(),
+                center = Offset(inset + trackWidth * directed, center.y - 15.dp.toPx()),
+            )
+        }
+    }
+}
+
+private val SliderThumbWidth = 4.dp
+// Chimahon <--
 
 @Preview
 @Composable

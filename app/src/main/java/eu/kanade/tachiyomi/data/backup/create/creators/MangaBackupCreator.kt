@@ -86,6 +86,14 @@ class MangaBackupCreator(
                 )
             }
                 .takeUnless(List<BackupChapter>::isEmpty)
+                // Chimahon -->
+                ?.also { chapters ->
+                    val pagesByChapterUrl = handler.awaitList {
+                        page_bookmarksQueries.getWithChapterUrlByMangaId(manga.id)
+                    }.groupBy({ it.url }, { it.page_index.toInt() })
+                    chapters.forEach { it.pageBookmarks = pagesByChapterUrl[it.url].orEmpty() }
+                }
+                // Chimahon <--
                 ?.let { mangaObject.chapters = it }
         }
 
