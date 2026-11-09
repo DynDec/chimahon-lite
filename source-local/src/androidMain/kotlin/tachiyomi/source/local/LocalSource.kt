@@ -99,20 +99,13 @@ class LocalSource(
         // SY <--
         val hideAppManagedDirectories = fileSystem.usesDefaultBaseDirectory()
 
-        // Each manga folder is listed once and reused for the chapter check, cover and search metadata.
-        var mangaEntries = fileSystem.getFilesInBaseDirectory()
-            .filter { entry ->
-                isVisible(entry, allowLocalSourceHiddenFolders) &&
-                    (!hideAppManagedDirectories || !isReservedDefaultDirectory(entry))
-            }
-            .map { entry -> ListedEntry(entry, if (entry.isDirectory) entry.listFiles().orEmpty().toList() else null) }
-            // Chimahon -->
-            .flatMap { expandCollection(it, allowLocalSourceHiddenFolders) }
+        // Chimahon -->
+        var mangaEntries = listMangaEntries(
+            fileSystem.getFilesInBaseDirectory(),
+            allowLocalSourceHiddenFolders,
+            hideAppManagedDirectories,
+        )
             // Chimahon <--
-            .filter { (entry, children) ->
-                children?.any { isVisible(it, allowLocalSourceHiddenFolders) && isSupportedChapter(it) }
-                    ?: isSupportedChapter(entry)
-            }
             .filter { (entry) -> lastModifiedLimit == 0L || entry.lastModified() >= lastModifiedLimit }
 
         filters.forEach { filter ->
@@ -141,12 +134,9 @@ class LocalSource(
         val mangas = mangaEntries.map { (mangaEntry, children) ->
             async {
                 val filenameTitle = mangaEntry.localTitle()
-                val manga = SManga.create().apply {
-                    title = filenameTitle
-                    // Preserve the URI identity across folder changes and metadata title edits.
-                    url = mangaEntry.uri.toString()
-                    children?.let(coverManager::findIn)?.let { thumbnail_url = it.uri.toString() }
-                }
+                // Chimahon -->
+                val manga = toSManga(mangaEntry, children)
+                // Chimahon <--
                 if (query.isNotBlank() && lastModifiedLimit == 0L) {
                     if (!filenameTitle.contains(query.trim(), ignoreCase = true)) {
                         metadataReads.withPermit { readSearchMetadata(mangaEntry, children, manga) }
@@ -218,6 +208,37 @@ class LocalSource(
     private data class ListedEntry(val file: UniFile, val children: List<UniFile>?)
 
     // Chimahon -->
+    /** The manga in [directory], listed the way the manga folder is listed. */
+    suspend fun getMangaIn(directory: UniFile): List<SManga> = withIOContext {
+        listMangaEntries(fileSystem.getFilesIn(directory), allowHiddenFiles(), hideAppManagedDirectories = false)
+            .map { (entry, children) -> toSManga(entry, children) }
+    }
+
+    /** Each manga folder is listed once and reused for the chapter check, cover and search metadata. */
+    private fun listMangaEntries(
+        files: List<UniFile>,
+        allowHiddenFiles: Boolean,
+        hideAppManagedDirectories: Boolean,
+    ): List<ListedEntry> {
+        return files
+            .filter { entry ->
+                isVisible(entry, allowHiddenFiles) &&
+                    (!hideAppManagedDirectories || !isReservedDefaultDirectory(entry))
+            }
+            .map { entry -> ListedEntry(entry, if (entry.isDirectory) entry.listFiles().orEmpty().toList() else null) }
+            .flatMap { expandCollection(it, allowHiddenFiles) }
+            .filter { (entry, children) ->
+                children?.any { isVisible(it, allowHiddenFiles) && isSupportedChapter(it) } ?: isSupportedChapter(entry)
+            }
+    }
+
+    private fun toSManga(entry: UniFile, children: List<UniFile>?) = SManga.create().apply {
+        title = entry.localTitle()
+        // Preserve the URI identity across folder changes and metadata title edits.
+        url = entry.uri.toString()
+        children?.let(coverManager::findIn)?.let { thumbnail_url = it.uri.toString() }
+    }
+
     /** Collection layouts by folder URI and modification time, so browsing does not list a chapter of each series. */
     private val collectionLayoutCache = object : LinkedHashMap<String, Boolean>(64, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>) = size > 1024
@@ -270,9 +291,11 @@ class LocalSource(
 
     fun getFolderLayout(mangaUrl: String): FolderLayout? {
         val allowHidden = allowHiddenFiles()
-        val folder = fileSystem.getFilesInBaseDirectory()
-            .filter { it.isDirectory && isVisible(it, allowHidden) }
-            .let { folders ->
+        val folder = fileSystem.getLibraryDirectories().asSequence()
+            .map { directory ->
+                fileSystem.getFilesIn(directory).filter { it.isDirectory && isVisible(it, allowHidden) }
+            }
+            .firstNotNullOfOrNull { folders ->
                 folders.firstOrNull { it.uri.toString() == mangaUrl }
                     ?: folders.firstOrNull { LocalFolderLayout.isChildUri(mangaUrl, it.uri.toString()) }
             }

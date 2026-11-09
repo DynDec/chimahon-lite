@@ -4,6 +4,7 @@ import android.app.Application
 import com.hippo.unifile.ListedDocumentFile
 import com.hippo.unifile.UniFile
 import tachiyomi.domain.storage.service.StorageManager
+import tachiyomi.domain.storage.service.StoragePreferences
 import uy.kohesive.injekt.injectLazy
 
 actual class LocalSourceFileSystem(
@@ -12,6 +13,7 @@ actual class LocalSourceFileSystem(
 
     // Chimahon -->
     private val context: Application by injectLazy()
+    private val storagePreferences: StoragePreferences by injectLazy()
     // Chimahon <--
 
     actual fun getBaseDirectory(): UniFile? {
@@ -21,8 +23,20 @@ actual class LocalSourceFileSystem(
     actual fun getFilesInBaseDirectory(): List<UniFile> {
         val baseDirectory = getBaseDirectory() ?: return emptyList()
         // Chimahon -->
+        return getFilesIn(baseDirectory)
+    }
+
+    actual fun getFilesIn(directory: UniFile): List<UniFile> {
         // Listed documents keep their type and modification time, and list their own folders the same way.
-        return (ListedDocumentFile.listFiles(context, baseDirectory) ?: baseDirectory.listFiles()).orEmpty().toList()
+        return (ListedDocumentFile.listFiles(context, directory) ?: directory.listFiles()).orEmpty().toList()
+    }
+
+    /** The manga folder, then the other library folders that can be read. */
+    actual fun getLibraryDirectories(): List<UniFile> {
+        val libraryFolders = storagePreferences.libraryFolders().get().mapNotNull { folder ->
+            storageManager.getFileFromUri(folder.uri)?.takeIf { it.isDirectory && it.canRead() }
+        }
+        return listOfNotNull(getBaseDirectory()) + libraryFolders
         // Chimahon <--
     }
 

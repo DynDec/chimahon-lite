@@ -26,5 +26,28 @@ class StoragePreferences(
     // Local folder URLs the library sync took out because they stopped being listed, to add back when they return.
     fun localLibraryMissingFolders() =
         preferenceStore.getStringSet(Preference.appStateKey("local_library_missing"), emptySet())
+
+    // The category the library sync adds manga from the manga folder to; 0 adds them to no category.
+    fun mangaDirectoryCategory() = preferenceStore.getLong(Preference.appStateKey("manga_dir_category"), 0L)
+
+    // Folders besides the manga folder whose manga the library sync adds.
+    fun libraryFolders() = preferenceStore.getObjectFromString(
+        key = Preference.appStateKey("library_folders"),
+        defaultValue = emptyList(),
+        serializer = { folders -> folders.joinToString("\n") { "${it.categoryId}\t${it.uri}" } },
+        deserializer = { value ->
+            value.lineSequence()
+                .mapNotNull { line ->
+                    val categoryId = line.substringBefore('\t').toLongOrNull() ?: return@mapNotNull null
+                    LibraryFolder(uri = line.substringAfter('\t'), categoryId = categoryId)
+                }
+                .toList()
+        },
+    )
     // Chimahon <--
 }
+
+// Chimahon -->
+/** A folder whose manga the library sync adds to the category [categoryId], or to no category when it is 0. */
+data class LibraryFolder(val uri: String, val categoryId: Long = 0L)
+// Chimahon <--

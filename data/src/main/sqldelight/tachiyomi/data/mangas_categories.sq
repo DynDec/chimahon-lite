@@ -22,6 +22,11 @@ insert:
 INSERT INTO mangas_categories(manga_id, category_id)
 VALUES (:mangaId, :categoryId);
 
+insertIfUncategorized:
+INSERT INTO mangas_categories(manga_id, category_id)
+SELECT :mangaId, :categoryId
+WHERE NOT EXISTS (SELECT 1 FROM mangas_categories WHERE manga_id = :mangaId);
+
 deleteMangaCategoryByMangaId:
 DELETE FROM mangas_categories
 WHERE manga_id = :mangaId;

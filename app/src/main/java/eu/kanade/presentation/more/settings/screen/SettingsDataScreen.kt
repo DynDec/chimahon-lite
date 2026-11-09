@@ -81,6 +81,7 @@ import eu.kanade.tachiyomi.data.sync.SyncDataJob
 import eu.kanade.tachiyomi.data.sync.SyncManager
 import eu.kanade.tachiyomi.data.sync.service.GoogleDriveService
 import eu.kanade.tachiyomi.data.sync.service.GoogleDriveSyncService
+import eu.kanade.tachiyomi.ui.library.folders.LibraryFoldersScreen
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.util.system.DeviceUtil
 import eu.kanade.tachiyomi.util.system.setDefaultSettings
@@ -152,6 +153,9 @@ object SettingsDataScreen : SearchableSettings {
             Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.pref_storage_location_info)),
             getMangaLocationPref(storagePreferences = storagePreferences),
             Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.pref_manga_directory_info)),
+            // Chimahon -->
+            getLibraryFoldersPref(),
+            // Chimahon <--
 
             getBackupAndRestoreGroup(backupPreferences = backupPreferences),
             getDataGroup(storageRefresh),
@@ -282,6 +286,17 @@ object SettingsDataScreen : SearchableSettings {
             },
         )
     }
+
+    // Chimahon -->
+    @Composable
+    private fun getLibraryFoldersPref(): Preference.PreferenceItem.TextPreference {
+        val navigator = LocalNavigator.currentOrThrow
+        return Preference.PreferenceItem.TextPreference(
+            title = stringResource(MR.strings.library_folders),
+            onClick = { navigator.push(LibraryFoldersScreen()) },
+        )
+    }
+    // Chimahon <--
 
     @Composable
     private fun getBackupAndRestoreGroup(backupPreferences: BackupPreferences): Preference.PreferenceGroup {

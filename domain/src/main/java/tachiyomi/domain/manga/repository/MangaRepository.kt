@@ -34,6 +34,11 @@ interface MangaRepository {
 
     suspend fun setMangaCategories(mangaId: Long, categoryIds: List<Long>)
 
+    // Chimahon -->
+    /** Adds each manga to its category in [categoryIdByMangaId], unless it is already in a category. */
+    suspend fun addUncategorizedToCategories(categoryIdByMangaId: Map<Long, Long>)
+    // Chimahon <--
+
     suspend fun update(update: MangaUpdate): Boolean
 
     suspend fun updateAll(mangaUpdates: List<MangaUpdate>): Boolean

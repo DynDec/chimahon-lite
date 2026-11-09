@@ -125,7 +125,14 @@ data object LibraryTab : Tab {
                             } else {
                                 context.stringResource(MR.strings.local_library_synced, result.added, result.removed)
                             }
-                            scope.launch { snackbarHostState.showSnackbar(message) }
+                            scope.launch {
+                                snackbarHostState.showSnackbar(message)
+                                if (result.unreadable > 0) {
+                                    snackbarHostState.showSnackbar(
+                                        context.stringResource(MR.strings.local_library_folders_unreadable),
+                                    )
+                                }
+                            }
                         }
                         if (result == null) {
                             snackbarHostState.showSnackbar(context.stringResource(MR.strings.local_library_unavailable))

@@ -1817,4 +1817,9 @@
     <string name="local_library_up_to_date">Library is up to date</string>
     <string name="local_library_unavailable">The manga folder cannot be read. Check folder access in Data and storage settings.</string>
     <string name="local_library_sync_failed">Could not update the library from the manga folder.</string>
+    <string name="local_library_folders_unreadable">Some library folders cannot be read</string>
+    <string name="library_folders">Library folders</string>
+    <string name="library_folders_add">Add folder</string>
+    <string name="library_folder_exists">This folder is already a library folder</string>
+    <string name="library_folder_unreadable">Cannot be read</string>
 </resources>

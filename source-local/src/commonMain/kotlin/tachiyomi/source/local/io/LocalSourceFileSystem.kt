@@ -8,6 +8,12 @@ expect class LocalSourceFileSystem {
 
     fun getFilesInBaseDirectory(): List<UniFile>
 
+    // Chimahon -->
+    fun getFilesIn(directory: UniFile): List<UniFile>
+
+    fun getLibraryDirectories(): List<UniFile>
+    // Chimahon <--
+
     fun getMangaEntry(url: String): UniFile?
 
     fun getMangaDirectory(name: String): UniFile?

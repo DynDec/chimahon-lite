@@ -28,6 +28,7 @@ import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.connections.discord.DiscordScreen
 import eu.kanade.tachiyomi.ui.category.CategoryScreen
 import eu.kanade.tachiyomi.ui.history.HistoryTab
+import eu.kanade.tachiyomi.ui.library.folders.LibraryFoldersScreen
 import eu.kanade.tachiyomi.ui.ocr.OcrQueueScreen
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import tachiyomi.core.common.util.lang.launchIO
@@ -71,6 +72,9 @@ data object MoreTab : Tab {
             // SY <--
             onClickOcrQueue = { navigator.push(OcrQueueScreen) },
             onClickCategories = { navigator.push(CategoryScreen()) },
+            // Chimahon -->
+            onClickLibraryFolders = { navigator.push(LibraryFoldersScreen()) },
+            // Chimahon <--
             onClickDataAndStorage = { navigator.push(SettingsScreen(SettingsScreen.Destination.DataAndStorage)) },
             onClickSettings = { navigator.push(SettingsScreen()) },
             onClickAbout = { navigator.push(SettingsScreen(SettingsScreen.Destination.About)) },

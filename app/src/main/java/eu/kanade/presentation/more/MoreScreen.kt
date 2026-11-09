@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.DocumentScanner
+import androidx.compose.material.icons.outlined.FolderCopy
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Public
@@ -36,6 +37,9 @@ fun MoreScreen(
     // SY <--
     onClickOcrQueue: () -> Unit,
     onClickCategories: () -> Unit,
+    // Chimahon -->
+    onClickLibraryFolders: () -> Unit,
+    // Chimahon <--
     onClickDataAndStorage: () -> Unit,
     onClickSettings: () -> Unit,
     onClickAbout: () -> Unit,
@@ -84,6 +88,15 @@ fun MoreScreen(
                     onPreferenceClick = onClickCategories,
                 )
             }
+            // Chimahon -->
+            item {
+                TextPreferenceWidget(
+                    title = stringResource(MR.strings.library_folders),
+                    icon = Icons.Outlined.FolderCopy,
+                    onPreferenceClick = onClickLibraryFolders,
+                )
+            }
+            // Chimahon <--
             item {
                 TextPreferenceWidget(
                     title = stringResource(MR.strings.label_data_storage),

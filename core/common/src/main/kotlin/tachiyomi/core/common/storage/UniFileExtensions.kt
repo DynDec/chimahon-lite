@@ -23,6 +23,9 @@ fun areSameFileUris(first: String, second: String): Boolean {
     return key == documentKey(second)
 }
 
+/** Equal for URIs that [areSameFileUris] matches, so they can be looked up in a map. */
+fun fileUriKey(url: String): String = documentKey(url) ?: url
+
 /** Whether [child] names a file below [folder], for both tree documents and plain file URIs. */
 fun isFileUriInside(child: String, folder: String): Boolean {
     val childKey = documentKey(child) ?: fileKey(child) ?: return false

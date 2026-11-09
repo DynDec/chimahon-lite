@@ -99,6 +99,17 @@ class MangaRepositoryImpl(
         }
     }
 
+    // Chimahon -->
+    override suspend fun addUncategorizedToCategories(categoryIdByMangaId: Map<Long, Long>) {
+        if (categoryIdByMangaId.isEmpty()) return
+        handler.await(inTransaction = true) {
+            categoryIdByMangaId.forEach { (mangaId, categoryId) ->
+                mangas_categoriesQueries.insertIfUncategorized(mangaId, categoryId)
+            }
+        }
+    }
+    // Chimahon <--
+
     override suspend fun update(update: MangaUpdate): Boolean {
         return try {
             partialUpdate(update)

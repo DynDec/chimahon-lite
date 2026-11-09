@@ -21,6 +21,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import tachiyomi.core.common.preference.InMemoryPreferenceStore.InMemoryPreference
 import tachiyomi.core.common.storage.isFileUriInside
+import tachiyomi.domain.category.model.Category
+import tachiyomi.domain.category.repository.CategoryRepository
 import tachiyomi.domain.chapter.interactor.SetMangaDefaultChapterFlags
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.chapter.repository.ChapterRepository
@@ -32,6 +34,7 @@ import tachiyomi.domain.manga.model.MangaUpdate
 import tachiyomi.domain.manga.repository.CustomMangaRepository
 import tachiyomi.domain.manga.repository.MangaRepository
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.domain.storage.service.LibraryFolder
 import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.source.local.LocalSource
@@ -42,6 +45,7 @@ import uy.kohesive.injekt.api.addSingletonFactory
 class SyncLocalLibraryTest {
     private val mangas = mockk<MangaRepository>()
     private val chapters = mockk<ChapterRepository>()
+    private val categories = mockk<CategoryRepository>()
     private val sourceManager = mockk<SourceManager>()
     private val source = mockk<LocalSource>()
     private val fileSystem = mockk<LocalSourceFileSystem>()
@@ -52,15 +56,22 @@ class SyncLocalLibraryTest {
     private val updateMangaFromRemote = mockk<UpdateMangaFromRemote>()
     private val known = InMemoryPreference<Set<String>>("known", null, emptySet())
     private val missing = InMemoryPreference<Set<String>>("missing", null, emptySet())
+    private val mangaFolderCategory = InMemoryPreference("category", null, 0L)
+    private val libraryFolders = InMemoryPreference<List<LibraryFolder>>("folders", null, emptyList())
 
     /** Database rows by URL; a sync changes them in place. */
     private val rows = LinkedHashMap<String, Manga>()
     private var listed = listOf<String>()
+
+    /** Manga listed by each other library folder, by folder URL; a folder missing here cannot be read. */
+    private val listedIn = HashMap<String, List<String>>()
+    private val categoryOf = HashMap<Long, Long>()
     private var nextId = 100L
 
     private val sync = SyncLocalLibrary(
         mangas = mangas,
         chapters = chapters,
+        categories = categories,
         sourceManager = sourceManager,
         fileSystem = fileSystem,
         storagePreferences = storagePreferences,
@@ -82,6 +93,18 @@ class SyncLocalLibraryTest {
         every { fileSystem.getMangaEntry(any()) } returns null
         every { storagePreferences.localLibraryKnownFolders() } returns known
         every { storagePreferences.localLibraryMissingFolders() } returns missing
+        every { storagePreferences.mangaDirectoryCategory() } returns mangaFolderCategory
+        every { storagePreferences.libraryFolders() } returns libraryFolders
+        every { storageManager.getFileFromUri(any()) } answers { folder(firstArg()) }
+        coEvery { source.getMangaIn(any()) } answers {
+            listedIn.getValue(firstArg<UniFile>().uri.toString())
+                .map { url -> SManga.create().also { it.url = url; it.title = url } }
+        }
+        coEvery { categories.getAll() } returns listOf(category(1L), category(2L))
+        val categorized = slot<Map<Long, Long>>()
+        coEvery { mangas.addUncategorizedToCategories(capture(categorized)) } answers {
+            categorized.captured.forEach { (mangaId, categoryId) -> categoryOf.putIfAbsent(mangaId, categoryId) }
+        }
         coEvery { source.getPopularManga(1) } answers {
             MangasPage(listed.map { url -> SManga.create().also { it.url = url; it.title = url } }, false)
         }
@@ -192,6 +215,93 @@ class SyncLocalLibraryTest {
     }
 
     @Test
+    fun `manga in other library folders are added to their folder's category`() = runTest {
+        val other = "$TREE/tree/primary%3AOther"
+        val inOther = "$TREE/tree/primary%3AOther/document/primary%3AOther%2FA"
+        val inMangaFolder = "$TREE/tree/primary%3ANew/document/primary%3ANew%2FB"
+        libraryFolders.set(listOf(LibraryFolder(other, categoryId = 2L)))
+        mangaFolderCategory.set(1L)
+        listedIn[other] = listOf(inOther)
+        listed = listOf(inMangaFolder)
+
+        assertEquals(SyncLocalLibrary.Result(added = 2, removed = 0), sync.await())
+
+        assertEquals(setOf(inOther, inMangaFolder), favorites())
+        assertEquals(2L, categoryOf[rows.getValue(inOther).id])
+        assertEquals(1L, categoryOf[rows.getValue(inMangaFolder).id])
+    }
+
+    @Test
+    fun `a manga keeps its categories and a deleted category is not used`() = runTest {
+        val other = "$TREE/tree/primary%3AOther"
+        val sorted = row("$TREE/tree/primary%3AOther/document/primary%3AOther%2FA")
+        val fresh = "$TREE/tree/primary%3AOther/document/primary%3AOther%2FB"
+        categoryOf[sorted.id] = 1L
+        libraryFolders.set(listOf(LibraryFolder(other, categoryId = 2L)))
+        listedIn[other] = listOf(sorted.url)
+        listed = emptyList()
+        sync.await()
+        assertEquals(1L, categoryOf[sorted.id])
+        assertEquals(setOf(sorted.url), favorites())
+
+        libraryFolders.set(listOf(LibraryFolder(other, categoryId = 9L)))
+        listedIn[other] = listOf(sorted.url, fresh)
+        sync.await()
+        assertTrue(fresh in favorites())
+        assertNull(categoryOf[rows.getValue(fresh).id])
+    }
+
+    @Test
+    fun `a manga listed through two library folders is added once`() = runTest {
+        val parent = "$TREE/tree/primary%3AP"
+        val child = "$TREE/tree/primary%3AP%2FC"
+        libraryFolders.set(listOf(LibraryFolder(parent, categoryId = 1L), LibraryFolder(child, categoryId = 2L)))
+        listedIn[parent] = listOf("$TREE/tree/primary%3AP/document/primary%3AP%2FC%2FS")
+        listedIn[child] = listOf("$TREE/tree/primary%3AP%2FC/document/primary%3AP%2FC%2FS")
+
+        assertEquals(SyncLocalLibrary.Result(added = 1, removed = 0), sync.await())
+        assertEquals(listOf(1L), categoryOf.values.toList())
+    }
+
+    @Test
+    fun `manga of an unreadable library folder stay while the others sync`() = runTest {
+        val gone = "$TREE/tree/primary%3AGone"
+        val inGone = row("$TREE/tree/primary%3AGone/document/primary%3AGone%2FA", favorite = true)
+        val removed = row("$TREE/tree/primary%3ANew/document/primary%3ANew%2FB", favorite = true)
+        libraryFolders.set(listOf(LibraryFolder(gone)))
+        listed = listOf("$TREE/tree/primary%3ANew/document/primary%3ANew%2FC")
+
+        assertEquals(SyncLocalLibrary.Result(added = 1, removed = 1, unreadable = 1), sync.await())
+        assertTrue(inGone.url in favorites())
+        assertFalse(removed.url in favorites())
+    }
+
+    @Test
+    fun `other library folders sync while the manga folder cannot be read`() = runTest {
+        val other = "$TREE/tree/primary%3AOther"
+        val inMangaFolder = row("$TREE/tree/primary%3ANew/document/primary%3ANew%2FA", favorite = true)
+        every { baseDirectory.canRead() } returns false
+        libraryFolders.set(listOf(LibraryFolder(other)))
+        listedIn[other] = listOf("$TREE/tree/primary%3AOther/document/primary%3AOther%2FB")
+
+        assertEquals(SyncLocalLibrary.Result(added = 1, removed = 0, unreadable = 1), sync.await())
+        assertTrue(inMangaFolder.url in favorites())
+    }
+
+    @Test
+    fun `a row stored under another spelling is restored instead of inserted again`() = runTest {
+        val stored = row("$TREE/tree/primary%3ANew/document/primary%3ANew%2FA")
+        known.set(setOf(stored.url))
+        missing.set(setOf(stored.url))
+        listed = listOf("$TREE/document/primary%3ANew%2FA")
+
+        assertEquals(SyncLocalLibrary.Result(added = 1, removed = 0), sync.await())
+        assertEquals(setOf(stored.url), favorites())
+        assertEquals(emptySet<String>(), missing.get())
+        coVerify(exactly = 0) { networkToLocalManga(match<List<Manga>> { it.isNotEmpty() }, any()) }
+    }
+
+    @Test
     fun `folder containment follows document ids and file paths`() {
         assertTrue(isFileUriInside("$TREE/tree/primary%3AM/document/primary%3AM%2FP%2FS", "$TREE/tree/primary%3AM"))
         assertTrue(isFileUriInside("$TREE/tree/primary%3A/document/primary%3AM", "$TREE/tree/primary%3A"))
@@ -215,6 +325,20 @@ class SyncLocalLibraryTest {
                     },
                 )
             }
+        }
+    }
+
+    private fun category(id: Long) = Category(id = id, name = "$id", order = id, flags = 0L, hidden = false)
+
+    /** A folder that can be read when [listedIn] lists it. */
+    private fun folder(url: String): UniFile {
+        val uri = mockk<Uri>()
+        every { uri.toString() } returns url
+        return mockk {
+            every { exists() } returns (url in listedIn)
+            every { isDirectory } returns (url in listedIn)
+            every { canRead() } returns (url in listedIn)
+            every { this@mockk.uri } returns uri
         }
     }
 

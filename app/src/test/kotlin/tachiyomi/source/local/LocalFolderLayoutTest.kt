@@ -159,6 +159,9 @@ class LocalFolderLayoutTest {
     private fun base(vararg entries: UniFile) {
         entries.forEach { place(it, ROOT) }
         every { fileSystem.getFilesInBaseDirectory() } returns entries.toList()
+        val baseDirectory = mockk<UniFile>()
+        every { fileSystem.getLibraryDirectories() } returns listOf(baseDirectory)
+        every { fileSystem.getFilesIn(baseDirectory) } returns entries.toList()
     }
 
     /** Gives [entry] and its descendants URIs below [parent], like tree documents. */
