@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Spróbuj teraz</string>
     <string name="update_check_notification_preview_available">Najbliższe aktualizacje!</string>
     <string name="changelogs">Dziennik zmian</string>
-    <string name="related_mangas_more">Więcej takich informacji...</string>
     <string name="too_many_in_feed">Zbyt wiele źródeł w Twoim kanale, nie można dodać więcej niż ograniczonej liczby źródeł (20)</string>
     <string name="current_">Aktualnie: %1$s</string>
     <string name="pref_theme_cover_based">Motyw oparty na okładce</string>
@@ -61,15 +60,7 @@
     <string name="theme_custom">Niestandardowy motyw</string>
     <string name="extensions_page_need_refresh">Odśwież stronę rozszerzenia, aby zaktualizować listę.</string>
     <string name="extensions_page_more">Więcej rozszerzeń...</string>
-    <string name="pref_expand_related_mangas">Rozwiń sugestie</string>
-    <string name="pref_expand_related_mangas_summary">Jeśli wyłączone, sugestie nie będą automatycznie wczytywać &amp; pokaż rozszerzone</string>
-    <string name="put_related_mangas_in_overflow">Sugestie dotyczące przepełnienia</string>
-    <string name="put_related_mangas_in_overflow_summary">Umieść przycisk Sugestie w menu przeciążenia zamiast na stronie wpisu</string>
-    <string name="pref_show_home_on_related_mangas">Strona główna z sugestii</string>
-    <string name="pref_show_home_on_related_mangas_summary">Pokaż ikonę podczas przeglądania sugestii aby wrócić bezpośrednio do strony głównej</string>
     <string name="pref_source_related_mangas">Sugestie</string>
-    <string name="pref_source_related_mangas_summary">Pokaż sugestie źródłowe podczas przeglądania wpisu</string>
-    <string name="related_mangas_website_suggestions">Sugestie strony</string>
     <string name="action_hide">Ukryj</string>
     <string name="action_sort_feed">Sortuj kanały</string>
     <string name="sort_feed_confirmation">Czy chcesz posortować kanały alfabetycznie?</string>

@@ -4,10 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -18,7 +16,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,7 +41,6 @@ import dev.icerock.moko.resources.StringResource
 import eu.kanade.core.util.ifSourcesLoaded
 import eu.kanade.domain.manga.model.hasCustomCover
 import eu.kanade.domain.manga.model.toSManga
-import eu.kanade.presentation.browse.components.BulkFavoriteDialogs
 import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.components.NavigatorAdaptiveSheet
 import eu.kanade.presentation.manga.ChapterSettingsDialog
@@ -66,7 +62,6 @@ import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.isLocalOrStub
 import eu.kanade.tachiyomi.source.online.HttpSource
-import eu.kanade.tachiyomi.ui.browse.BulkFavoriteScreenModel
 import eu.kanade.tachiyomi.ui.browse.extension.details.SourcePreferencesScreen
 import eu.kanade.tachiyomi.ui.browse.source.SourcesScreen
 import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceScreen
@@ -98,7 +93,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import logcat.LogPriority
-import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.chapter.model.Chapter
@@ -158,56 +152,18 @@ class MangaScreen(
         val successState = state as MangaScreenModel.State.Success
 
         // KMK -->
-        val bulkFavoriteScreenModel = rememberScreenModel { BulkFavoriteScreenModel() }
-        val bulkFavoriteState by bulkFavoriteScreenModel.state.collectAsState()
-
-        val showingRelatedMangasScreen = rememberSaveable { mutableStateOf(false) }
-
-        BackHandler(enabled = bulkFavoriteState.selectionMode || showingRelatedMangasScreen.value) {
-            when {
-                bulkFavoriteState.selectionMode -> bulkFavoriteScreenModel.backHandler()
-                showingRelatedMangasScreen.value -> showingRelatedMangasScreen.value = false
-            }
-        }
-
-        val content = @Composable {
-            Crossfade(
-                targetState = showingRelatedMangasScreen.value,
-                label = "manga_related_crossfade",
-            ) { showRelatedMangasScreen ->
-                when (showRelatedMangasScreen) {
-                    true -> RelatedMangasScreen(
-                        screenModel = screenModel,
-                        successState = successState,
-                        bulkFavoriteScreenModel = bulkFavoriteScreenModel,
-                        navigateUp = { showingRelatedMangasScreen.value = false },
-                        navigator = navigator,
-                        scope = scope,
-                    )
-                    false -> MangaDetailContent(
-                        context = context,
-                        screenModel = screenModel,
-                        successState = successState,
-                        bulkFavoriteScreenModel = bulkFavoriteScreenModel,
-                        showRelatedMangasScreen = { showingRelatedMangasScreen.value = true },
-                        navigator = navigator,
-                        scope = scope,
-                    )
-                }
-            }
-        }
-
         val seedColor = successState.seedColor
         TachiyomiTheme(
             seedColor = seedColor.takeIf { screenModel.themeCoverBased },
         ) {
-            content()
+            MangaDetailContent(
+                context = context,
+                screenModel = screenModel,
+                successState = successState,
+                navigator = navigator,
+                scope = scope,
+            )
         }
-
-        BulkFavoriteDialogs(
-            bulkFavoriteScreenModel = bulkFavoriteScreenModel,
-            dialog = bulkFavoriteState.dialog,
-        )
     }
 
     @Composable
@@ -215,8 +171,6 @@ class MangaScreen(
         context: Context,
         screenModel: MangaScreenModel,
         successState: MangaScreenModel.State.Success,
-        bulkFavoriteScreenModel: BulkFavoriteScreenModel,
-        showRelatedMangasScreen: () -> Unit,
         navigator: Navigator,
         scope: CoroutineScope,
     ) {
@@ -389,7 +343,6 @@ class MangaScreen(
             onAllChapterSelected = screenModel::toggleAllSelection,
             onInvertSelection = screenModel::invertSelection,
             // KMK -->
-            getMangaState = { screenModel.getManga(initialManga = it) },
             onClickSourceSettingsClicked = {
                 when {
                     successState.source.isEhBasedSource() && isHentaiEnabled ->
@@ -415,14 +368,6 @@ class MangaScreen(
                 }
             }
                 .takeIf { successState.source !is StubSource },
-            onRelatedMangasScreenClick = {
-                if (successState.isRelatedMangasFetched == null) {
-                    scope.launchIO { screenModel.fetchRelatedMangasFromSource(onDemand = true) }
-                }
-                showRelatedMangasScreen()
-            },
-            onRelatedMangaClick = { navigator.push(MangaScreen(it.id, true)) },
-            onRelatedMangaLongClick = { bulkFavoriteScreenModel.addRemoveManga(it, haptic) },
             onCoverLoaded = {
                 if (screenModel.themeCoverBased || successState.manga.favorite) screenModel.setPaletteColor(it)
             },

@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Încearcă acum</string>
     <string name="update_check_notification_preview_available">În curând actualizări!</string>
     <string name="changelogs">Jurnale de modificări</string>
-    <string name="related_mangas_more">Mai asemănător cu acestea...</string>
     <string name="too_many_in_feed">Prea multe surse în fluxul tău, nu pot adăuga mai mult decât limitat (20)</string>
     <string name="current_">Curent: %1$s</string>
     <string name="pref_theme_cover_based">Temă bazată pe copertă</string>
@@ -62,15 +61,7 @@
     <string name="theme_custom">Temă personalizată</string>
     <string name="extensions_page_need_refresh">Reîmprospătează pagina extensiei pentru a actualiza lista.</string>
     <string name="extensions_page_more">Mai multe extensii...</string>
-    <string name="pref_expand_related_mangas">Extinde sugestii</string>
-    <string name="pref_expand_related_mangas_summary">Dacă este dezactivat, sugestiile nu vor încărca automat &amp; Arată extins</string>
-    <string name="put_related_mangas_in_overflow">Sugestii privind excesul de flux</string>
-    <string name="put_related_mangas_in_overflow_summary">Pune butonul Sugestii în meniul overflow în loc de pe pagina de intrare</string>
-    <string name="pref_show_home_on_related_mangas">Acasă din sugestii</string>
-    <string name="pref_show_home_on_related_mangas_summary">Arată o pictogramă în timp ce navigați sugestiile pentru a naviga direct înapoi la Acasă</string>
     <string name="pref_source_related_mangas">Sugestii</string>
-    <string name="pref_source_related_mangas_summary">Arată sugestiile site-ului sursă în timpul vizualizării intrării</string>
-    <string name="related_mangas_website_suggestions">Sugestii website</string>
     <string name="action_hide">Ascunde</string>
     <string name="action_sort_feed">Sortare fluxuri</string>
     <string name="sort_feed_confirmation">Doriți să sortați feed-urile în mod alfabetic?</string>

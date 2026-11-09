@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Prueba ahora</string>
     <string name="update_check_notification_preview_available">¡Próximas actualizaciones (pronto)!</string>
     <string name="changelogs">Registro de cambios</string>
-    <string name="related_mangas_more">Más así...</string>
     <string name="too_many_in_feed">Demasiadas fuentes en novedades, no se pueden poner más de 20</string>
     <string name="current_">Actual: %1$s</string>
     <string name="pref_theme_cover_based">Tema según la portada</string>
@@ -64,15 +63,7 @@
     <string name="theme_custom">Tema personalizado</string>
     <string name="extensions_page_need_refresh">Actualiza la página de extensión para actualizar la lista.</string>
     <string name="extensions_page_more">Más extensiones...</string>
-    <string name="pref_expand_related_mangas">Expandir sugerencias</string>
-    <string name="pref_expand_related_mangas_summary">Si se desactiva, las sugerencias no cargarán automáticamente &amp; mostrar expandido</string>
-    <string name="put_related_mangas_in_overflow">Sugerencias en el desbordamiento</string>
-    <string name="put_related_mangas_in_overflow_summary">Pone el botón Sugerencias en el menú de desbordamiento en lugar de en la página de entrada</string>
-    <string name="pref_show_home_on_related_mangas">Inicio desde sugerencias</string>
-    <string name="pref_show_home_on_related_mangas_summary">Muestra un icono mientras se navega por las Sugerencias para volver directamente a Inicio</string>
     <string name="pref_source_related_mangas">Sugerencias</string>
-    <string name="pref_source_related_mangas_summary">Mostrar sugerencias del sitio web fuente mientras se visualiza la entrada</string>
-    <string name="related_mangas_website_suggestions">Sugerencias del sitio web</string>
     <string name="action_hide">Ocultar</string>
     <string name="action_sort_feed">Ordenar contenido</string>
     <string name="sort_feed_confirmation">¿Le gustaría ordenar el contenido alfabéticamente?</string>

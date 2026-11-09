@@ -35,12 +35,6 @@
     <string name="pref_panorama_cover_summary">যদি ছবিখন বহল হয়, তেন্তে লেণ্ডস্কেপ মোডত কভাৰ দেখুৱাওক</string>
     <string name="pref_panorama_cover_flow">পেনোৰামা কভাৰ ফ্ল’</string>
     <string name="pref_panorama_cover_flow_summary">গ্ল’বেল সন্ধান আৰু পৰামৰ্শত পেনোৰামা কভাৰ দেখুৱাওক</string>
-    <string name="pref_expand_related_mangas">পৰামৰ্শ বৃদ্ধি</string>
-    <string name="pref_expand_related_mangas_summary">যদি বন্ধ কৰা হয়, পৰামৰ্শ স্বয়ংক্ৰিয়ভাৱে লোড আৰু প্ৰসাৰিত হ’ব নোৱাৰে</string>
-    <string name="put_related_mangas_in_overflow">পৰামৰ্শ ওভাৰফ্ল’ত</string>
-    <string name="put_related_mangas_in_overflow_summary">এণ্ট্ৰি পৃষ্ঠাত নহয়, ওভাৰফ্ল’ মেনুত পৰামৰ্শ বাটন ৰাখক</string>
-    <string name="pref_show_home_on_related_mangas">পৰামৰ্শৰ পৰা হোম</string>
-    <string name="pref_show_home_on_related_mangas_summary">পৰামৰ্শ ব্ৰাউজ কৰোঁতে হোমলৈ পোনপটীয়াকৈ নেভিগেট কৰিবলৈ এটা আইকন দেখুৱাওক</string>
     <string name="theme_cloudflare">ক্লাউডফ্লেয়াৰ</string>
     <string name="theme_cottoncandy">কটন কেণ্ডি</string>
     <string name="theme_doom">ডুম</string>
@@ -119,9 +113,6 @@
     <string name="action_manual_install">মেনুৱেল ইনষ্টল</string>
     <string name="manual_download">মেনুৱেল ডাউনলোড</string>
     <string name="pref_source_related_mangas">পৰামৰ্শ</string>
-    <string name="pref_source_related_mangas_summary">এণ্ট্ৰি চাওঁতে উৎস-ৱেবছাইটৰ পৰামৰ্শ দেখুৱাওক</string>
-    <string name="related_mangas_website_suggestions">ৱেবছাইটৰ পৰামৰ্শ</string>
-    <string name="related_mangas_more">এইবোৰৰ দৰে আৰু...</string>
     <string name="saved_searches_add_feed">সাঁচৱা সন্ধান (ফিডত যোগ কৰিবলৈ ধৰি ৰাখক)</string>
     <string name="saved_searches_delete">সাঁচৱা সন্ধান (মচিবলৈ ধৰি ৰাখক)</string>
     <string name="option_label_library_update_errors">পুথিভঁৰাল আপডেটৰ ত্ৰুটি</string>

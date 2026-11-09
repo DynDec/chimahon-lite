@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Subukan ngayon</string>
     <string name="update_check_notification_preview_available">Parating (malapit na) mga update!</string>
     <string name="changelogs">Mga Change Log</string>
-    <string name="related_mangas_more">Mga katulad nito...</string>
     <string name="too_many_in_feed">Masyadong maraming source sa iyong feed, hindi maaaring magdagdag ng higit sa 20</string>
     <string name="current_">Kasalukuyan: %1$s</string>
     <string name="pref_theme_cover_based">Tema base sa pabalat</string>
@@ -56,15 +55,7 @@
     <string name="theme_custom">Custom na Tema</string>
     <string name="extensions_page_need_refresh">I-refresh ang pahina ang extension para ma-update ang listahan.</string>
     <string name="extensions_page_more">Marami pang extension...</string>
-    <string name="pref_expand_related_mangas">Palawakin ang Mga Suhestiyon</string>
-    <string name="pref_expand_related_mangas_summary">Kung naka-off, ang mga suhestiyon ay hindi awtomatikong maglo-load at ipakita kung pinalawak</string>
-    <string name="put_related_mangas_in_overflow">Mga suhestiyon sa overflow</string>
-    <string name="put_related_mangas_in_overflow_summary">Ilagay ang Mga Suhestiyon na button sa overflow menu sa halip sa pahina ng entry</string>
-    <string name="pref_show_home_on_related_mangas">Home mula sa Mga Suhestiyon</string>
-    <string name="pref_show_home_on_related_mangas_summary">Magpakita ng icon habang nagba-browse sa Mga Suhestiyon upang bumalik sa Home</string>
     <string name="pref_source_related_mangas">Mga Suhestiyon</string>
-    <string name="pref_source_related_mangas_summary">Ipakita ang Mga Suhestiyon ng source-website habang tumitingin sa entry</string>
-    <string name="related_mangas_website_suggestions">Mga Suhestiyon ng Website</string>
     <string name="action_sort_feed">I-sort ang mga feed</string>
     <string name="sort_feed_confirmation">Gusto mo bang i-sort ang mga feed ayon sa alpabeto?</string>
     <string name="pref_custom_theme_style">Estilo ng custom na tema</string>

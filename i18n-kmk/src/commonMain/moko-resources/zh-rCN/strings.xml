@@ -24,7 +24,6 @@
     <string name="update_check_try_now">现在试试</string>
     <string name="update_check_notification_preview_available">(即将) 更新 ！</string>
     <string name="changelogs">更改日志</string>
-    <string name="related_mangas_more">更多这样...</string>
     <string name="too_many_in_feed">你订阅的图源太多了，不能大于 20</string>
     <string name="current_">当前: %1$s</string>
     <string name="pref_theme_cover_based">基于封面的主题</string>
@@ -65,15 +64,7 @@
     <string name="theme_custom">自定义主题</string>
     <string name="extensions_page_need_refresh">刷新扩展页面以更新列表。</string>
     <string name="extensions_page_more">更多扩展...</string>
-    <string name="pref_expand_related_mangas">展开建议</string>
-    <string name="pref_expand_related_mangas_summary">如果关闭，将不会自动加载建议 &amp; 显示扩展</string>
-    <string name="put_related_mangas_in_overflow">建议溢出</string>
-    <string name="put_related_mangas_in_overflow_summary">将建议按钮放入溢出菜单，而不是放在条目页面</string>
-    <string name="pref_show_home_on_related_mangas">来自建议的首页</string>
-    <string name="pref_show_home_on_related_mangas_summary">浏览建议时显示图标以直接导航到主页</string>
     <string name="pref_source_related_mangas">建议</string>
-    <string name="pref_source_related_mangas_summary">查看条目时显示源网站的建议</string>
-    <string name="related_mangas_website_suggestions">网站建议</string>
     <string name="action_hide">隐藏</string>
     <string name="action_sort_feed">排序源</string>
     <string name="sort_feed_confirmation">你想要按字母顺序排列新闻源吗？</string>

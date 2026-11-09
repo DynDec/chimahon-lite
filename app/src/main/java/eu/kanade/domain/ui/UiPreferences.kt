@@ -57,8 +57,6 @@ class UiPreferences(
 
     fun relatedMangasInOverflow() = preferenceStore.getBoolean("related_mangas_in_overflow", false)
 
-    fun showHomeOnRelatedMangas() = preferenceStore.getBoolean("show_home_on_related_mangas", true)
-
     fun readButtonPosition() = preferenceStore.getString("reading_button_position", FabPosition.End.toString())
 
     fun usePanoramaCoverFlow() = preferenceStore.getBoolean("use_panorama_cover_flow", false)

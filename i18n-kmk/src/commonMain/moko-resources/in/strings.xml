@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Coba sekarang</string>
     <string name="update_check_notification_preview_available">Pembaruan yang akan datang (segera)!</string>
     <string name="changelogs">Log perubahan</string>
-    <string name="related_mangas_more">Lainnya seperti ini...</string>
     <string name="too_many_in_feed">Terlalu banyak sumber di daftar konten Anda, tidak dapat menambahkan lebih dari 20</string>
     <string name="current_">Saat ini: %1$s</string>
     <string name="pref_theme_cover_based">Tema berdasarkan sampul</string>
@@ -57,7 +56,6 @@
     <string name="extensions_page_need_refresh">Segarkan halaman ekstensi untuk memperbarui daftar.</string>
     <string name="extensions_page_more">Lebih banyak ekstensi...</string>
     <string name="pref_source_related_mangas">Suggestions</string>
-    <string name="related_mangas_website_suggestions">Website Suggestions</string>
     <string name="custom_theme_palette_lcd">LCD</string>
     <string name="custom_theme_palette_pico">PICO-8</string>
     <string name="action_scroll_to_top">Scroll to top</string>
@@ -102,12 +100,6 @@
     <string name="pref_top_align_cover">Sesuaikan Sampul ke Atas</string>
     <string name="pref_top_align_cover_summary">Tampilkan sampul yang sejajar dengan bagian atas bersama informasi manga</string>
     <string name="action_display_comfortable_grid_panorama">Panorama jaringan yang nyaman</string>
-    <string name="pref_expand_related_mangas">Perluas Saran</string>
-    <string name="pref_expand_related_mangas_summary">Jika dinonaktifkan, Saran tidak akan dimuat secara otomatis dan ditampilkan dalam bentuk yang diperluas</string>
-    <string name="put_related_mangas_in_overflow">Saran meluap</string>
-    <string name="put_related_mangas_in_overflow_summary">Pindahkan tombol Saran ke menu overflow alih-alih menempatkannya di halaman masuk</string>
-    <string name="pref_show_home_on_related_mangas">Rumah dari Saran</string>
-    <string name="pref_show_home_on_related_mangas_summary">Tampilkan ikon saat menjelajah Saran untuk kembali langsung ke Beranda</string>
     <string name="theme_doom">Malapetaka</string>
     <string name="custom_color_description">Pilih warna benih untuk Tema khusus</string>
     <string name="custom_theme_palette_casual">Kasual</string>
@@ -138,7 +130,6 @@
     <string name="update_completed">Pembaruan selesai</string>
     <string name="could_not_install_update">Tidak dapat menginstal pembaruan</string>
     <string name="action_manual_install">Instalasi manual</string>
-    <string name="pref_source_related_mangas_summary">Tampilkan saran dari situs web sumber saat melihat entri</string>
     <string name="option_label_library_update_errors">Kesalahan pembaruan perpustakaan</string>
     <string name="label_library_update_errors">Kesalahan pembaruan perpustakaan (%d)</string>
     <string name="info_empty_library_update_errors">Anda tidak memiliki kesalahan pembaruan perpustakaan.</string>

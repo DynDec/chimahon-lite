@@ -51,12 +51,6 @@
     <string name="pref_top_align_cover">표지를 상단에 정렬</string>
     <string name="pref_top_align_cover_summary">Manga 정보와 표지를 상단에 정렬하여 표시</string>
     <string name="action_display_comfortable_grid_panorama">파노라마 편안한 그리드</string>
-    <string name="pref_expand_related_mangas">추천 펼치기</string>
-    <string name="pref_expand_related_mangas_summary">비활성화하면 추천을 자동으로 불러오거나 펼쳐서 표시하지 않습니다</string>
-    <string name="put_related_mangas_in_overflow">오버플로우 메뉴 추천</string>
-    <string name="put_related_mangas_in_overflow_summary">추천 버튼을 엔트리 페이지 대신 오버플로우 메뉴에 배치</string>
-    <string name="pref_show_home_on_related_mangas">홈 메뉴 추천</string>
-    <string name="pref_show_home_on_related_mangas_summary">추천을 탐색하는 동안 홈으로 바로 이동하는 아이콘 표시</string>
     <string name="theme_cloudflare">Cloudflare</string>
     <string name="pref_custom_color">팔레트 개인화</string>
     <string name="custom_color_description">커스텀 테마용 시드 색상 선택</string>
@@ -72,7 +66,6 @@
     <string name="onboarding_permission_external_storage">Access media files permission</string>
     <string name="permission_writing_external_storage_succeed">Permission granted. Try action again.</string>
     <string name="update_check_notification_preview_available">Coming (soon) updates!</string>
-    <string name="pref_source_related_mangas_summary">Show source-website\'s Suggestions while viewing entry</string>
     <string name="action_scroll_to_bottom">Scroll to bottom</string>
     <string name="label_to_be_updated">To be updated</string>
     <string name="custom_theme_palette_pop">Pop</string>
@@ -128,8 +121,6 @@
     <string name="custom_theme_palette_spectral">Spectral</string>
     <string name="pref_clean_invalid_downloads_summary">Find and remove all downloads, files, folders which are not saved in your library</string>
     <string name="onboarding_permission_external_storage_description">Allow using custom covers in entry\'s Edit Info</string>
-    <string name="related_mangas_website_suggestions">Website Suggestions</string>
-    <string name="related_mangas_more">More like these...</string>
     <string name="saved_searches_add_feed">Saved Searches (Hold to add to Feed)</string>
     <string name="action_scroll_to_next">Scroll to next</string>
     <string name="too_many_in_feed">Too many sources in your feed, cannot add more than 20</string>

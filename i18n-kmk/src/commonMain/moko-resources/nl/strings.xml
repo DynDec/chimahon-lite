@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Probeer het nu</string>
     <string name="update_check_notification_preview_available">Komt (binnenkort) updates!</string>
     <string name="changelogs">Logboek wijzigen</string>
-    <string name="related_mangas_more">Meer van deze...</string>
     <string name="too_many_in_feed">Te veel bronnen in je feed, kan niet meer dan beperkt toevoegen (20)</string>
     <string name="current_">Huidige: %1$s</string>
     <string name="pref_theme_cover_based">Thema gebaseerd op cover</string>
@@ -63,15 +62,7 @@
     <string name="theme_custom">Aangepast Thema</string>
     <string name="extensions_page_need_refresh">Vernieuw de extensie pagina om de lijst bij te werken.</string>
     <string name="extensions_page_more">Meer extensies...</string>
-    <string name="pref_expand_related_mangas">Suggesties uitbreiden</string>
-    <string name="pref_expand_related_mangas_summary">Suggesties zullen niet automatisch laden &amp; weergeven als ze zijn uitgeschakeld</string>
-    <string name="put_related_mangas_in_overflow">Suggesties in overflow</string>
-    <string name="put_related_mangas_in_overflow_summary">Plaats de Suggestie knop in het overloop menu in plaats van op de item pagina</string>
-    <string name="pref_show_home_on_related_mangas">Huis van Suggesties</string>
-    <string name="pref_show_home_on_related_mangas_summary">Toon een pictogram tijdens het browsen van suggesties om direct terug te gaan naar Home</string>
     <string name="pref_source_related_mangas">Suggesties</string>
-    <string name="pref_source_related_mangas_summary">Suggesties van bron-website weergeven tijdens het bekijken van invoer</string>
-    <string name="related_mangas_website_suggestions">Website Suggesties</string>
     <string name="action_hide">Verbergen</string>
     <string name="action_sort_feed">Sorteer feeds</string>
     <string name="sort_feed_confirmation">Wilt u het voeder alfabetisch sorteren?</string>

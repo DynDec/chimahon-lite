@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Δοκιμάστε τώρα</string>
     <string name="update_check_notification_preview_available">Ερχόμενοι (σύντομα) ενημερώσεις!</string>
     <string name="changelogs">Καταγραφή Αλλαγών</string>
-    <string name="related_mangas_more">Περισσότερο σαν αυτά...</string>
     <string name="too_many_in_feed">Πάρα πολλές πηγές στη ροή σας, δεν μπορούν να προσθέσουν περισσότερα από περιορισμένα (20)</string>
     <string name="current_">Τρέχον: %1$s</string>
     <string name="pref_theme_cover_based">Θέμα βασισμένο στο εξώφυλλο</string>
@@ -63,15 +62,7 @@
     <string name="theme_custom">Προσαρμοσμένο Θέμα</string>
     <string name="extensions_page_need_refresh">Ανανέωση επέκτασης σελίδας για ενημέρωση λίστας.</string>
     <string name="extensions_page_more">Περισσότερες επεκτάσεις...</string>
-    <string name="pref_expand_related_mangas">Επέκταση Προτάσεων</string>
-    <string name="pref_expand_related_mangas_summary">Αν απενεργοποιηθεί, οι προτάσεις δεν θα φορτώσουν αυτόματα το &amp; show επεκτάθηκε</string>
-    <string name="put_related_mangas_in_overflow">Προτάσεις υπερχείλισης</string>
-    <string name="put_related_mangas_in_overflow_summary">Βάλτε το κουμπί Προτάσεις στο μενού υπερχείλισης αντί στη σελίδα εισόδου</string>
-    <string name="pref_show_home_on_related_mangas">Αρχική από Προτάσεις</string>
-    <string name="pref_show_home_on_related_mangas_summary">Εμφάνιση εικονιδίου κατά την περιήγηση στις προτάσεις για πλοήγηση απευθείας πίσω στην Αρχική</string>
     <string name="pref_source_related_mangas">Προτάσεις</string>
-    <string name="pref_source_related_mangas_summary">Εμφάνιση προτάσεων πηγαίου ιστοτόπου κατά την προβολή της καταχώρησης</string>
-    <string name="related_mangas_website_suggestions">Προτάσεις Ιστοσελίδας</string>
     <string name="action_hide">Απόκρυψη</string>
     <string name="action_sort_feed">Ταξινόμηση ροών</string>
     <string name="sort_feed_confirmation">Θα θέλατε να ταξινομήσετε τις ζωοτροφές αλφαβητικά?</string>

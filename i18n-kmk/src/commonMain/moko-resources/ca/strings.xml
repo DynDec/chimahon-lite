@@ -40,14 +40,12 @@
     <string name="permission_writing_external_storage_succeed">Permission granted. Try action again.</string>
     <string name="download_cache_renew_interval_info">If set to \"manual\", either refresh each manga or using the \"Invalidate downloads index\" action in \"Advanced\"</string>
     <string name="onboarding_permission_external_storage_description">Allow using custom covers in entry\'s Edit Info</string>
-    <string name="related_mangas_more">More like these...</string>
     <string name="action_allow_all_duplicate_manga">Allow all</string>
     <string name="pref_manga_info">Manga Info</string>
     <string name="pref_theme_cover_based_style_monochrome">Monochrome</string>
     <string name="action_scroll_to_next">Scroll to next</string>
     <string name="action_skip_duplicate_manga">Skip it</string>
     <string name="pref_theme_cover_based_style_tonalspot">Tonal Spot</string>
-    <string name="pref_show_home_on_related_mangas">Home from Suggestions</string>
     <string name="pref_source_related_mangas">Suggestions</string>
     <string name="pref_panorama_cover">Panorama Cover</string>
     <string name="custom_theme_palette_lcd">LCD</string>
@@ -70,7 +68,6 @@
     <string name="could_not_install_update">Could not install update</string>
     <string name="update_check_notification_preview_available">Coming (soon) updates!</string>
     <string name="manual_download">Manual download</string>
-    <string name="pref_source_related_mangas_summary">Show source-website\'s Suggestions while viewing entry</string>
     <string name="action_scroll_to_top">Scroll to top</string>
     <string name="action_scroll_to_bottom">Scroll to bottom</string>
     <string name="action_display_source_badge">Source icon</string>
@@ -78,7 +75,6 @@
     <string name="preload_library_cover_color">Preload library\'s cover color</string>
     <string name="auto_update_app_disable_auto_download">Don\'t auto download update</string>
     <string name="onboarding_permission_external_storage">Access media files permission</string>
-    <string name="related_mangas_website_suggestions">Website Suggestions</string>
     <string name="action_scroll_to_previous">Scroll to previous</string>
     <string name="label_to_be_updated">To be updated</string>
     <string name="pref_theme_cover_based_style_expressive">Expressive</string>
@@ -88,11 +84,6 @@
     <string name="pref_panorama_cover_flow">Panorama Cover Flow</string>
     <string name="pref_panorama_cover_flow_summary">Show panorama cover in Global Search &amp; Suggestions</string>
     <string name="action_display_comfortable_grid_panorama">Panorama comfortable grid</string>
-    <string name="pref_expand_related_mangas">Expand Suggestions</string>
-    <string name="pref_expand_related_mangas_summary">If turned off, Suggestions won\'t automatically load &amp; show expanded</string>
-    <string name="put_related_mangas_in_overflow">Suggestions in overflow</string>
-    <string name="put_related_mangas_in_overflow_summary">Put the Suggestions button in the overflow menu instead of on the entry page</string>
-    <string name="pref_show_home_on_related_mangas_summary">Show an icon while browsing Suggestions to navigate directly back to Home</string>
     <string name="theme_cloudflare">Cloudflare</string>
     <string name="theme_doom">Doom</string>
     <string name="pref_custom_color">Palette Personalizer</string>

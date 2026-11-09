@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Thử luôn</string>
     <string name="update_check_notification_preview_available">Các cập nhật sắp tới (sớm thôi)!</string>
     <string name="changelogs">Lịch sử cập nhật</string>
-    <string name="related_mangas_more">Thêm nhiều truyện giống như này...</string>
     <string name="too_many_in_feed">Vượt quá giới hạn nguồn cấp dữ liệu tối đa (20)</string>
     <string name="current_">Hiện tại: %1$s</string>
     <string name="pref_theme_cover_based">Chủ đề dựa theo ảnh bìa</string>
@@ -65,15 +64,7 @@
     <string name="theme_custom">Chủ đề tùy chỉnh</string>
     <string name="extensions_page_need_refresh">Làm mới danh sách tiện ích mở rộng để cập nhật.</string>
     <string name="extensions_page_more">Thêm tiện ích mở rộng...</string>
-    <string name="pref_expand_related_mangas">Mở rộng phần Gợi ý</string>
-    <string name="pref_expand_related_mangas_summary">Nếu tắt, mục Gợi ý sẽ không tự động tải &amp; hiển thị</string>
-    <string name="put_related_mangas_in_overflow">Đặt Gợi ý trong trình đơn mở rộng</string>
-    <string name="put_related_mangas_in_overflow_summary">Đặt nút Gợi ý vào trong trình đơn mở rộng thay vì hiển thị trên trang truyện</string>
-    <string name="pref_show_home_on_related_mangas">Hiện nút Home cho mục Gợi ý</string>
-    <string name="pref_show_home_on_related_mangas_summary">Hiển thị biểu tượng để về màn hình chính khi đang duyệt các truyện được gợi ý</string>
     <string name="pref_source_related_mangas">Gợi ý</string>
-    <string name="pref_source_related_mangas_summary">Hiển thị các truyện được gợi ý từ website trong khi đang duyệt truyện</string>
-    <string name="related_mangas_website_suggestions">Gợi ý của website</string>
     <string name="action_hide">Ẩn</string>
     <string name="action_sort_feed">Sắp xếp nguồn cấp dữ liệu</string>
     <string name="sort_feed_confirmation">Bạn có muốn sắp xếp các nguồn cấp dữ liệu theo thứ tự bảng chữ cái không?</string>

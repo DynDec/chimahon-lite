@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Şimdi deneyin</string>
     <string name="update_check_notification_preview_available">(yakında) geliyor güncellemeler!</string>
     <string name="changelogs">Değişim Kaydı</string>
-    <string name="related_mangas_more">Buna benzer...</string>
     <string name="too_many_in_feed">Akışınızda çok fazla kaynak var, 20\'den daha fazla eklenemiyor</string>
     <string name="current_">Şu anki: %1$s</string>
     <string name="pref_theme_cover_based">Kapağa dayalı tema</string>
@@ -64,15 +63,7 @@
     <string name="theme_custom">Özel tema</string>
     <string name="extensions_page_need_refresh">Listeyi güncellemek için eklenti sayfasını yenileyin.</string>
     <string name="extensions_page_more">Daha çok eklenti...</string>
-    <string name="pref_expand_related_mangas">Önerileri Genişlet</string>
-    <string name="pref_expand_related_mangas_summary">Kapatılırsa, Öneriler otomatik olarak yüklenmez ve genişletilmiş olarak gösterilmez</string>
-    <string name="put_related_mangas_in_overflow">Taşma menüsünde Öneriler</string>
-    <string name="put_related_mangas_in_overflow_summary">Öneriler butonunu girdi sayfası yerine taşma menüsüne koy</string>
-    <string name="pref_show_home_on_related_mangas">Önerilerden Ana Sayfaya Dön</string>
-    <string name="pref_show_home_on_related_mangas_summary">Önerilere göz atarken doğrudan Ana Sayfa\'ya geri dönmek için bir simge göster</string>
     <string name="pref_source_related_mangas">Öneriler</string>
-    <string name="pref_source_related_mangas_summary">Girdiyi görüntülerken kaynak web sitesinin Önerilerini göster</string>
-    <string name="related_mangas_website_suggestions">Website Önerileri</string>
     <string name="action_hide">Gizle</string>
     <string name="action_sort_feed">Akışları sırala</string>
     <string name="sort_feed_confirmation">Akışları alfabetik olarak sıralamak ister misiniz?</string>

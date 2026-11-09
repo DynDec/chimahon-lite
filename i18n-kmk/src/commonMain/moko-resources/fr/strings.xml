@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Essayer maintenant</string>
     <string name="update_check_notification_preview_available">Mises à jour à venir (bientôt) !</string>
     <string name="changelogs">Journaux des modifications</string>
-    <string name="related_mangas_more">Dans le même style...</string>
     <string name="too_many_in_feed">Trop de sources dans votre flux, vous ne pouvez pas en ajouter plus de 20</string>
     <string name="current_">Actuellement : %1$s</string>
     <string name="pref_theme_cover_based">Thème basé sur la couverture</string>
@@ -62,15 +61,7 @@
     <string name="theme_custom">Thème personnalisé</string>
     <string name="extensions_page_need_refresh">Rafraîchir la page de l\'extension pour mettre à jour la liste.</string>
     <string name="extensions_page_more">Plus d\'extensions...</string>
-    <string name="pref_expand_related_mangas">Développer les suggestions</string>
-    <string name="pref_expand_related_mangas_summary">Si désactivé, les suggestions ne chargeront pas automatiquement &amp; montrer étendu</string>
-    <string name="put_related_mangas_in_overflow">Suggestions en débordement</string>
-    <string name="put_related_mangas_in_overflow_summary">Mettre le bouton Suggestions dans le menu de débordement au lieu de sur la page d\'entrée</string>
-    <string name="pref_show_home_on_related_mangas">Accueil des suggestions</string>
-    <string name="pref_show_home_on_related_mangas_summary">Afficher une icône lors de la navigation dans les suggestions pour revenir directement à la page d\'accueil</string>
     <string name="pref_source_related_mangas">Suggestions</string>
-    <string name="pref_source_related_mangas_summary">Afficher les suggestions du site web source lors de la visualisation de l\'entrée</string>
-    <string name="related_mangas_website_suggestions">Suggestions de site web</string>
     <string name="action_hide">Cacher</string>
     <string name="action_sort_feed">Trier les flux</string>
     <string name="sort_feed_confirmation">Souhaitez-vous trier les flux par ordre alphabétique ?</string>

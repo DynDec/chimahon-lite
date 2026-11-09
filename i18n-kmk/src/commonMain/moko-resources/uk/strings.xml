@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Спробуйте зараз</string>
     <string name="update_check_notification_preview_available">Будучи (скоро) оновлення!</string>
     <string name="changelogs">Список змін</string>
-    <string name="related_mangas_more">Подобається це...</string>
     <string name="too_many_in_feed">Занадто багато джерел у вашій стрічці, не можуть додати більше ніж обмежений (20)</string>
     <string name="current_">Поточна: %1$s</string>
     <string name="pref_theme_cover_based">Тему на основі обкладинки</string>
@@ -64,15 +63,7 @@
     <string name="theme_custom">Задана тема</string>
     <string name="extensions_page_need_refresh">Оновити сторінку розширення для оновлення списку.</string>
     <string name="extensions_page_more">Більше розширень...</string>
-    <string name="pref_expand_related_mangas">Розгорнути пропозиції</string>
-    <string name="pref_expand_related_mangas_summary">Якщо вимкнено, пропозиції не будуть автоматично завантажувати &amp; показати розширене</string>
-    <string name="put_related_mangas_in_overflow">Пропозиції в перевищенні</string>
-    <string name="put_related_mangas_in_overflow_summary">Покласти кнопку Пропозиції у меню над потоком, а не на сторінці матеріалу</string>
-    <string name="pref_show_home_on_related_mangas">Будинок із пропозицій</string>
-    <string name="pref_show_home_on_related_mangas_summary">Показувати значок під час перегляду пропозицій прямо назад до головної сторінки</string>
     <string name="pref_source_related_mangas">Пропозиції</string>
-    <string name="pref_source_related_mangas_summary">Показати пропозиції сайта при перегляді матеріалу</string>
-    <string name="related_mangas_website_suggestions">Пропозиції сайту</string>
     <string name="action_hide">Приховати</string>
     <string name="action_sort_feed">Сортування каналів</string>
     <string name="sort_feed_confirmation">Бажаєте сортувати подачі по алфавіту?</string>

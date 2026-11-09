@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Kokeile nyt</string>
     <string name="update_check_notification_preview_available">Tulevat (pian) päivitykset!</string>
     <string name="changelogs">Muuta Lokeja</string>
-    <string name="related_mangas_more">Enemmän näiden...</string>
     <string name="too_many_in_feed">Liian monta lähdettä rehussa, ei voi lisätä enemmän kuin rajoitettu (20)</string>
     <string name="current_">Nykyinen: %1$s</string>
     <string name="pref_theme_cover_based">Teema perustuu kanteen</string>
@@ -62,15 +61,7 @@
     <string name="theme_custom">Muokattu Teema</string>
     <string name="extensions_page_need_refresh">Päivitä lisäosa sivu päivitettäväksi.</string>
     <string name="extensions_page_more">Lisää laajennuksia...</string>
-    <string name="pref_expand_related_mangas">Laajenna Ehdotukset</string>
-    <string name="pref_expand_related_mangas_summary">Jos pois päältä, Ehdotukset eivät lataa automaattisesti &amp; näytä laajennettu</string>
-    <string name="put_related_mangas_in_overflow">Ehdotukset ylivuoto</string>
-    <string name="put_related_mangas_in_overflow_summary">Laita ehdotuspainike ylivuotovalikkoon sen sijaan, että se olisi merkitty sivulle</string>
-    <string name="pref_show_home_on_related_mangas">Koti ehdotuksista</string>
-    <string name="pref_show_home_on_related_mangas_summary">Näytä kuvake selatessa ehdotuksia navigoidaksesi suoraan takaisin kotiin</string>
     <string name="pref_source_related_mangas">Ehdotukset</string>
-    <string name="pref_source_related_mangas_summary">Näytä lähdesivuston ehdotukset katseltaessa merkintää</string>
-    <string name="related_mangas_website_suggestions">Verkkosivujen Ehdotukset</string>
     <string name="action_hide">Piilota</string>
     <string name="action_sort_feed">Lajittele syötteet</string>
     <string name="sort_feed_confirmation">Haluatko lajitella syötteet aakkosellisesti?</string>

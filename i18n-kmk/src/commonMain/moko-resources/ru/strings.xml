@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Попробовать</string>
     <string name="update_check_notification_preview_available">Скоро (скоро) обновления!</string>
     <string name="changelogs">Сменить логи</string>
-    <string name="related_mangas_more">Больше похожих...</string>
     <string name="too_many_in_feed">Слишком большое количество источников в вашей ленте. Количество не должно превышать 20</string>
     <string name="current_">Текущий: %1$s</string>
     <string name="pref_theme_cover_based">Тема на основе обложки</string>
@@ -64,15 +63,7 @@
     <string name="theme_custom">Пользовательская тема</string>
     <string name="extensions_page_need_refresh">Обновите страницу расширений для обновления списка.</string>
     <string name="extensions_page_more">Больше расширений...</string>
-    <string name="pref_expand_related_mangas">Развернуть предложения</string>
-    <string name="pref_expand_related_mangas_summary">Если выключено, предложения не будут автоматически загружаться и показываться в развернутом виде</string>
-    <string name="put_related_mangas_in_overflow">Предложения в верхнем меню</string>
-    <string name="put_related_mangas_in_overflow_summary">Показывать кнопку предложений в верхнем меню вместо страницы тайтла</string>
-    <string name="pref_show_home_on_related_mangas">Домой из предложений</string>
-    <string name="pref_show_home_on_related_mangas_summary">Показывать значок во время просмотра предложений для перехода непосредственно на Домашний экран</string>
     <string name="pref_source_related_mangas">Предложения</string>
-    <string name="pref_source_related_mangas_summary">Показывать подсказки сайта при просмотре записи</string>
-    <string name="related_mangas_website_suggestions">Предложения сайта</string>
     <string name="action_hide">Скрыть</string>
     <string name="action_sort_feed">Сортировка каналов</string>
     <string name="sort_feed_confirmation">Вы хотите сортировать каналы в алфавитном порядке?</string>

@@ -24,7 +24,6 @@
     <string name="update_check_try_now">Vyzkoušejte nyní</string>
     <string name="update_check_notification_preview_available">Probíhá (brzy) aktualizace!</string>
     <string name="changelogs">Záznamy změn</string>
-    <string name="related_mangas_more">Líbí se mi to...</string>
     <string name="too_many_in_feed">Příliš mnoho zdrojů ve vašem feedu, nemůže přidat více než omezené (20)</string>
     <string name="current_">Aktuální: %1$s</string>
     <string name="pref_theme_cover_based">Šablona založená na obálce</string>
@@ -62,15 +61,7 @@
     <string name="theme_custom">Vlastní šablona</string>
     <string name="extensions_page_need_refresh">Aktualizovat rozšířenou stránku pro aktualizaci seznamu.</string>
     <string name="extensions_page_more">Další rozšíření...</string>
-    <string name="pref_expand_related_mangas">Rozšířit návrhy</string>
-    <string name="pref_expand_related_mangas_summary">Pokud je vypnuto, návrhy se automaticky nenačtou &amp; zobrazit rozšířené</string>
-    <string name="put_related_mangas_in_overflow">Návrhy v přetečení</string>
-    <string name="put_related_mangas_in_overflow_summary">Vložte tlačítko Návrhy do menu přetečení místo na vstupní stránku</string>
-    <string name="pref_show_home_on_related_mangas">Domovská stránka z návrhů</string>
-    <string name="pref_show_home_on_related_mangas_summary">Zobrazit ikonu při prohlížení návrhů pro přímý přechod zpět na Domů</string>
     <string name="pref_source_related_mangas">Návrhy</string>
-    <string name="pref_source_related_mangas_summary">Zobrazit návrhy zdrojových stránek při prohlížení záznamu</string>
-    <string name="related_mangas_website_suggestions">Návrhy webových stránek</string>
     <string name="action_hide">Skrýt</string>
     <string name="action_sort_feed">Řadit kanály</string>
     <string name="sort_feed_confirmation">Chcete seřadit kanály abecedně?</string>
