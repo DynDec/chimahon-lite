@@ -538,6 +538,9 @@ class LocalSource(
                     } else {
                         chapterFile.nameWithoutExtension
                     }.orEmpty()
+                        // Chimahon -->
+                        .let(LocalChapterName::clean)
+                    // Chimahon <--
                     date_upload = chapterFile.lastModified()
                     chapter_number = ChapterRecognition
                         .parseChapterNumber(manga.title, this.name, this.chapter_number.toDouble())
@@ -553,6 +556,10 @@ class LocalSource(
                             setChapterDetailsFromComicInfoFile(stream, this)
                         }
                     }
+                    // Chimahon -->
+                    // The metadata title can carry the same notes as the file name.
+                    name = LocalChapterName.clean(name)
+                    // Chimahon <--
                 }
             }
             .sortedWith { c1, c2 ->

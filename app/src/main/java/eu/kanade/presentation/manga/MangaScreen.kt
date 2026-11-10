@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -27,6 +29,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.HorizontalDivider
@@ -72,6 +75,7 @@ import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.components.relativeDateText
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
+import eu.kanade.presentation.manga.components.ChapterOcrIndicator
 import eu.kanade.presentation.manga.components.MangaActionRow
 import eu.kanade.presentation.manga.components.MangaBottomActionMenu
 import eu.kanade.presentation.manga.components.MangaChapterGridItem
@@ -116,6 +120,7 @@ import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.TwoPanelBox
 import tachiyomi.presentation.core.components.VerticalFastScroller
 import tachiyomi.presentation.core.components.material.PullRefresh
+import tachiyomi.presentation.core.components.material.SECONDARY_ALPHA
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
@@ -411,6 +416,9 @@ private fun MangaScreenSmallImpl(
             third = state.isAnySelected,
         )
     }
+    // Chimahon -->
+    val singleVolume = state.singleVolume
+    // Chimahon <--
     // SY -->
     val metadataDescription = metadataDescription(state.source)
     var maxWidth by remember {
@@ -601,6 +609,9 @@ private fun MangaScreenSmallImpl(
                         key = MangaScreenItem.INFO_BOX,
                         contentType = MangaScreenItem.INFO_BOX,
                     ) {
+                        // Chimahon -->
+                        val haptic = LocalHapticFeedback.current
+                        // Chimahon <--
                         MangaInfoBox(
                             isTabletUi = false,
                             appBarPadding = topPadding,
@@ -608,7 +619,21 @@ private fun MangaScreenSmallImpl(
                             // KMK -->
                             isSourceIncognito = remember { state.source.isIncognitoModeEnabled() },
                             // KMK <--
-                            onCoverClick = onCoverClicked,
+                            // Chimahon -->
+                            // A single volume is the book itself: its cover opens it rather than the cover viewer.
+                            onCoverClick = if (singleVolume != null) {
+                                {
+                                    onChapterItemClick(
+                                        chapterItem = singleVolume,
+                                        isAnyChapterSelected = isAnySelected,
+                                        onToggleSelection = { onChapterSelected(singleVolume, it, false) },
+                                        onChapterClicked = onChapterClicked,
+                                    )
+                                }
+                            } else {
+                                onCoverClicked
+                            },
+                            // Chimahon <--
                             doSearch = onSearch,
                             // KMK -->
                             librarySearch = librarySearch,
@@ -616,7 +641,18 @@ private fun MangaScreenSmallImpl(
                             coverRatio = coverRatio,
                             // KMK <--
                             // Chimahon -->
-                            showCover = !state.showChapterGrid,
+                            showCover = !state.showChapterGrid || singleVolume != null,
+                            coverMaxWidth = if (singleVolume != null) SingleVolumeCoverWidth else 100.dp,
+                            coverSelected = singleVolume?.selected == true,
+                            onCoverLongClick = singleVolume?.let {
+                                {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onChapterSelected(it, !it.selected, true)
+                                }
+                            },
+                            extraInfo = singleVolume?.let {
+                                { SingleVolumeStatus(it, state.alwaysShowReadingProgress) }
+                            },
                             // Chimahon <--
                         )
                     }
@@ -675,6 +711,7 @@ private fun MangaScreenSmallImpl(
                     // SY <--
 
                     // Chimahon -->
+                    if (singleVolume != null) return@LazyColumn
                     if (state.showChapterGrid) {
                         item(
                             key = MangaScreenItem.CHAPTER_HEADER,
@@ -1286,7 +1323,43 @@ private fun chapterGridColumns(listWidth: Int): Int {
 
 @Composable
 private fun ChapterGridDivider() {
-    HorizontalDivider(modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 12.dp))
+    HorizontalDivider(modifier = Modifier.padding(start = 16.dp, top = 20.dp, end = 16.dp, bottom = 12.dp))
+}
+
+private val SingleVolumeCoverWidth = 160.dp
+
+/** What a chapter row would say about the volume, shown beside its cover. */
+@Composable
+private fun SingleVolumeStatus(volume: ChapterList.Item, alwaysShowReadingProgress: Boolean) {
+    val chapter = volume.chapter
+    val status = when {
+        chapter.lastPageRead > 0L && (!chapter.read || alwaysShowReadingProgress) ->
+            stringResource(MR.strings.chapter_progress, chapter.lastPageRead + 1)
+        chapter.read -> stringResource(MR.strings.label_read_chapters)
+        else -> null
+    }
+    Row(
+        modifier = Modifier.padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (chapter.bookmark) {
+            Icon(
+                imageVector = Icons.Filled.Bookmark,
+                contentDescription = stringResource(MR.strings.action_filter_bookmarked),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        if (status != null) {
+            Text(
+                text = status,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECONDARY_ALPHA),
+            )
+        }
+        ChapterOcrIndicator(isOcrReady = volume.isOcrReady, isOcrRunning = volume.isOcrRunning)
+    }
 }
 
 /** Chapters as rows of covers. Rows rather than a lazy grid keep the list state the toolbar and scroller use. */

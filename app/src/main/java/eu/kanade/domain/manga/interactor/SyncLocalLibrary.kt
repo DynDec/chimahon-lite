@@ -201,7 +201,34 @@ class SyncLocalLibrary(
         if (added.isNotEmpty()) {
             logcat(LogPriority.INFO) { "Local library sync: listed chapters of ${added.size} in ${elapsedMs(start)} ms" }
         }
+        renameChapters(listed, skip = added.mapTo(HashSet()) { it.id })
         return result
+    }
+
+    /**
+     * Chapter names are stored when a manga's chapters are listed, so a change to how local chapters are named
+     * reaches the library only by listing them again. Done once per change, for the manga not just listed. A manga
+     * whose folder is not [listed] is left alone: listing a folder that is gone would drop its chapters.
+     */
+    private suspend fun renameChapters(listed: Map<String, Listed>, skip: Set<Long>) {
+        val version = storagePreferences.localChapterNameVersion()
+        if (version.get() >= CHAPTER_NAME_VERSION) return
+        val start = System.nanoTime()
+        val library = mangas.getMangaBySourceId(LocalSource.ID)
+            .filter { it.favorite && it.id !in skip && listedKeyOf(it.url, listed) != null }
+        for (manga in library) {
+            try {
+                updateMangaFromRemote(manga, fetchDetails = false, fetchChapters = true)
+                    .exceptionOrNull()
+                    ?.let { logcat(LogPriority.ERROR, it) { "Could not rename chapters of ${manga.title}" } }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR, e) { "Could not rename chapters of ${manga.title}" }
+            }
+        }
+        version.set(CHAPTER_NAME_VERSION)
+        logcat(LogPriority.INFO) { "Local library sync: renamed chapters of ${library.size} in ${elapsedMs(start)} ms" }
     }
 
     /** The manga folder, then each other library folder that is not the same folder. */
@@ -247,5 +274,8 @@ class SyncLocalLibrary(
 
     private companion object {
         val mutex = Mutex()
+
+        /** Bump when local chapter names are derived differently, so the library takes up the new names. */
+        const val CHAPTER_NAME_VERSION = 1
     }
 }

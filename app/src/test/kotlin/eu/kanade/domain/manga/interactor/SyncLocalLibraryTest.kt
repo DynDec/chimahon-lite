@@ -59,6 +59,9 @@ class SyncLocalLibraryTest {
     private val mangaFolderCategory = InMemoryPreference("category", null, 0L)
     private val libraryFolders = InMemoryPreference<List<LibraryFolder>>("folders", null, emptyList())
 
+    /** Up to date unless a test sets it back, so only that test lists chapters again. */
+    private val chapterNameVersion = InMemoryPreference("names", Int.MAX_VALUE, 0)
+
     /** Database rows by URL; a sync changes them in place. */
     private val rows = LinkedHashMap<String, Manga>()
     private var listed = listOf<String>()
@@ -95,6 +98,7 @@ class SyncLocalLibraryTest {
         every { storagePreferences.localLibraryMissingFolders() } returns missing
         every { storagePreferences.mangaDirectoryCategory() } returns mangaFolderCategory
         every { storagePreferences.libraryFolders() } returns libraryFolders
+        every { storagePreferences.localChapterNameVersion() } returns chapterNameVersion
         every { storageManager.getFileFromUri(any()) } answers { folder(firstArg()) }
         coEvery { source.getMangaIn(any()) } answers {
             listedIn.getValue(firstArg<UniFile>().uri.toString())
@@ -142,6 +146,25 @@ class SyncLocalLibraryTest {
         assertEquals(setOf("new", "browsed", "favorite"), favorites())
         assertEquals(setOf("new", "browsed", "removed", "favorite"), known.get())
         assertEquals(setOf("gone"), missing.get())
+    }
+
+    @Test
+    fun `a change to chapter naming lists the chapters of listed library manga again, once`() = runTest {
+        val kept = row("kept", favorite = true)
+        val gone = row("gone", favorite = true)
+        val removed = row("removed")
+        listed = listOf("kept", "removed")
+        known.set(setOf("kept", "gone", "removed"))
+        chapterNameVersion.set(0)
+
+        sync.await()
+        sync.await()
+
+        coVerify(exactly = 1) { updateMangaFromRemote(match<Manga> { it.id == kept.id }, false, true, any(), any(), any()) }
+        coVerify(exactly = 0) { updateMangaFromRemote(match<Manga> { it.id == gone.id }, any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) {
+            updateMangaFromRemote(match<Manga> { it.id == removed.id }, any(), any(), any(), any(), any())
+        }
     }
 
     @Test

@@ -2024,6 +2024,11 @@ class MangaScreenModel(
             val showChapterGrid by lazy {
                 ChapterLayout.isGrid(manga, chapters.map { it.chapter.name })
             }
+
+            /** The only volume of a manga that would otherwise be a shelf of one. */
+            val singleVolume by lazy {
+                chapters.singleOrNull()?.takeIf { showChapterGrid }
+            }
             // Chimahon <--
 
             val chapterListItems by lazy {

@@ -27,6 +27,9 @@ class StoragePreferences(
     fun localLibraryMissingFolders() =
         preferenceStore.getStringSet(Preference.appStateKey("local_library_missing"), emptySet())
 
+    // The naming rules the stored local chapter names follow. The library sync lists chapters again when it is behind.
+    fun localChapterNameVersion() = preferenceStore.getInt(Preference.appStateKey("local_chapter_name_version"), 0)
+
     // The category the library sync adds manga from the manga folder to; 0 adds them to no category.
     fun mangaDirectoryCategory() = preferenceStore.getLong(Preference.appStateKey("manga_dir_category"), 0L)
 
