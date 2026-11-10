@@ -20,7 +20,9 @@ object ChapterLayout {
         return when (manga.chapterLayout) {
             Manga.CHAPTER_LAYOUT_GRID -> true
             Manga.CHAPTER_LAYOUT_LIST -> false
-            else -> manga.isLocal() && looksLikeVolumes(chapterNames)
+            // A manga whose chapters are not listed yet starts as a grid, the likelier outcome, so that
+            // the screen does not open as a list and then turn into a grid.
+            else -> manga.isLocal() && (chapterNames.isEmpty() || looksLikeVolumes(chapterNames))
         }
     }
 
