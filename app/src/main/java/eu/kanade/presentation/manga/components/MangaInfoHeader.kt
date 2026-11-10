@@ -7,8 +7,6 @@ import androidx.compose.animation.graphics.res.animatedVectorResource
 import androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter
 import androidx.compose.animation.graphics.vector.AnimatedImageVector
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -131,10 +129,6 @@ fun MangaInfoBox(
     // KMK <--
     // Chimahon -->
     showCover: Boolean = true,
-    coverMaxWidth: Dp = 100.dp,
-    coverSelected: Boolean = false,
-    onCoverLongClick: (() -> Unit)? = null,
-    extraInfo: (@Composable () -> Unit)? = null,
     // Chimahon <--
 ) {
     // KMK -->
@@ -201,10 +195,6 @@ fun MangaInfoBox(
                     // KMK <--
                     // Chimahon -->
                     showCover = showCover,
-                    coverMaxWidth = coverMaxWidth,
-                    coverSelected = coverSelected,
-                    onCoverLongClick = onCoverLongClick,
-                    extraInfo = extraInfo,
                     // Chimahon <--
                 )
             } else {
@@ -533,30 +523,8 @@ private fun MangaAndSourceTitlesSmall(
     // KMK <--
     // Chimahon -->
     showCover: Boolean = true,
-    coverMaxWidth: Dp = 100.dp,
-    coverSelected: Boolean = false,
-    onCoverLongClick: (() -> Unit)? = null,
-    extraInfo: (@Composable () -> Unit)? = null,
     // Chimahon <--
 ) {
-    // Chimahon -->
-    val coverModifier = Modifier
-        .then(
-            if (coverSelected) {
-                Modifier.border(3.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.extraSmall)
-            } else {
-                Modifier
-            },
-        )
-        .then(
-            if (onCoverLongClick != null) {
-                Modifier.combinedClickable(onClick = onCoverClick, onLongClick = onCoverLongClick)
-            } else {
-                Modifier
-            },
-        )
-    val onCoverTap = onCoverClick.takeIf { onCoverLongClick == null }
-    // Chimahon <--
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -572,15 +540,14 @@ private fun MangaAndSourceTitlesSmall(
                 modifier = Modifier
                     .sizeIn(maxHeight = 100.dp)
                     // KMK -->
-                    .align(if (topAlignCover) Alignment.Top else Alignment.CenterVertically)
-                    // KMK <--
-                    .then(coverModifier),
+                    .align(if (topAlignCover) Alignment.Top else Alignment.CenterVertically),
+                // KMK <--
                 data = ImageRequest.Builder(LocalContext.current)
                     .data(manga)
                     .crossfade(true)
                     .build(),
                 contentDescription = stringResource(MR.strings.manga_cover),
-                onClick = onCoverTap,
+                onClick = onCoverClick,
                 // KMK -->
                 onCoverLoaded = { mangaCover, result ->
                     val image = result.result.image
@@ -593,17 +560,16 @@ private fun MangaAndSourceTitlesSmall(
             // KMK <--
             MangaCover.Book(
                 modifier = Modifier
-                    .sizeIn(maxWidth = coverMaxWidth)
+                    .sizeIn(maxWidth = 100.dp)
                     // KMK -->
-                    .align(if (topAlignCover) Alignment.Top else Alignment.CenterVertically)
-                    // KMK <--
-                    .then(coverModifier),
+                    .align(if (topAlignCover) Alignment.Top else Alignment.CenterVertically),
+                // KMK <--
                 data = ImageRequest.Builder(LocalContext.current)
                     .data(manga)
                     .crossfade(true)
                     .build(),
                 contentDescription = stringResource(MR.strings.manga_cover),
-                onClick = onCoverTap,
+                onClick = onCoverClick,
                 // KMK -->
                 onCoverLoaded = { mangaCover, result ->
                     val image = result.result.image
@@ -629,9 +595,6 @@ private fun MangaAndSourceTitlesSmall(
                 librarySearch = librarySearch,
                 // KMK <--
             )
-            // Chimahon -->
-            extraInfo?.invoke()
-            // Chimahon <--
         }
     }
 }

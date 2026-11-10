@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material3.Icon
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -33,7 +35,11 @@ import tachiyomi.presentation.core.components.material.DISABLED_ALPHA
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.selectedBackground
 
-/** A chapter shown by its cover, the way a volume sits on a shelf. */
+/**
+ * A chapter shown by its cover, the way a volume sits on a shelf.
+ *
+ * A [wide] item has a row to itself: its cover stays book-sized in the middle and its title is set larger.
+ */
 @Composable
 fun MangaChapterGridItem(
     cover: ChapterCover,
@@ -46,6 +52,7 @@ fun MangaChapterGridItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    wide: Boolean = false,
 ) {
     val contentAlpha = if (read) DISABLED_ALPHA else 1f
     Column(
@@ -53,11 +60,13 @@ fun MangaChapterGridItem(
             .clip(MaterialTheme.shapes.small)
             .selectedBackground(selected)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(4.dp),
+            .padding(if (wide) 12.dp else 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .widthIn(max = WideCoverMaxWidth * 2)
+                .fillMaxWidth(if (wide) 0.5f else 1f)
                 .aspectRatio(MangaCover.Book.ratio)
                 .clip(MaterialTheme.shapes.extraSmall)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
@@ -97,12 +106,16 @@ fun MangaChapterGridItem(
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.bodySmall,
+            style = if (wide) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodySmall,
+            textAlign = if (wide) TextAlign.Center else TextAlign.Start,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
-                .padding(top = 4.dp)
+                .fillMaxWidth()
+                .padding(top = if (wide) 12.dp else 4.dp)
                 .alpha(contentAlpha),
         )
     }
 }
+
+private val WideCoverMaxWidth = 200.dp
