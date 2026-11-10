@@ -61,15 +61,27 @@ class SyncLocalLibrary(
 
     private class Listed(val manga: SManga, val categoryId: Long)
 
+    /** A library change, with what listing chapters afterwards needs. [restoredKeys] are of manga taken back in. */
+    private class Applied(
+        val result: Result,
+        val added: List<Manga>,
+        val restoredKeys: Set<String>,
+        val listed: Map<String, Listed>,
+    )
+
     /**
      * Null when no library folder can be read, in which case the library is left unchanged. [onApplied] runs once
      * the library has changed, before the chapters of added manga are listed.
      */
-    suspend fun await(onApplied: suspend (Result) -> Unit = {}): Result? = mutex.withLock {
-        withIOContext { sync(onApplied) }
+    suspend fun await(onApplied: suspend (Result) -> Unit = {}): Result? = withIOContext {
+        // Listing chapters can take minutes, so a sync waits only for another sync's library change, not for it.
+        val applied = applyMutex.withLock { apply() } ?: return@withIOContext null
+        onApplied(applied.result)
+        chaptersMutex.withLock { listChapters(applied) }
+        applied.result
     }
 
-    private suspend fun sync(onApplied: suspend (Result) -> Unit): Result? {
+    private suspend fun apply(): Applied? {
         val start = System.nanoTime()
         sourceManager.isInitialized.first { it }
         val source = sourceManager.get(LocalSource.ID) as? LocalSource ?: return null
@@ -182,10 +194,14 @@ class SyncLocalLibrary(
                 "${elapsedMs(start, listedAt)} ms, added ${result.added} and removed ${result.removed} in " +
                 "${elapsedMs(start)} ms"
         }
-        onApplied(result)
+        return Applied(result, added, restoredKeys = missingKeys, listed = listed)
+    }
 
+    private suspend fun listChapters(applied: Applied) {
+        val start = System.nanoTime()
+        val added = applied.added
         for (manga in added) {
-            val restored = fileUriKey(manga.url) in missingKeys
+            val restored = fileUriKey(manga.url) in applied.restoredKeys
             if (!restored) setMangaDefaultChapterFlags.await(manga)
             // List chapters now so the library shows unread counts without opening each manga.
             try {
@@ -201,8 +217,7 @@ class SyncLocalLibrary(
         if (added.isNotEmpty()) {
             logcat(LogPriority.INFO) { "Local library sync: listed chapters of ${added.size} in ${elapsedMs(start)} ms" }
         }
-        renameChapters(listed, skip = added.mapTo(HashSet()) { it.id })
-        return result
+        renameChapters(applied.listed, skip = added.mapTo(HashSet()) { it.id })
     }
 
     /**
@@ -273,7 +288,8 @@ class SyncLocalLibrary(
     }
 
     private companion object {
-        val mutex = Mutex()
+        val applyMutex = Mutex()
+        val chaptersMutex = Mutex()
 
         /** Bump when local chapter names are derived differently, so the library takes up the new names. */
         const val CHAPTER_NAME_VERSION = 1
