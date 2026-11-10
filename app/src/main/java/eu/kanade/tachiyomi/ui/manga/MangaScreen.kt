@@ -439,6 +439,7 @@ class MangaScreen(
                 onDisplayModeChanged = screenModel::setDisplayMode,
                 // Chimahon -->
                 onLayoutChanged = screenModel::setChapterLayout,
+                showsGrid = successState.showChapterGrid,
                 // Chimahon <--
                 onSetAsDefault = screenModel::setCurrentSettingsAsDefault,
                 onResetToDefault = screenModel::resetToDefaultSettings,

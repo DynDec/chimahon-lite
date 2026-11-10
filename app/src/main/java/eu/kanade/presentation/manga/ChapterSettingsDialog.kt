@@ -51,6 +51,7 @@ fun ChapterSettingsDialog(
     onDisplayModeChanged: (Long) -> Unit,
     // Chimahon -->
     onLayoutChanged: (Long) -> Unit,
+    showsGrid: Boolean,
     // Chimahon <--
     onSetAsDefault: (applyToExistingManga: Boolean) -> Unit,
     onResetToDefault: () -> Unit,
@@ -115,6 +116,7 @@ fun ChapterSettingsDialog(
                         // Chimahon -->
                         layout = manga?.chapterLayout ?: Manga.CHAPTER_LAYOUT_AUTO,
                         onLayoutSelected = onLayoutChanged,
+                        showsGrid = showsGrid,
                         // Chimahon <--
                     )
                 }
@@ -173,6 +175,7 @@ private fun ColumnScope.DisplayPage(
     // Chimahon -->
     layout: Long,
     onLayoutSelected: (Long) -> Unit,
+    showsGrid: Boolean,
     // Chimahon <--
 ) {
     // Chimahon -->
@@ -187,7 +190,7 @@ private fun ColumnScope.DisplayPage(
             onClick = { onLayoutSelected(mode) },
         )
     }
-    if (layout != Manga.CHAPTER_LAYOUT_LIST) {
+    if (showsGrid) {
         val configuration = LocalConfiguration.current
         val columnPreference = remember(configuration.orientation) {
             val preferences = Injekt.get<LibraryPreferences>()
