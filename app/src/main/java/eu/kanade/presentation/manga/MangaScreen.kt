@@ -1268,12 +1268,13 @@ private val ChapterGridMinCellWidth = 112.dp
 private const val ChapterGridMinColumns = 3
 
 /**
- * The number of covers per row: one for a lone volume, else what the user chose for this orientation,
- * else as many as fit [listWidth].
+ * The number of covers per row: one for a lone volume unless the user turned that off, else what the user
+ * chose for this orientation, else as many as fit [listWidth].
  */
 @Composable
 private fun chapterGridColumns(listWidth: Int, chapterCount: Int): Int {
-    if (chapterCount == 1) return 1
+    val singleVolumeRow by remember { Injekt.get<LibraryPreferences>().singleVolumeRow() }.collectAsState()
+    if (chapterCount == 1 && singleVolumeRow) return 1
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val preference = remember(isLandscape) {
         val preferences = Injekt.get<LibraryPreferences>()

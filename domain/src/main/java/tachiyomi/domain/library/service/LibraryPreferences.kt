@@ -38,6 +38,7 @@ class LibraryPreferences(
     // Chimahon -->
     fun volumePortraitColumns() = preferenceStore.getInt("pref_volume_columns_portrait", 0)
     fun volumeLandscapeColumns() = preferenceStore.getInt("pref_volume_columns_landscape", 0)
+    fun singleVolumeRow() = preferenceStore.getBoolean("pref_single_volume_row", true)
     // Chimahon <--
 
     fun animePortraitColumns() = preferenceStore.getInt("pref_anime_library_columns_portrait_key", 0)

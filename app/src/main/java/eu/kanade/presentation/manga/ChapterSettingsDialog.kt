@@ -30,6 +30,7 @@ import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
+import tachiyomi.presentation.core.components.CheckboxItem
 import tachiyomi.presentation.core.components.LabeledCheckbox
 import tachiyomi.presentation.core.components.RadioItem
 import tachiyomi.presentation.core.components.SliderItem
@@ -204,6 +205,10 @@ private fun ColumnScope.DisplayPage(
             valueString = if (columns > 0) columns.toString() else stringResource(MR.strings.label_auto),
             onChange = columnPreference::set,
             pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        )
+        CheckboxItem(
+            label = stringResource(MR.strings.pref_single_volume_row),
+            pref = remember { Injekt.get<LibraryPreferences>().singleVolumeRow() },
         )
     }
     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
