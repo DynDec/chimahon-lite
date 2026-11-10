@@ -35,6 +35,11 @@ class LibraryPreferences(
     fun portraitColumns() = preferenceStore.getInt("pref_library_columns_portrait_key", 0)
     fun landscapeColumns() = preferenceStore.getInt("pref_library_columns_landscape_key", 0)
 
+    // Chimahon -->
+    fun volumePortraitColumns() = preferenceStore.getInt("pref_volume_columns_portrait", 0)
+    fun volumeLandscapeColumns() = preferenceStore.getInt("pref_volume_columns_landscape", 0)
+    // Chimahon <--
+
     fun animePortraitColumns() = preferenceStore.getInt("pref_anime_library_columns_portrait_key", 0)
     fun animeLandscapeColumns() = preferenceStore.getInt("pref_anime_library_columns_landscape_key", 0)
 

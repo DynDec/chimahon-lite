@@ -1,5 +1,6 @@
 package eu.kanade.presentation.manga
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -15,22 +16,29 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.core.common.preference.TriState
+import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.components.LabeledCheckbox
 import tachiyomi.presentation.core.components.RadioItem
+import tachiyomi.presentation.core.components.SliderItem
 import tachiyomi.presentation.core.components.SortItem
 import tachiyomi.presentation.core.components.TriStateItem
 import tachiyomi.presentation.core.i18n.stringResource
+import tachiyomi.presentation.core.util.collectAsState
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 @Composable
 fun ChapterSettingsDialog(
@@ -176,6 +184,26 @@ private fun ColumnScope.DisplayPage(
             label = stringResource(titleRes),
             selected = layout == mode,
             onClick = { onLayoutSelected(mode) },
+        )
+    }
+    if (layout != Manga.CHAPTER_LAYOUT_LIST) {
+        val configuration = LocalConfiguration.current
+        val columnPreference = remember(configuration.orientation) {
+            val preferences = Injekt.get<LibraryPreferences>()
+            if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                preferences.volumeLandscapeColumns()
+            } else {
+                preferences.volumePortraitColumns()
+            }
+        }
+        val columns by columnPreference.collectAsState()
+        SliderItem(
+            value = columns,
+            valueRange = 0..10,
+            label = stringResource(MR.strings.pref_library_columns),
+            valueString = if (columns > 0) columns.toString() else stringResource(MR.strings.label_auto),
+            onChange = columnPreference::set,
+            pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         )
     }
     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

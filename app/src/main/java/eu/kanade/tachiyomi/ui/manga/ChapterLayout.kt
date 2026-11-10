@@ -29,12 +29,4 @@ object ChapterLayout {
         val chapters = chapterNames.count { chapterName.containsMatchIn(it) }
         return chapters * 2 <= chapterNames.size
     }
-
-    /** [chapterName] without the series title that volume files usually repeat. */
-    fun volumeLabel(mangaTitle: String, chapterName: String): String {
-        if (mangaTitle.isBlank()) return chapterName
-        return chapterName.replace(mangaTitle, "", ignoreCase = true)
-            .trim(' ', '-', '_', '　', '.', ',')
-            .ifBlank { chapterName }
-    }
 }

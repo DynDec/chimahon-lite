@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.outlined.AttachMoney
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Done
@@ -232,6 +233,7 @@ fun MangaActionRow(
     // Chimahon -->
     hasNotes: Boolean = false,
     onNotesClicked: (() -> Unit)? = null,
+    onRecommendClicked: (() -> Unit)? = null,
     // Chimahon <--
 ) {
     val defaultActionButtonColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
@@ -248,6 +250,16 @@ fun MangaActionRow(
             onClick = onAddToLibraryClicked,
             onLongClick = onEditCategory,
         )
+        // Chimahon -->
+        if (onRecommendClicked != null) {
+            MangaActionButton(
+                title = stringResource(MR.strings.action_recommendations),
+                icon = Icons.Outlined.AutoAwesome,
+                color = defaultActionButtonColor,
+                onClick = onRecommendClicked,
+            )
+        }
+        // Chimahon <--
         MangaActionButton(
             title = if (trackingCount == 0) {
                 stringResource(MR.strings.manga_tracking_tab)
@@ -943,6 +955,10 @@ private fun RowScope.MangaActionButton(
                 color = color,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
+                // Chimahon -->
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                // Chimahon <--
             )
         }
     }

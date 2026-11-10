@@ -98,7 +98,7 @@ fun MangaChapterGridItem(
         Text(
             text = title,
             style = MaterialTheme.typography.bodySmall,
-            maxLines = 2,
+            maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .padding(top = 4.dp)

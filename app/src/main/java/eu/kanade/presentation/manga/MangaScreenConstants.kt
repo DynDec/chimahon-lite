@@ -35,6 +35,7 @@ enum class MangaScreenItem {
     CHAPTER,
 
     // Chimahon -->
+    CHAPTER_GRID_DIVIDER,
     CHAPTER_GRID_ROW,
     // Chimahon <--
 

@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.ui.manga
 
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -32,12 +31,5 @@ class ChapterLayoutTest {
     fun `long series and empty series are shown as a list`() {
         assertFalse(ChapterLayout.looksLikeVolumes(List(61) { "${it + 1}" }))
         assertFalse(ChapterLayout.looksLikeVolumes(emptyList()))
-    }
-
-    @Test
-    fun `volume label drops the series title`() {
-        assertEquals("第01巻", ChapterLayout.volumeLabel("やがて君になる", "やがて君になる 第01巻"))
-        assertEquals("v02", ChapterLayout.volumeLabel("Series", "Series - v02"))
-        assertEquals("Series", ChapterLayout.volumeLabel("Series", "Series"))
     }
 }
