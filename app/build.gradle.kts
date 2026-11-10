@@ -23,8 +23,8 @@ android {
     defaultConfig {
         applicationId = "app.chimahon.lite"
 
-        versionCode = releaseVersionCode ?: 9
-        versionName = releaseVersionName ?: "1.3.2"
+        versionCode = releaseVersionCode ?: 10
+        versionName = releaseVersionName ?: "1.4.0"
 
         buildConfigField("String", "COMMIT_COUNT", "\"${getCommitCount()}\"")
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
