@@ -280,6 +280,11 @@ fun LibraryBottomActionMenu(
     // Chimahon <--
     modifier: Modifier = Modifier,
 ) {
+    // Chimahon -->
+    // The selection is cleared as the menu closes: keep its buttons as they were while it slides away.
+    val showDetails = remember { booleanArrayOf(false) }
+    if (visible) showDetails[0] = onDetailsClicked != null
+    // Chimahon <--
     AnimatedVisibility(
         visible = visible,
         enter = expandVertically(animationSpec = tween(delayMillis = 300)),
@@ -314,13 +319,13 @@ fun LibraryBottomActionMenu(
                     .padding(horizontal = 8.dp, vertical = 12.dp),
             ) {
                 // Chimahon -->
-                if (onDetailsClicked != null) {
+                if (showDetails[0]) {
                     Button(
                         title = stringResource(MR.strings.action_open_details),
                         icon = Icons.Outlined.Info,
                         toConfirm = confirm[7],
                         onLongClick = { onLongClickItem(7) },
-                        onClick = onDetailsClicked,
+                        onClick = { onDetailsClicked?.invoke() },
                     )
                 }
                 // Chimahon <--
