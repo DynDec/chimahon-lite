@@ -65,8 +65,8 @@ fun MangaChapterGridItem(
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = WideCoverMaxWidth * 2)
-                .fillMaxWidth(if (wide) 0.5f else 1f)
+                .widthIn(max = WideCoverMaxWidth / WideCoverFraction)
+                .fillMaxWidth(if (wide) WideCoverFraction else 1f)
                 .aspectRatio(MangaCover.Book.ratio)
                 .clip(MaterialTheme.shapes.extraSmall)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
@@ -118,4 +118,5 @@ fun MangaChapterGridItem(
     }
 }
 
-private val WideCoverMaxWidth = 200.dp
+private const val WideCoverFraction = 0.93f
+private val WideCoverMaxWidth = 360.dp
