@@ -57,6 +57,7 @@ import mihon.feature.trackadd.TrackAddScreen
 import mihon.feature.trackadd.components.TrackAddTrackerPicker
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
+import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.library.model.LibraryManga
@@ -216,6 +217,20 @@ data object LibraryTab : Tab {
                         state.selectionMode &&
                             Injekt.get<TrackerManager>().loggedInTrackers().any { it !is EnhancedTracker }
                     },
+                    // Chimahon -->
+                    // A manga whose tap opens the reader still needs a way to its own screen.
+                    onDetailsClicked = state.selection.singleOrNull()
+                        ?.takeIf { id ->
+                            state.libraryData.favoritesById[id]?.libraryManga
+                                ?.let(screenModel::opensSingleVolume) == true
+                        }
+                        ?.let { id ->
+                            {
+                                screenModel.clearSelection()
+                                navigator.push(MangaScreen(id))
+                            }
+                        },
+                    // Chimahon <--
                 )
             },
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -251,7 +266,24 @@ data object LibraryTab : Tab {
                         hasActiveFilters = state.hasActiveFilters,
                         showPageTabs = state.showCategoryTabs || !state.searchQuery.isNullOrEmpty(),
                         onChangeCurrentPage = screenModel::updateActiveCategoryIndex,
-                        onClickManga = { navigator.push(MangaScreen(it)) },
+                        // Chimahon -->
+                        onClickManga = { libraryManga ->
+                            if (screenModel.opensSingleVolume(libraryManga)) {
+                                scope.launchIO {
+                                    val chapter = screenModel.getSingleVolume(libraryManga)
+                                    if (chapter != null) {
+                                        context.startActivity(
+                                            ReaderActivity.newIntent(context, chapter.mangaId, chapter.id),
+                                        )
+                                    } else {
+                                        withUIContext { navigator.push(MangaScreen(libraryManga.manga.id)) }
+                                    }
+                                }
+                            } else {
+                                navigator.push(MangaScreen(libraryManga.manga.id))
+                            }
+                        },
+                        // Chimahon <--
                         onContinueReadingClicked = { it: LibraryManga ->
                             scope.launchIO {
                                 val chapter = screenModel.getNextUnreadChapter(it.manga)

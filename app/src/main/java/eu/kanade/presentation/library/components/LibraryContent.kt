@@ -38,7 +38,9 @@ fun LibraryContent(
     hasActiveFilters: Boolean,
     showPageTabs: Boolean,
     onChangeCurrentPage: (Int) -> Unit,
-    onClickManga: (Long) -> Unit,
+    // Chimahon -->
+    onClickManga: (LibraryManga) -> Unit,
+    // Chimahon <--
     onContinueReadingClicked: ((LibraryManga) -> Unit)?,
     onToggleSelection: (Category, LibraryManga) -> Unit,
     onToggleRangeSelection: (Category, LibraryManga) -> Unit,
@@ -134,7 +136,9 @@ fun LibraryContent(
                     if (selection.isNotEmpty()) {
                         onToggleSelection(category, manga)
                     } else {
-                        onClickManga(manga.manga.id)
+                        // Chimahon -->
+                        onClickManga(manga)
+                        // Chimahon <--
                     }
                 },
                 onLongClickManga = onToggleRangeSelection,

@@ -1822,6 +1822,8 @@
     <string name="library_folders">Library folders</string>
     <string name="chapter_layout_grid">Grid</string>
     <string name="pref_single_volume_row">One per row for single volumes</string>
+    <string name="pref_library_open_single_volume">Open single volumes in the reader</string>
+    <string name="action_open_details">Details</string>
     <string name="action_recommendations">Similar</string>
     <string name="library_folders_add">Add folder</string>
     <string name="library_folder_exists">This folder is already a library folder</string>

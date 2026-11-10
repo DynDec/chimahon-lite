@@ -818,6 +818,18 @@ class LibraryScreenModel(
             .reduce { set1, set2 -> set1.intersect(set2) }
     }
 
+    // Chimahon -->
+    /** The chapter a tap on [libraryManga] opens in the reader: its only one, when that option is on. */
+    suspend fun getSingleVolume(libraryManga: LibraryManga): Chapter? {
+        if (!opensSingleVolume(libraryManga)) return null
+        return getChaptersByMangaId.await(libraryManga.manga.id, applyFilter = false).singleOrNull()
+    }
+
+    fun opensSingleVolume(libraryManga: LibraryManga): Boolean {
+        return libraryManga.totalChapters == 1L && libraryPreferences.openSingleVolume().get()
+    }
+    // Chimahon <--
+
     suspend fun getNextUnreadChapter(manga: Manga): Chapter? {
         return getChaptersByMangaId.await(manga.id, applyFilter = true)
             .getNextUnread(manga, downloadManager, emptyMap())

@@ -361,6 +361,12 @@ private fun ColumnScope.DisplayPage(
         label = stringResource(MR.strings.action_display_show_continue_reading_button),
         pref = screenModel.libraryPreferences.showContinueReadingButton(),
     )
+    // Chimahon -->
+    CheckboxItem(
+        label = stringResource(MR.strings.pref_library_open_single_volume),
+        pref = screenModel.libraryPreferences.openSingleVolume(),
+    )
+    // Chimahon <--
 
     HeadingItem(MR.strings.tabs_header)
     CheckboxItem(

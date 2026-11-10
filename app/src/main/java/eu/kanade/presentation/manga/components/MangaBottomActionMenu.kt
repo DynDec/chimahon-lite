@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.RemoveDone
@@ -274,6 +275,9 @@ fun LibraryBottomActionMenu(
     onClickResetInfo: (() -> Unit)?,
     // SY <--
     onTrackAddClicked: (() -> Unit)? = null,
+    // Chimahon -->
+    onDetailsClicked: (() -> Unit)? = null,
+    // Chimahon <--
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -288,7 +292,9 @@ fun LibraryBottomActionMenu(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             val haptic = LocalHapticFeedback.current
-            val confirm = remember { mutableStateListOf(false, false, false, false, false, false, false) }
+            val confirm = remember {
+                mutableStateListOf(false, false, false, false, false, false, false, /* Chimahon */ false)
+            }
             var resetJob by remember { mutableStateOf<Job?>(null) }
             val onLongClickItem: (Int) -> Unit = { toConfirmIndex ->
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -307,6 +313,17 @@ fun LibraryBottomActionMenu(
                     )
                     .padding(horizontal = 8.dp, vertical = 12.dp),
             ) {
+                // Chimahon -->
+                if (onDetailsClicked != null) {
+                    Button(
+                        title = stringResource(MR.strings.action_open_details),
+                        icon = Icons.Outlined.Info,
+                        toConfirm = confirm[7],
+                        onLongClick = { onLongClickItem(7) },
+                        onClick = onDetailsClicked,
+                    )
+                }
+                // Chimahon <--
                 Button(
                     title = stringResource(MR.strings.action_move_category),
                     icon = Icons.AutoMirrored.Outlined.Label,
