@@ -221,8 +221,8 @@ class SyncLocalLibrary(
     }
 
     /**
-     * Chapter names are stored when a manga's chapters are listed, so a change to how local chapters are named
-     * reaches the library only by listing them again. Done once per change, for the manga not just listed. A manga
+     * Chapter names and numbers are stored when a manga's chapters are listed, so a change to how local chapters
+     * are named or numbered reaches the library only by listing them again. Done once per change, for the manga not just listed. A manga
      * whose folder is not [listed] is left alone: listing a folder that is gone would drop its chapters.
      */
     private suspend fun renameChapters(listed: Map<String, Listed>, skip: Set<Long>) {
@@ -291,7 +291,10 @@ class SyncLocalLibrary(
         val applyMutex = Mutex()
         val chaptersMutex = Mutex()
 
-        /** Bump when local chapter names are derived differently, so the library takes up the new names. */
-        const val CHAPTER_NAME_VERSION = 1
+        /**
+         * Bump when local chapter names or numbers are derived differently, so the library takes them up.
+         * 2: full-width chapter numbers.
+         */
+        const val CHAPTER_NAME_VERSION = 2
     }
 }

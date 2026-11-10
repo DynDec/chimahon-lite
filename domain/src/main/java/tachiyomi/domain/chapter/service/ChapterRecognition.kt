@@ -1,5 +1,9 @@
 package tachiyomi.domain.chapter.service
 
+// Chimahon -->
+import java.text.Normalizer
+// Chimahon <--
+
 /**
  * -R> = regex conversion.
  */
@@ -41,9 +45,12 @@ object ChapterRecognition {
         }
 
         // Get chapter title with lower case
-        val cleanChapterName = chapterName.lowercase()
+        // Chimahon -->
+        // NFKC folds full-width digits and letters (１, ｖｏｌ) into ASCII so the patterns below match them.
+        val cleanChapterName = chapterName.nfkc().lowercase()
             // Remove manga title from chapter title.
-            .replace(mangaTitle.lowercase(), "").trim()
+            .replace(mangaTitle.nfkc().lowercase(), "").trim()
+            // Chimahon <--
             // Remove comma's or hyphens.
             .replace(',', '.')
             .replace('-', '.')
@@ -71,6 +78,10 @@ object ChapterRecognition {
         // return the first number encountered
         return getChapterNumberFromMatch(numberMatch.first())
     }
+
+    // Chimahon -->
+    private fun String.nfkc(): String = Normalizer.normalize(this, Normalizer.Form.NFKC)
+    // Chimahon <--
 
     /**
      * Check if chapter number is found and return it

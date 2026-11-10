@@ -271,6 +271,20 @@ class ChapterRecognitionTest {
         assertChapter(mangaTitle, "The 4th Night", 4.0)
     }
 
+    // Chimahon -->
+    @Test
+    fun `Chapters with full-width numbers`() {
+        val mangaTitle = "春夏秋冬"
+
+        assertChapter(mangaTitle, "春夏秋冬 １", 1.0)
+        assertChapter(mangaTitle, "春夏秋冬 ２", 2.0)
+        assertChapter(mangaTitle, "春夏秋冬 3 (百合コレ)", 3.0)
+        assertChapter(mangaTitle, "春夏秋冬 １２．５", 12.5)
+        assertChapter(mangaTitle, "Ｖｏｌ．１ Ｃｈ．４", 4.0)
+        assertChapter("２年生編", "ようこそ実力至上主義の教室へ　２年生編９．５", 9.5)
+    }
+    // Chimahon <--
+
     private fun assertChapter(mangaTitle: String, name: String, expected: Double) {
         ChapterRecognition.parseChapterNumber(mangaTitle, name) shouldBe expected
     }
