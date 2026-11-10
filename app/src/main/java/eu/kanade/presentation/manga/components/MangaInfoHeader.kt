@@ -528,7 +528,10 @@ private fun MangaAndSourceTitlesSmall(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, top = appBarPadding + 16.dp, end = 16.dp),
+            // Chimahon -->
+            // The toolbar already leaves room under its buttons.
+            .padding(start = 16.dp, top = appBarPadding + 4.dp, end = 16.dp),
+        // Chimahon <--
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = if (topAlignCover) Alignment.Top else Alignment.CenterVertically,
     ) {
