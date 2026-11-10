@@ -70,7 +70,16 @@ class SyncChaptersWithSource(
             .mapIndexed { i, sChapter ->
                 Chapter.create()
                     .copyFromSChapter(sChapter)
-                    .copy(name = with(ChapterSanitizer) { sChapter.name.sanitize(manga.title) })
+                    // Chimahon -->
+                    // A local chapter keeps the name of its file: a volume is recognised by its series title.
+                    .copy(
+                        name = if (source.isLocal()) {
+                            sChapter.name.trim()
+                        } else {
+                            with(ChapterSanitizer) { sChapter.name.sanitize(manga.title) }
+                        },
+                    )
+                    // Chimahon <--
                     .copy(mangaId = manga.id, sourceOrder = i.toLong())
             }
 
