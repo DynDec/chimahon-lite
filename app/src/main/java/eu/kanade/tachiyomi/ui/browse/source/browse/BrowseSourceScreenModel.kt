@@ -57,7 +57,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import logcat.LogPriority
-import mihon.domain.source.interactor.UpdateMangaFromRemote
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.mapAsCheckboxState
 import tachiyomi.core.common.util.lang.launchIO
@@ -116,7 +115,6 @@ open class BrowseSourceScreenModel(
     private val addTracks: AddTracks = Injekt.get(),
     getIncognitoState: GetIncognitoState = Injekt.get(),
     // KMK -->
-    private val updateMangaFromRemote: UpdateMangaFromRemote = Injekt.get(),
     private val toggleIncognito: ToggleIncognito = Injekt.get(),
     private val extensionManager: ExtensionManager = Injekt.get(),
     // KMK <--
@@ -415,23 +413,6 @@ open class BrowseSourceScreenModel(
             }
 
             updateManga.await(new.toMangaUpdate())
-            // KMK -->
-            val fetchMetadataOnAdd = libraryPreferences.fetchMetadataOnAdd().get()
-            val fetchChaptersOnAdd = libraryPreferences.fetchChaptersOnAdd().get()
-            if (new.favorite && (fetchMetadataOnAdd || fetchChaptersOnAdd)) {
-                try {
-                    // Use `manga` instead of `new` so its title got updated with source's `getMangaDetails`
-                    updateMangaFromRemote(
-                        source = source,
-                        manga = manga,
-                        fetchDetails = fetchMetadataOnAdd,
-                        fetchChapters = fetchChaptersOnAdd,
-                    )
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, e)
-                }
-            }
-            // KMK <--
         }
     }
 

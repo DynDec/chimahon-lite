@@ -181,10 +181,6 @@
     <string name="pref_top_align_cover">将封面与顶部对齐</string>
     <string name="pref_library_filter_categories_details">即使排除类别中的项目也包含在包含类别中，也不会显示。</string>
     <string name="pref_show_empty_categories_search">搜索/筛选时显示空类别</string>
-    <string name="pref_fetch_manga_metadata_on_add">添加至书架时获取漫画元数据</string>
-    <string name="pref_fetch_manga_metadata_on_add_description">将新漫画添加到库时，自动获取其元数据</string>
-    <string name="pref_fetch_manga_chapters_on_add">添加至书架时获取章节</string>
-    <string name="pref_fetch_manga_chapters_on_add_description">将新漫画添加到书架时自动获取其章节列表</string>
     <string name="pref_webdav_url">WebDAV 服务器 URL</string>
     <string name="pref_webdav_url_summ">输入 WebDAV 服务器地址</string>
     <string name="pref_webdav_username_summ">输入你的 WebDAV 用户名</string>

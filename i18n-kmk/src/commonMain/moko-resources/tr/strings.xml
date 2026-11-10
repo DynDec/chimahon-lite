@@ -158,10 +158,6 @@
     <string name="pref_top_align_cover_summary">Kapağı, manga bilgileriyle birlikte yukarıya hizalanmış olarak göster</string>
     <string name="pref_library_filter_categories_details">Hariç tutulan kategorilerdeki girdiler, dahil edilen kategorilerde olsalar bile gösterilmeyeceklerdir.</string>
     <string name="pref_show_empty_categories_search">Arama/filtreleme sırasında boş kategorileri göster</string>
-    <string name="pref_fetch_manga_metadata_on_add">Kitaplığa eklerken üst verileri indir</string>
-    <string name="pref_fetch_manga_metadata_on_add_description">Yeni mangaları kitaplığa eklerken otomatik olarak üst verileri de indirir</string>
-    <string name="pref_fetch_manga_chapters_on_add">Kitaplığa eklerken bölüm bilgilerini indir</string>
-    <string name="pref_fetch_manga_chapters_on_add_description">Yeni mangaları kitaplığa eklerken otomatik olarak bölüm listesini de indirir</string>
     <string name="pref_webdav_url">WebDAV Sunucu Bağlantısı</string>
     <string name="pref_webdav_url_summ">WebDAV sunucu adresini girin</string>
     <string name="pref_webdav_username_summ">WebDAV kullanıcı adınızı girin</string>

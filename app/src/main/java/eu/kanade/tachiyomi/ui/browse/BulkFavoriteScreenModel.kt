@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import logcat.LogPriority
-import mihon.domain.source.interactor.UpdateMangaFromRemote
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.mapAsCheckboxState
 import tachiyomi.core.common.util.lang.launchIO
@@ -56,7 +55,6 @@ class BulkFavoriteScreenModel(
     private val coverCache: CoverCache = Injekt.get(),
     private val setMangaDefaultChapterFlags: SetMangaDefaultChapterFlags = Injekt.get(),
     private val addTracks: AddTracks = Injekt.get(),
-    private val updateMangaFromRemote: UpdateMangaFromRemote = Injekt.get(),
 ) : StateScreenModel<BulkFavoriteScreenModel.State>(initialState) {
 
     fun backHandler() {
@@ -251,21 +249,6 @@ class BulkFavoriteScreenModel(
                 setMangaDefaultChapterFlags.await(manga)
                 addTracks.bindEnhancedTrackers(manga, source)
                 updateManga.awaitUpdateFavorite(manga.id, true)
-                val fetchMetadataOnAdd = libraryPreferences.fetchMetadataOnAdd().get()
-                val fetchChaptersOnAdd = libraryPreferences.fetchChaptersOnAdd().get()
-                if (fetchMetadataOnAdd || fetchChaptersOnAdd) {
-                    try {
-                        updateMangaFromRemote(
-                            source = source,
-                            manga = manga,
-                            fetchDetails = fetchMetadataOnAdd,
-                            fetchChapters = fetchChaptersOnAdd,
-                            // FIXME (KMK): Should have throttle here
-                        )
-                    } catch (e: Exception) {
-                        logcat(LogPriority.ERROR, e)
-                    }
-                }
             } catch (e: Exception) {
                 logcat(LogPriority.ERROR, e)
             }
@@ -352,22 +335,6 @@ class BulkFavoriteScreenModel(
             }
 
             updateManga.await(new.toMangaUpdate())
-            val fetchMetadataOnAdd = libraryPreferences.fetchMetadataOnAdd().get()
-            val fetchChaptersOnAdd = libraryPreferences.fetchChaptersOnAdd().get()
-            if (new.favorite && (fetchMetadataOnAdd || fetchChaptersOnAdd)) {
-                try {
-                    // Use `manga` instead of `new` so its title got updated with source's `getMangaDetails`
-                    updateMangaFromRemote(
-                        source = source,
-                        manga = manga,
-                        fetchDetails = fetchMetadataOnAdd,
-                        fetchChapters = fetchChaptersOnAdd,
-                        // FIXME (KMK): Should have throttle here
-                    )
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, e)
-                }
-            }
         }
     }
 

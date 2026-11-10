@@ -184,8 +184,4 @@
     <string name="migrationConfigScreen_smartSearchSingleEntryTitle">スマート検索を使用</string>
     <string name="migrationConfigScreen_smartSearchSingleEntrySubtitle">有効にすると、最適な検索結果が自動的に選択されます。無効にすると、すべての検索結果が表示され、手動で選択できます。</string>
     <string name="action_clear_manga">漫画を削除</string>
-    <string name="pref_fetch_manga_metadata_on_add">ライブラリに追加する際にメタデータを取得</string>
-    <string name="pref_fetch_manga_metadata_on_add_description">ライブラリに新しい漫画を追加する際に、追加する漫画のメタデータを自動的に取得します</string>
-    <string name="pref_fetch_manga_chapters_on_add">ライブラリに追加する際に章を取得</string>
-    <string name="pref_fetch_manga_chapters_on_add_description">ライブラリに新しい漫画を追加する際に、追加する漫画の章リストを自動的に取得します</string>
 </resources>
